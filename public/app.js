@@ -991,7 +991,7 @@ async function loadPickerPhotos() {
     const photos = await res.json();
     if (loading) loading.style.display = 'none';
 
-    if (photos.length === 0) {
+    if (!Array.isArray(photos) || photos.length === 0) {
       if (empty) empty.style.display = '';
       return;
     }
@@ -1482,18 +1482,17 @@ function renderBriefView(b, id) {
             </tbody>
           </table>
         </div>` : ''}
-      ${(ac.genxCredentials || []).length ? `
+      ${ac.genxCred && (ac.genxCred.frontImage || ac.genxCred.backImage || ac.genxCred.name) ? `
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:12px;">GenX Security Credentials</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
-            ${(ac.genxCredentials || []).map(c => `
-              <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;">
-                <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">${esc(c.name)}</div>
-                <div style="display:flex;gap:8px;">
-                  ${c.frontImage ? `<div style="flex:1;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:4px;">Front</div><img src="${esc(c.frontImage)}" style="width:100%;border-radius:6px;aspect-ratio:0.72;object-fit:cover;"></div>` : ''}
-                  ${c.backImage  ? `<div style="flex:1;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:4px;">Back</div><img src="${esc(c.backImage)}" style="width:100%;border-radius:6px;aspect-ratio:0.72;object-fit:cover;"></div>` : ''}
-                </div>
-              </div>`).join('')}
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px;">
+            ${ac.genxCred.name ? `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">${esc(ac.genxCred.name)}</div>` : ''}
+            ${ac.genxCred.issuedBy ? `<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Issued by: ${esc(ac.genxCred.issuedBy)}</div>` : ''}
+            <div style="display:flex;gap:16px;flex-wrap:wrap;">
+              ${ac.genxCred.frontImage ? `<div style="flex:1;min-width:120px;max-width:200px;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">Front</div><img src="${esc(ac.genxCred.frontImage)}" style="width:100%;border-radius:8px;aspect-ratio:0.63;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.4);"></div>` : ''}
+              ${ac.genxCred.backImage  ? `<div style="flex:1;min-width:120px;max-width:200px;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">Back</div><img src="${esc(ac.genxCred.backImage)}" style="width:100%;border-radius:8px;aspect-ratio:0.63;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.4);"></div>` : ''}
+            </div>
+            ${ac.genxCred.notes ? `<div style="margin-top:10px;font-size:12px;color:var(--text-2);">${esc(ac.genxCred.notes)}</div>` : ''}
           </div>
         </div>` : ''}
       ${ac.parkingNotes ? `<div style="margin-top:12px;font-size:12px;color:var(--text-2);">${esc(ac.parkingNotes)}</div>` : ''}`)}
