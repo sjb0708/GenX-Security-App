@@ -348,14 +348,17 @@
         { label: 'Motor Vehicle Theft', locRate: loc?.mvrRate,    natRate: nat.mvrRate }
       ].filter(r => r.locRate != null || r.natRate != null);
 
-      const stateRows = ci.state && ci.dataSource === 'city' ? crimeRows.map(r => ({
+      const stateKeyMap = {
+        'Violent Crime':'violentRate','Property Crime':'propertyRate','Homicide':'homicideRate',
+        'Robbery':'robberyRate','Aggravated Assault':'assaultRate','Burglary':'burglaryRate',
+        'Motor Vehicle Theft':'mvrRate'
+      };
+      // Show state column whenever we have state data (city+state comparison, or state-only)
+      const hasState = !!ci.state;
+      const stateRows = hasState ? crimeRows.map(r => ({
         ...r,
-        stateRate: ci.state[r.label === 'Violent Crime' ? 'violentRate' : r.label === 'Property Crime' ? 'propertyRate' :
-          r.label === 'Homicide' ? 'homicideRate' : r.label === 'Robbery' ? 'robberyRate' :
-          r.label === 'Aggravated Assault' ? 'assaultRate' : r.label === 'Burglary' ? 'burglaryRate' : 'mvrRate']
+        stateRate: ci.state[stateKeyMap[r.label]] ?? null
       })) : crimeRows;
-
-      const hasState = ci.dataSource === 'city' && ci.state;
 
       return `
         <div class="ci-top">
@@ -397,8 +400,8 @@
           <thead>
             <tr>
               <th>Crime Category</th>
-              <th>${locLabel}</th>
-              ${hasState ? '<th>State</th>' : ''}
+              ${ci.dataSource === 'city' ? `<th>${locLabel}</th>` : ''}
+              ${hasState ? `<th>${ci.dataSource === 'city' ? 'State Avg' : 'State ('+ci.venueState+')'}</th>` : ''}
               <th>National Avg</th>
               <th>vs. National</th>
             </tr>
@@ -406,12 +409,13 @@
           <tbody>
             ${crimeRows.map((r, idx) => {
               const sr = stateRows[idx];
+              const vsRate = ci.dataSource === 'city' ? r.locRate : sr?.stateRate;
               return `<tr>
                 <td>${r.label}</td>
-                <td class="td-city ${rateClass(r.locRate, r.natRate)}">${fmtRate(r.locRate)}</td>
+                ${ci.dataSource === 'city' ? `<td class="td-city ${rateClass(r.locRate, r.natRate)}">${fmtRate(r.locRate)}</td>` : ''}
                 ${hasState ? `<td class="${rateClass(sr?.stateRate, r.natRate)}">${fmtRate(sr?.stateRate)}</td>` : ''}
                 <td class="td-national">${fmtRate(r.natRate)}</td>
-                <td>${multBadge(r.locRate, r.natRate)}</td>
+                <td>${multBadge(vsRate, r.natRate)}</td>
               </tr>`;
             }).join('')}
           </tbody>

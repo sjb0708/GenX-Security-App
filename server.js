@@ -277,8 +277,63 @@ const NATIONAL_2022 = {
   larcenyRate: 1384.8, mvrRate: 300.5
 };
 
+// ── State crime baseline (FBI UCR 2022, rates per 100k) — used as guaranteed fallback ──
+const STATE_CRIME_2022 = {
+  AL:{violentRate:559,propertyRate:2619,homicideRate:12.9,robberyRate:73,assaultRate:422,burglaryRate:479,larcenyRate:1715,mvrRate:425},
+  AK:{violentRate:829,propertyRate:2804,homicideRate:8.2,robberyRate:73,assaultRate:694,burglaryRate:351,larcenyRate:2151,mvrRate:302},
+  AZ:{violentRate:453,propertyRate:3146,homicideRate:7.5,robberyRate:67,assaultRate:320,burglaryRate:337,larcenyRate:2237,mvrRate:572},
+  AR:{violentRate:599,propertyRate:2844,homicideRate:11.4,robberyRate:71,assaultRate:468,burglaryRate:530,larcenyRate:1997,mvrRate:317},
+  CA:{violentRate:500,propertyRate:2607,homicideRate:7.2,robberyRate:103,assaultRate:340,burglaryRate:377,larcenyRate:1620,mvrRate:610},
+  CO:{violentRate:394,propertyRate:2982,homicideRate:5.6,robberyRate:48,assaultRate:302,burglaryRate:312,larcenyRate:2011,mvrRate:659},
+  CT:{violentRate:199,propertyRate:1470,homicideRate:3.9,robberyRate:47,assaultRate:131,burglaryRate:214,larcenyRate:1112,mvrRate:144},
+  DE:{violentRate:499,propertyRate:2379,homicideRate:7.9,robberyRate:87,assaultRate:369,burglaryRate:290,larcenyRate:1806,mvrRate:283},
+  FL:{violentRate:378,propertyRate:2394,homicideRate:7.3,robberyRate:66,assaultRate:274,burglaryRate:356,larcenyRate:1724,mvrRate:314},
+  GA:{violentRate:375,propertyRate:2432,homicideRate:9.1,robberyRate:71,assaultRate:256,burglaryRate:418,larcenyRate:1689,mvrRate:325},
+  HI:{violentRate:268,propertyRate:2564,homicideRate:3.0,robberyRate:44,assaultRate:195,burglaryRate:283,larcenyRate:2056,mvrRate:225},
+  ID:{violentRate:247,propertyRate:1900,homicideRate:2.7,robberyRate:16,assaultRate:202,burglaryRate:221,larcenyRate:1501,mvrRate:178},
+  IL:{violentRate:428,propertyRate:1946,homicideRate:10.8,robberyRate:103,assaultRate:292,burglaryRate:265,larcenyRate:1311,mvrRate:370},
+  IN:{violentRate:419,propertyRate:2221,homicideRate:8.6,robberyRate:69,assaultRate:311,burglaryRate:335,larcenyRate:1656,mvrRate:230},
+  IA:{violentRate:273,propertyRate:1880,homicideRate:4.1,robberyRate:39,assaultRate:207,burglaryRate:236,larcenyRate:1486,mvrRate:158},
+  KS:{violentRate:434,propertyRate:2483,homicideRate:5.9,robberyRate:55,assaultRate:344,burglaryRate:345,larcenyRate:1877,mvrRate:261},
+  KY:{violentRate:242,propertyRate:2007,homicideRate:7.5,robberyRate:49,assaultRate:174,burglaryRate:344,larcenyRate:1468,mvrRate:195},
+  LA:{violentRate:625,propertyRate:2748,homicideRate:18.3,robberyRate:120,assaultRate:461,burglaryRate:494,larcenyRate:1914,mvrRate:340},
+  ME:{violentRate:142,propertyRate:1449,homicideRate:1.6,robberyRate:15,assaultRate:112,burglaryRate:162,larcenyRate:1201,mvrRate:86},
+  MD:{violentRate:462,propertyRate:2000,homicideRate:9.7,robberyRate:122,assaultRate:303,burglaryRate:267,larcenyRate:1447,mvrRate:286},
+  MA:{violentRate:381,propertyRate:1666,homicideRate:3.4,robberyRate:89,assaultRate:271,burglaryRate:231,larcenyRate:1265,mvrRate:170},
+  MI:{violentRate:428,propertyRate:1870,homicideRate:7.4,robberyRate:87,assaultRate:309,burglaryRate:297,larcenyRate:1347,mvrRate:226},
+  MN:{violentRate:291,propertyRate:2179,homicideRate:4.2,robberyRate:61,assaultRate:206,burglaryRate:242,larcenyRate:1649,mvrRate:288},
+  MS:{violentRate:311,propertyRate:2395,homicideRate:12.9,robberyRate:56,assaultRate:218,burglaryRate:547,larcenyRate:1618,mvrRate:230},
+  MO:{violentRate:522,propertyRate:2686,homicideRate:13.3,robberyRate:90,assaultRate:393,burglaryRate:428,larcenyRate:1937,mvrRate:321},
+  MT:{violentRate:498,propertyRate:2729,homicideRate:4.0,robberyRate:18,assaultRate:429,burglaryRate:234,larcenyRate:2256,mvrRate:239},
+  NE:{violentRate:294,propertyRate:2156,homicideRate:4.6,robberyRate:52,assaultRate:215,burglaryRate:237,larcenyRate:1697,mvrRate:222},
+  NV:{violentRate:519,propertyRate:2859,homicideRate:7.8,robberyRate:130,assaultRate:349,burglaryRate:369,larcenyRate:1932,mvrRate:558},
+  NH:{violentRate:201,propertyRate:1297,homicideRate:1.6,robberyRate:27,assaultRate:156,burglaryRate:143,larcenyRate:1070,mvrRate:84},
+  NJ:{violentRate:248,propertyRate:1385,homicideRate:4.6,robberyRate:76,assaultRate:151,burglaryRate:179,larcenyRate:943,mvrRate:263},
+  NM:{violentRate:898,propertyRate:3788,homicideRate:11.5,robberyRate:80,assaultRate:761,burglaryRate:542,larcenyRate:2532,mvrRate:714},
+  NY:{violentRate:350,propertyRate:1529,homicideRate:5.1,robberyRate:84,assaultRate:237,burglaryRate:188,larcenyRate:1135,mvrRate:206},
+  NC:{violentRate:381,propertyRate:2343,homicideRate:9.1,robberyRate:67,assaultRate:275,burglaryRate:349,larcenyRate:1743,mvrRate:251},
+  ND:{violentRate:328,propertyRate:2168,homicideRate:3.5,robberyRate:18,assaultRate:274,burglaryRate:162,larcenyRate:1836,mvrRate:170},
+  OH:{violentRate:354,propertyRate:2070,homicideRate:7.0,robberyRate:69,assaultRate:258,burglaryRate:316,larcenyRate:1541,mvrRate:213},
+  OK:{violentRate:583,propertyRate:3163,homicideRate:9.7,robberyRate:57,assaultRate:471,burglaryRate:596,larcenyRate:2127,mvrRate:440},
+  OR:{violentRate:286,propertyRate:2897,homicideRate:4.2,robberyRate:65,assaultRate:203,burglaryRate:316,larcenyRate:2044,mvrRate:537},
+  PA:{violentRate:311,propertyRate:1598,homicideRate:8.3,robberyRate:81,assaultRate:207,burglaryRate:215,larcenyRate:1193,mvrRate:190},
+  RI:{violentRate:284,propertyRate:1650,homicideRate:3.2,robberyRate:60,assaultRate:207,burglaryRate:195,larcenyRate:1329,mvrRate:126},
+  SC:{violentRate:588,propertyRate:2877,homicideRate:11.6,robberyRate:84,assaultRate:447,burglaryRate:453,larcenyRate:2055,mvrRate:369},
+  SD:{violentRate:430,propertyRate:1928,homicideRate:4.3,robberyRate:20,assaultRate:386,burglaryRate:162,larcenyRate:1588,mvrRate:178},
+  TN:{violentRate:698,propertyRate:2997,homicideRate:11.9,robberyRate:107,assaultRate:543,burglaryRate:532,larcenyRate:2124,mvrRate:341},
+  TX:{violentRate:433,propertyRate:2820,homicideRate:8.1,robberyRate:83,assaultRate:306,burglaryRate:375,larcenyRate:1972,mvrRate:473},
+  UT:{violentRate:239,propertyRate:2565,homicideRate:2.6,robberyRate:30,assaultRate:186,burglaryRate:270,larcenyRate:1888,mvrRate:407},
+  VT:{violentRate:257,propertyRate:1552,homicideRate:2.1,robberyRate:11,assaultRate:208,burglaryRate:175,larcenyRate:1280,mvrRate:97},
+  VA:{violentRate:215,propertyRate:1640,homicideRate:7.2,robberyRate:54,assaultRate:130,burglaryRate:177,larcenyRate:1341,mvrRate:122},
+  WA:{violentRate:345,propertyRate:3438,homicideRate:5.0,robberyRate:59,assaultRate:263,burglaryRate:327,larcenyRate:2522,mvrRate:589},
+  WV:{violentRate:372,propertyRate:1871,homicideRate:7.7,robberyRate:31,assaultRate:301,burglaryRate:381,larcenyRate:1363,mvrRate:127},
+  WI:{violentRate:345,propertyRate:1868,homicideRate:6.2,robberyRate:57,assaultRate:256,burglaryRate:231,larcenyRate:1446,mvrRate:191},
+  WY:{violentRate:234,propertyRate:1987,homicideRate:2.7,robberyRate:9,assaultRate:188,burglaryRate:199,larcenyRate:1618,mvrRate:170},
+  DC:{violentRate:1087,propertyRate:3936,homicideRate:34.0,robberyRate:365,assaultRate:620,burglaryRate:335,larcenyRate:2993,mvrRate:608}
+};
+
 // ── Timed fetch helper (AbortController + clearTimeout so no dangling timers) ──
-function timedFetch(url, ms = 5000) {
+function timedFetch(url, ms = 8000) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), ms);
   return fetch(url, { signal: ac.signal }).finally(() => clearTimeout(t));
@@ -314,6 +369,11 @@ async function fetchVenueCrimeData(city, state, street) {
       }
     }
   } catch (_) {}
+
+  // Fallback: if state API failed or returned no rates, use embedded UCR 2022 data
+  if (!result.state?.violentRate && STATE_CRIME_2022[stateAbbr]) {
+    result.state = { ...STATE_CRIME_2022[stateAbbr], source: 'embedded_ucr_2022' };
+  }
 
   // 2 — City-level FBI data via agency lookup
   try {
@@ -578,7 +638,8 @@ Return this exact JSON structure:
       city: crimeData.city,
       state: crimeData.state,
       national: crimeData.national,
-      census: crimeData.census
+      census: crimeData.census,
+      venueState: brief.venue?.state || ''
     };
 
     res.json(assessment);
