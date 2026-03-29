@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brief Builder — GenX Security</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- Top Nav -->
+<nav class="topnav">
+  <button class="hamburger-btn" onclick="toggleMobileSidebar()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <a class="nav-brand" href="/">
+    <div class="nav-brand-icon">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4z" fill="#e63946"/></svg>
+    </div>
+    <div class="nav-brand-text">
+      <span class="nav-brand-name">GenX Takeover</span>
+      <span class="nav-brand-product">Security</span>
+      <span class="nav-brand-sub">Brief System</span>
+    </div>
+  </a>
+  <div class="nav-center">
+    <div class="nav-breadcrumb">
+      <a href="/" class="crumb" style="color:var(--text-2);text-decoration:none;">Dashboard</a>
+      <span class="sep">/</span>
+      <span class="current" id="navVenueName">New Brief</span>
+    </div>
+  </div>
+  <div class="nav-right">
+    <a id="viewBriefBtn" href="#" class="btn btn-ghost btn-sm" style="display:none;">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 3C4.5 3 1.5 8 1.5 8s3 5 6.5 5 6.5-5 6.5-5-3-5-6.5-5z" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/></svg>
+      View Brief
+    </a>
+    <div class="nav-avatar">GX</div>
+  </div>
+</nav>
+
+<!-- Mobile overlay (closes sidebar when tapped) -->
+<div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobileSidebar()"></div>
+
+<!-- Status Bar -->
+<div class="status-bar" id="statusBar">
+  <div class="status-dot" id="statusDot"></div>
+  <span id="statusText">Ready</span>
+  <span class="divider">·</span>
+  <span class="status-badge">
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 2L3 5v5c0 3.3 2.3 6.4 5 7.2 2.7-.8 5-3.9 5-7.2V5L8 2z" fill="rgba(230,57,70,0.6)"/></svg>
+    18 Sections
+  </span>
+  <span id="statusVenueName" style="color:var(--text-3);font-size:11px;margin-left:4px;"></span>
+</div>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">Sections</div>
+  <ul class="sidebar-nav" id="sidebarNav">
+    <li class="nav-item" data-target="sec-venue" onclick="scrollToSection('sec-venue')">
+      <span class="nav-icon">🏛️</span><span class="nav-label">Venue</span><span class="nav-dot" id="dot-venue"></span>
+    </li>
+    <li class="nav-item" data-target="sec-hotel" onclick="scrollToSection('sec-hotel')">
+      <span class="nav-icon">🏨</span><span class="nav-label">Hotel</span><span class="nav-dot" id="dot-hotel"></span>
+    </li>
+    <li class="nav-item" data-target="sec-timeline" onclick="scrollToSection('sec-timeline')">
+      <span class="nav-icon">📅</span><span class="nav-label">Timeline</span><span class="nav-dot" id="dot-timeline"></span>
+    </li>
+    <li class="nav-item" data-target="sec-contacts" onclick="scrollToSection('sec-contacts')">
+      <span class="nav-icon">🛡️</span><span class="nav-label">Security Contacts</span><span class="nav-dot" id="dot-contacts"></span>
+    </li>
+    <li class="nav-item" data-target="sec-ingress" onclick="scrollToSection('sec-ingress')">
+      <span class="nav-icon">🚪</span><span class="nav-label">Ingress</span><span class="nav-dot" id="dot-ingress"></span>
+    </li>
+    <li class="nav-item" data-target="sec-staffing" onclick="scrollToSection('sec-staffing')">
+      <span class="nav-icon">👮</span><span class="nav-label">Staffing</span><span class="nav-dot" id="dot-staffing"></span>
+    </li>
+    <li class="nav-item" data-target="sec-medical" onclick="scrollToSection('sec-medical')">
+      <span class="nav-icon">⚕️</span><span class="nav-label">Medical</span><span class="nav-dot" id="dot-medical"></span>
+    </li>
+    <li class="nav-item" data-target="sec-evacuation" onclick="scrollToSection('sec-evacuation')">
+      <span class="nav-icon">🚨</span><span class="nav-label">Evacuation</span><span class="nav-dot" id="dot-evacuation"></span>
+    </li>
+    <li class="nav-item" data-target="sec-meetgreet" onclick="scrollToSection('sec-meetgreet')">
+      <span class="nav-icon">🤝</span><span class="nav-label">Meet &amp; Greet</span><span class="nav-dot" id="dot-meetgreet"></span>
+    </li>
+    <li class="nav-item" data-target="sec-comms" onclick="scrollToSection('sec-comms')">
+      <span class="nav-icon">📻</span><span class="nav-label">Communications</span><span class="nav-dot" id="dot-comms"></span>
+    </li>
+    <li class="nav-item" data-target="sec-access" onclick="scrollToSection('sec-access')">
+      <span class="nav-icon">🔑</span><span class="nav-label">Access Control</span><span class="nav-dot" id="dot-access"></span>
+    </li>
+    <li class="nav-item" data-target="sec-loadin" onclick="scrollToSection('sec-loadin')">
+      <span class="nav-icon">🚚</span><span class="nav-label">Load In / Out</span><span class="nav-dot" id="dot-loadin"></span>
+    </li>
+    <li class="nav-item" data-target="sec-ros" onclick="scrollToSection('sec-ros')">
+      <span class="nav-icon">📋</span><span class="nav-label">Run of Show</span><span class="nav-dot" id="dot-ros"></span>
+    </li>
+    <li class="nav-item" data-target="sec-talent" onclick="scrollToSection('sec-talent')">
+      <span class="nav-icon">🎤</span><span class="nav-label">Talent</span><span class="nav-dot" id="dot-talent"></span>
+    </li>
+    <li class="nav-item" data-target="sec-crew" onclick="scrollToSection('sec-crew')">
+      <span class="nav-icon">🎬</span><span class="nav-label">Crew</span><span class="nav-dot" id="dot-crew"></span>
+    </li>
+    <li class="nav-item" data-target="sec-genxstaff" onclick="scrollToSection('sec-genxstaff')">
+      <span class="nav-icon">🛡️</span><span class="nav-label">GenX Security Staff</span><span class="nav-dot" id="dot-genxstaff"></span>
+    </li>
+    <li class="nav-item" data-target="sec-emergency" onclick="scrollToSection('sec-emergency')">
+      <span class="nav-icon">🆘</span><span class="nav-label">Emergency Contacts</span><span class="nav-dot" id="dot-emergency"></span>
+    </li>
+    <li class="nav-item" data-target="sec-maps" onclick="scrollToSection('sec-maps')">
+      <span class="nav-icon">🗺️</span><span class="nav-label">Maps</span><span class="nav-dot" id="dot-maps"></span>
+    </li>
+  </ul>
+  <div class="sidebar-footer">GenX Security v2.0</div>
+</nav>
+
+<!-- Main Content -->
+<div class="main-content with-status" id="mainContent">
+
+  <!-- 1. Venue -->
+  <section class="panel fade-in-up" id="sec-venue">
+    <div class="panel-header">
+      <div class="section-icon">🏛️</div>
+      <h2>Venue Information</h2>
+    </div>
+    <div class="panel-body">
+      <div class="grid-2">
+        <div class="field-group">
+          <label class="field-label">Venue Name</label>
+          <input class="field-input" id="venueName" placeholder="Mesa Arts Center" oninput="scheduleSave();updateMapsButtons();updateNav()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Street Address</label>
+          <input class="field-input" id="venueStreet" placeholder="1 E Main St" oninput="scheduleSave();updateMapsButtons()">
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="field-group">
+          <label class="field-label">City</label>
+          <input class="field-input" id="venueCity" placeholder="Mesa" oninput="scheduleSave();updateMapsButtons()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">State</label>
+          <input class="field-input" id="venueState" placeholder="AZ" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">ZIP</label>
+          <input class="field-input" id="venueZip" placeholder="85201" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div class="grid-4">
+        <div class="field-group">
+          <label class="field-label">Phone</label>
+          <input class="field-input" id="venuePhone" placeholder="(480) 644-6500" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Capacity</label>
+          <input class="field-input" id="venueCapacity" placeholder="1,900" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Total Ticketed</label>
+          <input class="field-input" id="venueTotalTicketed" placeholder="1,750" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Venue Type</label>
+          <input class="field-input" id="venueType" placeholder="Performing Arts Center" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div class="maps-buttons-row no-print hidden" id="maps-buttons">
+        <a id="btn-gmaps" href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#4285F4"/></svg>
+          Open in Google Maps
+        </a>
+        <a id="btn-waze" href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#33ccff" stroke-width="2"/><path d="M8 13s1.5 2 4 2 4-2 4-2" stroke="#33ccff" stroke-width="1.5" stroke-linecap="round"/><circle cx="9" cy="10" r="1" fill="#33ccff"/><circle cx="15" cy="10" r="1" fill="#33ccff"/></svg>
+          Open in Waze
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Hotel -->
+  <section class="panel fade-in-up stagger-1" id="sec-hotel">
+    <div class="panel-header">
+      <div class="section-icon">🏨</div>
+      <h2>Hotel Information</h2>
+    </div>
+    <div class="panel-body">
+      <div class="grid-2">
+        <div class="field-group">
+          <label class="field-label">Hotel Name</label>
+          <input class="field-input" id="hotelName" placeholder="Sheraton Mesa Hotel" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Street Address</label>
+          <input class="field-input" id="hotelStreet" placeholder="860 N Dobson Rd" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="field-group">
+          <label class="field-label">City</label>
+          <input class="field-input" id="hotelCity" placeholder="Mesa" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">State</label>
+          <input class="field-input" id="hotelState" placeholder="AZ" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">ZIP</label>
+          <input class="field-input" id="hotelZip" placeholder="85201" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div class="field-group" style="max-width:280px;">
+        <label class="field-label">Phone</label>
+        <input class="field-input" id="hotelPhone" placeholder="(480) 664-1221" oninput="scheduleSave()">
+      </div>
+      <div class="grid-4">
+        <div class="field-group">
+          <label class="field-label">Check-In Date</label>
+          <input class="field-input" type="date" id="hotelCheckin" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Check-In Time</label>
+          <input class="field-input" type="time" id="hotelCheckinTime" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Check-Out Date</label>
+          <input class="field-input" type="date" id="hotelCheckout" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Check-Out Time</label>
+          <input class="field-input" type="time" id="hotelCheckoutTime" oninput="scheduleSave()">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Timeline -->
+  <section class="panel fade-in-up stagger-2" id="sec-timeline">
+    <div class="panel-header">
+      <div class="section-icon">📅</div>
+      <h2>Event Timeline</h2>
+    </div>
+    <div class="panel-body">
+      <div class="grid-4">
+        <div class="field-group">
+          <label class="field-label">Arrival Date</label>
+          <input class="field-input" type="date" id="arrivalDate" oninput="scheduleSave();renderTimeline()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Arrival Time</label>
+          <input class="field-input" type="time" id="arrivalTime" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Media Day</label>
+          <input class="field-input" type="date" id="mediaDate" oninput="scheduleSave();renderTimeline()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Media Time</label>
+          <input class="field-input" type="time" id="mediaTime" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div class="grid-4">
+        <div class="field-group">
+          <label class="field-label">Show Date</label>
+          <input class="field-input" type="date" id="showDate" oninput="scheduleSave();renderTimeline()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Doors Time</label>
+          <input class="field-input" type="time" id="doorsTime" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Show Time</label>
+          <input class="field-input" type="time" id="showTime" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Departure Date</label>
+          <input class="field-input" type="date" id="departureDate" oninput="scheduleSave();renderTimeline()">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Departure Time</label>
+        <input class="field-input" type="time" id="departureTime" style="max-width:200px;" oninput="scheduleSave()">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Notes</label>
+        <textarea class="field-input" id="timelineNotes" placeholder="Additional timeline notes…" oninput="scheduleSave()"></textarea>
+      </div>
+      <div id="timelineVisualWrap" style="display:none;margin-top:8px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-3);margin-bottom:12px;">Event Timeline</div>
+        <div class="timeline-visual" id="timelineVisual"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Security Contacts -->
+  <section class="panel" id="sec-contacts">
+    <div class="panel-header">
+      <div class="section-icon">🛡️</div>
+      <h2>Security Contacts</h2>
+    </div>
+    <div class="panel-body">
+      <div class="contact-cards-grid">
+        <div class="contact-card primary">
+          <div class="contact-card-badge">Primary Contact</div>
+          <div class="grid-2">
+            <div class="field-group">
+              <label class="field-label">Name</label>
+              <input class="field-input" id="primaryName" oninput="scheduleSave()">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Title</label>
+              <input class="field-input" id="primaryTitle" oninput="scheduleSave()">
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Email</label>
+            <input class="field-input" type="email" id="primaryEmail" oninput="scheduleSave()">
+          </div>
+          <div class="grid-2">
+            <div class="field-group">
+              <label class="field-label">Phone</label>
+              <input class="field-input" id="primaryPhone" oninput="scheduleSave()">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Cell</label>
+              <input class="field-input" id="primaryCell" oninput="scheduleSave()">
+            </div>
+          </div>
+        </div>
+        <div class="contact-card backup">
+          <div class="contact-card-badge">Backup Contact</div>
+          <div class="grid-2">
+            <div class="field-group">
+              <label class="field-label">Name</label>
+              <input class="field-input" id="backupName" oninput="scheduleSave()">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Title</label>
+              <input class="field-input" id="backupTitle" oninput="scheduleSave()">
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Email</label>
+            <input class="field-input" type="email" id="backupEmail" oninput="scheduleSave()">
+          </div>
+          <div class="grid-2">
+            <div class="field-group">
+              <label class="field-label">Phone</label>
+              <input class="field-input" id="backupPhone" oninput="scheduleSave()">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Cell</label>
+              <input class="field-input" id="backupCell" oninput="scheduleSave()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Ingress -->
+  <section class="panel" id="sec-ingress">
+    <div class="panel-header">
+      <div class="section-icon">🚪</div>
+      <h2>Ingress &amp; Screening</h2>
+    </div>
+    <div class="panel-body">
+      <div class="field-group">
+        <label class="field-label">Screening Methods</label>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:4px;">
+          <label class="checkbox-item"><input type="checkbox" id="chkMag" onchange="scheduleSave()"> Magnetometer</label>
+          <label class="checkbox-item"><input type="checkbox" id="chkBag" onchange="scheduleSave()"> Bag Check</label>
+          <label class="checkbox-item"><input type="checkbox" id="chkWand" onchange="scheduleSave()"> Wand</label>
+          <label class="checkbox-item"><input type="checkbox" id="chkPatDown" onchange="scheduleSave()"> Pat Down</label>
+          <label class="checkbox-item"><input type="checkbox" id="chkVisual" onchange="scheduleSave()"> Visual Inspection</label>
+          <label class="checkbox-item"><input type="checkbox" id="chkEvolv" onchange="scheduleSave()"> Evolv</label>
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="field-group">
+          <label class="field-label">Ticketing Type</label>
+          <input class="field-input" id="ticketingType" placeholder="Digital + Physical" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Gate Count</label>
+          <input class="field-input" type="number" id="gateCount" placeholder="4" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Gate Open Time</label>
+          <input class="field-input" type="time" id="gateOpenTime" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Prohibited Items <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;color:var(--text-3);">(press Enter to add)</span></label>
+        <div class="tag-input-wrap" id="prohibitedTagsWrap" onclick="document.getElementById('prohibitedTagInput').focus()">
+          <input class="tag-input-field" id="prohibitedTagInput" placeholder="Add item and press Enter…" onkeydown="handleTagKey(event,'prohibitedTagsWrap','prohibitedTagInput')">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Notes</label>
+        <textarea class="field-input" id="ingressNotes" placeholder="VIP entry procedures, gate assignments, special instructions…" oninput="scheduleSave()"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Staffing -->
+  <section class="panel" id="sec-staffing">
+    <div class="panel-header">
+      <div class="section-icon">👮</div>
+      <h2>Staffing</h2>
+    </div>
+    <div class="panel-body">
+      <div class="grid-4">
+        <div class="field-group">
+          <label class="field-label">Total Security</label>
+          <input class="field-input" type="number" id="totalSecurity" placeholder="24" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Ushers</label>
+          <input class="field-input" type="number" id="ushers" placeholder="12" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">LEO Officers</label>
+          <input class="field-input" type="number" id="leoCount" placeholder="4" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Backstage</label>
+          <input class="field-input" type="number" id="backstageSecurity" placeholder="6" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div class="field-group" style="max-width:200px;margin-top:4px;">
+        <label class="field-label" style="display:flex;align-items:center;gap:8px;">
+          GenX Security
+          <span style="font-size:10px;font-weight:500;color:var(--text-3);text-transform:none;letter-spacing:0;">(auto from staff section)</span>
+        </label>
+        <input class="field-input" type="number" id="genxSecurity" readonly style="background:var(--surface-2);color:var(--text-2);cursor:default;" placeholder="0">
+      </div>
+      <div class="toggle-row" style="border-top:1px solid var(--border);padding-top:16px;">
+        <div class="toggle-info">
+          <div class="toggle-label">Uniformed Staff</div>
+          <div class="toggle-desc">Security personnel wear identifying uniforms</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="uniformed" onchange="scheduleSave();toggleUniformDesc()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="field-group" id="uniformDescWrap" style="display:none;margin-top:12px;">
+        <label class="field-label">Uniform Description</label>
+        <textarea class="field-input" id="uniformDesc" placeholder="Describe the uniform…" oninput="scheduleSave()"></textarea>
+      </div>
+      <div class="field-group" style="margin-top:16px;">
+        <label class="field-label">Staffing Notes</label>
+        <textarea class="field-input" id="staffingNotes" placeholder="Briefing times, position assignments, special instructions…" oninput="scheduleSave()"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Medical -->
+  <section class="panel" id="sec-medical">
+    <div class="panel-header">
+      <div class="section-icon">⚕️</div>
+      <h2>Medical &amp; Emergency</h2>
+    </div>
+    <div class="panel-body">
+      <div class="toggle-row" style="margin-bottom:16px;">
+        <div class="toggle-info">
+          <div class="toggle-label">Medical Personnel On-Site</div>
+          <div class="toggle-desc">EMTs or paramedics assigned to this event</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="medicalOnSite" onchange="scheduleSave()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="grid-2" style="max-width:500px;">
+        <div class="field-group">
+          <label class="field-label">First Responder Count</label>
+          <input class="field-input" type="number" id="firstResponderCount" placeholder="2" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div style="display:flex;gap:32px;flex-wrap:wrap;margin-top:12px;margin-bottom:4px;">
+        <div class="toggle-row" style="padding:0;">
+          <div class="toggle-info">
+            <div class="toggle-label">Are AED Located On Site?</div>
+          </div>
+          <label class="toggle" style="margin-left:12px;">
+            <input type="checkbox" id="aedOnSite" onchange="scheduleSave()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row" style="padding:0;">
+          <div class="toggle-info">
+            <div class="toggle-label">Are AED Close to Stage &amp; Backstage?</div>
+          </div>
+          <label class="toggle" style="margin-left:12px;">
+            <input type="checkbox" id="aedNearStage" onchange="scheduleSave()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">First Aid Station Locations</label>
+        <input class="field-input" id="firstAidLocations" placeholder="Section 101, backstage right…" oninput="scheduleSave()">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Emergency Protocol</label>
+        <textarea class="field-input" id="emergencyProtocol" placeholder="Response procedures, code words, radio channels…" oninput="scheduleSave()"></textarea>
+      </div>
+      <div class="grid-3">
+        <div class="field-group">
+          <label class="field-label">Nearest Hospital</label>
+          <input class="field-input" id="hospitalName" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Hospital Address</label>
+          <input class="field-input" id="hospitalAddress" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Hospital Phone</label>
+          <input class="field-input" id="hospitalPhone" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div class="field-group" style="max-width:300px;">
+        <label class="field-label">Announcement Method</label>
+        <select class="field-input" id="announcementMethod" onchange="scheduleSave()">
+          <option value="">Select…</option>
+          <option>PA System + Radio</option>
+          <option>Radio Only</option>
+          <option>PA System Only</option>
+          <option>PA + Text Alert</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Evacuation -->
+  <section class="panel" id="sec-evacuation">
+    <div class="panel-header">
+      <div class="section-icon">🚨</div>
+      <h2>Evacuation Plan</h2>
+    </div>
+    <div class="panel-body">
+      <div class="grid-2">
+        <div class="field-group">
+          <label class="field-label">Primary Exit Route</label>
+          <textarea class="field-input" id="primaryExit" style="min-height:70px;" oninput="scheduleSave()"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Secondary Exit Route</label>
+          <textarea class="field-input" id="secondaryExit" style="min-height:70px;" oninput="scheduleSave()"></textarea>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Safe Rooms <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;color:var(--text-3);">(press Enter to add)</span></label>
+        <div class="tag-input-wrap" id="safeRoomsWrap" onclick="document.getElementById('safeRoomInput').focus()">
+          <input class="tag-input-field" id="safeRoomInput" placeholder="Add safe room and press Enter…" onkeydown="handleTagKey(event,'safeRoomsWrap','safeRoomInput')">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Rally Point</label>
+        <input class="field-input" id="rallyPoint" oninput="scheduleSave()">
+      </div>
+      <div class="field-group">
+        <label class="field-label">EAP Announcement Script</label>
+        <textarea class="field-input" id="eapNotes" placeholder="Exact announcement language for evacuation…" oninput="scheduleSave()"></textarea>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Lockdown Protocol</label>
+        <textarea class="field-input" id="lockdownProtocol" placeholder="Steps to initiate and maintain lockdown…" oninput="scheduleSave()"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Meet & Greet -->
+  <section class="panel" id="sec-meetgreet">
+    <div class="panel-header">
+      <div class="section-icon">🤝</div>
+      <h2>Meet &amp; Greet / Gift Policy</h2>
+    </div>
+    <div class="panel-body">
+      <div class="toggle-row" style="margin-bottom:16px;">
+        <div class="toggle-info">
+          <div class="toggle-label">Meet &amp; Greet Scheduled</div>
+          <div class="toggle-desc">Fan meet and greet session included in this event</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="mgScheduled" onchange="scheduleSave()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="grid-4">
+        <div class="field-group">
+          <label class="field-label">Time</label>
+          <input class="field-input" type="time" id="mgTime" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Duration (min)</label>
+          <input class="field-input" type="number" id="mgDuration" placeholder="45" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Location</label>
+          <input class="field-input" id="mgLocation" placeholder="VIP Lounge" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Total VIPs</label>
+          <input class="field-input" type="number" id="mgTotalVips" placeholder="30" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div class="field-group" style="max-width:200px;">
+        <label class="field-label">Security Staff Assigned</label>
+        <input class="field-input" type="number" id="mgStaff" placeholder="3" oninput="scheduleSave()">
+      </div>
+      <div class="field-group">
+        <label class="field-label">M&amp;G Protocol</label>
+        <textarea class="field-input" id="mgProtocol" oninput="scheduleSave()"></textarea>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Gift Policy</label>
+        <textarea class="field-input" id="giftPolicy" placeholder="Inspection requirements, prohibited items, storage…" oninput="scheduleSave()"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. Communications -->
+  <section class="panel" id="sec-comms">
+    <div class="panel-header">
+      <div class="section-icon">📻</div>
+      <h2>Communications</h2>
+    </div>
+    <div class="panel-body">
+      <div class="toggle-row" style="margin-bottom:16px;">
+        <div class="toggle-info">
+          <div class="toggle-label">Does Venue Need to Share Communications?</div>
+          <div class="toggle-desc">Venue security will share radio channels with GenX Security</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="venueShareComms" onchange="scheduleSave()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Radio Channels</label>
+        <div class="channel-grid" id="channelGrid"></div>
+        <button class="btn btn-ghost btn-sm mt-8" style="margin-top:10px;" onclick="addRadioChannel()">+ Add Channel</button>
+      </div>
+      <div class="grid-2" style="margin-top:16px;">
+        <div class="field-group">
+          <label class="field-label">Security Operations</label>
+          <input class="field-input" id="securityOps" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Security Operations Phone</label>
+          <input class="field-input" id="securityOpsPhone" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div class="toggle-row" style="border-top:1px solid var(--border);padding-top:16px;">
+        <div class="toggle-info">
+          <div class="toggle-label">Personal Cell Phones Permitted</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="cellOk" onchange="scheduleSave()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="field-group" style="margin-top:16px;">
+        <label class="field-label">Notes</label>
+        <textarea class="field-input" id="commsNotes" oninput="scheduleSave()"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. Access Control -->
+  <section class="panel" id="sec-access">
+    <div class="panel-header">
+      <div class="section-icon">🔑</div>
+      <h2>Access Control</h2>
+    </div>
+    <div class="panel-body">
+      <div class="field-group">
+        <label class="field-label">Door / Entry System</label>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:6px;">
+          <label class="checkbox-item"><input type="checkbox" id="doorCardAccess" onchange="scheduleSave()"> Card Access</label>
+          <label class="checkbox-item"><input type="checkbox" id="doorFacial" onchange="scheduleSave()"> Facial Recognition</label>
+          <label class="checkbox-item"><input type="checkbox" id="doorPin" onchange="scheduleSave()"> PIN</label>
+          <label class="checkbox-item"><input type="checkbox" id="doorKey" onchange="scheduleSave()"> Key</label>
+          <label class="checkbox-item"><input type="checkbox" id="doorFob" onchange="scheduleSave()"> Fob</label>
+          <label class="checkbox-item"><input type="checkbox" id="doorOther" onchange="scheduleSave()"> Other</label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Additional Venue-Required Credentials</label>
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="credentialsTable">
+            <thead>
+              <tr>
+                <th>Credential Name</th>
+                <th>Color</th>
+                <th>Access Level</th>
+                <th>Location</th>
+                <th style="width:64px;">Example</th>
+                <th style="width:44px;"></th>
+              </tr>
+            </thead>
+            <tbody id="credentialsBody"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="addCredentialRow()">+ Add Credential</button>
+      </div>
+
+      <!-- GenX Security Credentials -->
+      <div class="field-group" style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
+        <label class="field-label" style="margin-bottom:4px;">GenX Security Credentials</label>
+        <p style="font-size:12px;color:var(--text-3);margin:0 0 14px;">Official GenX Takeover Security badges for this event</p>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+          <!-- Front Badge -->
+          <div style="flex:1;min-width:180px;max-width:260px;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-3);margin-bottom:8px;">Front</div>
+            <div id="genxCredFront"
+                 onclick="event.stopPropagation();openPhotoPickerForCredSlot('genxCredFront','genxCredFrontUrl')"
+                 style="aspect-ratio:0.72;border-radius:12px;border:2px dashed var(--border-2);cursor:pointer;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--surface-2);position:relative;transition:border-color 0.2s;"
+                 onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor=document.getElementById('genxCredFrontUrl').value?'transparent':'var(--border-2)'">
+              <div id="genxCredFrontPlaceholder" style="text-align:center;padding:12px;">
+                <div style="font-size:28px;margin-bottom:6px;">🪪</div>
+                <div style="font-size:11px;color:var(--text-3);font-weight:600;">Tap to add<br>front image</div>
+              </div>
+            </div>
+            <input type="hidden" id="genxCredFrontUrl" oninput="scheduleSave()">
+          </div>
+          <!-- Back Badge -->
+          <div style="flex:1;min-width:180px;max-width:260px;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-3);margin-bottom:8px;">Back</div>
+            <div id="genxCredBack"
+                 onclick="event.stopPropagation();openPhotoPickerForCredSlot('genxCredBack','genxCredBackUrl')"
+                 style="aspect-ratio:0.72;border-radius:12px;border:2px dashed var(--border-2);cursor:pointer;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--surface-2);position:relative;transition:border-color 0.2s;"
+                 onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor=document.getElementById('genxCredBackUrl').value?'transparent':'var(--border-2)'">
+              <div id="genxCredBackPlaceholder" style="text-align:center;padding:12px;">
+                <div style="font-size:28px;margin-bottom:6px;">🪪</div>
+                <div style="font-size:11px;color:var(--text-3);font-weight:600;">Tap to add<br>back image</div>
+              </div>
+            </div>
+            <input type="hidden" id="genxCredBackUrl" oninput="scheduleSave()">
+          </div>
+          <!-- Credential details -->
+          <div style="flex:2;min-width:200px;display:flex;flex-direction:column;gap:10px;justify-content:flex-start;padding-top:24px;">
+            <div class="field-group">
+              <label class="field-label">Credential Name</label>
+              <input class="field-input" id="genxCredName" placeholder="e.g. All Access" oninput="scheduleSave()">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Issued By</label>
+              <input class="field-input" id="genxCredIssuedBy" placeholder="GenX Takeover Security" oninput="scheduleSave()">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Notes</label>
+              <textarea class="field-input" id="genxCredNotes" rows="3" placeholder="Worn visibly at all times. Must match staff list." oninput="scheduleSave()"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-group" style="margin-top:16px;">
+        <label class="field-label">Parking Notes</label>
+        <textarea class="field-input" id="parkingNotes" oninput="scheduleSave()"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. Load In/Out -->
+  <section class="panel" id="sec-loadin">
+    <div class="panel-header">
+      <div class="section-icon">🚚</div>
+      <h2>Load In / Load Out</h2>
+    </div>
+    <div class="panel-body">
+      <div class="field-group">
+        <label class="field-label">Dock Location</label>
+        <input class="field-input" id="dockLocation" placeholder="Rear Loading Dock — Robson St entrance" oninput="scheduleSave()">
+      </div>
+      <div class="grid-3" style="margin-top:4px;">
+        <div class="field-group">
+          <label class="field-label">Load-In Date</label>
+          <input class="field-input" type="date" id="loadinDate" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Load-In Time</label>
+          <input class="field-input" type="time" id="loadinTime" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label" style="visibility:hidden;">.</label>
+          <div class="toggle-row" style="padding:8px 0 0;">
+            <div class="toggle-info"><div class="toggle-label">Security at Dock</div></div>
+            <label class="toggle" style="margin-left:12px;">
+              <input type="checkbox" id="securityAtDock" onchange="scheduleSave()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Load-In Notes</label>
+        <textarea class="field-input" id="loadinNotes" oninput="scheduleSave()"></textarea>
+      </div>
+      <div class="grid-3">
+        <div class="field-group">
+          <label class="field-label">Load-Out Date</label>
+          <input class="field-input" type="date" id="loadoutDate" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Load-Out Time</label>
+          <input class="field-input" type="time" id="loadoutTime" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Vehicle Count</label>
+          <input class="field-input" type="number" id="vehicleCount" placeholder="7" oninput="scheduleSave()">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Load-Out Notes</label>
+        <textarea class="field-input" id="loadoutNotes" oninput="scheduleSave()"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. Run of Show -->
+  <section class="panel" id="sec-ros">
+    <div class="panel-header">
+      <div class="section-icon">📋</div>
+      <h2>Run of Show</h2>
+    </div>
+    <div class="panel-body p-0">
+      <div class="ros-table-wrap">
+        <table class="ros-table">
+          <thead>
+            <tr>
+              <th style="width:30px;"></th>
+              <th style="width:90px;">Time</th>
+              <th>Activity</th>
+              <th>Security Notes</th>
+              <th style="width:70px;text-align:center;">Critical</th>
+              <th style="width:44px;"></th>
+            </tr>
+          </thead>
+          <tbody id="rosBody"></tbody>
+        </table>
+      </div>
+      <div class="ros-add-row">
+        <button class="btn btn-ghost btn-sm" onclick="addROSRow({})">+ Add Row</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. Talent -->
+  <section class="panel" id="sec-talent">
+    <div class="panel-header">
+      <div class="section-icon">🎤</div>
+      <h2>Talent</h2>
+    </div>
+    <div class="panel-body">
+      <div class="person-grid" id="talentGrid"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:16px;" onclick="addPersonCard({},\'talent\')">+ Add Talent</button>
+    </div>
+  </section>
+
+  <!-- 15. Crew -->
+  <section class="panel" id="sec-crew">
+    <div class="panel-header">
+      <div class="section-icon">🎬</div>
+      <h2>Crew &amp; Production</h2>
+    </div>
+    <div class="panel-body">
+      <div class="person-grid" id="crewGrid"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:16px;" onclick="addPersonCard({},\'crew\')">+ Add Crew Member</button>
+    </div>
+  </section>
+
+  <!-- 16. GenX Security Staff -->
+  <section class="panel" id="sec-genxstaff">
+    <div class="panel-header">
+      <div class="section-icon">🛡️</div>
+      <h2>GenX Security Staff</h2>
+    </div>
+    <div class="panel-body">
+      <div class="person-grid" id="genxStaffGrid"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:16px;" onclick="addGenxStaffCard({});scheduleSave()">+ Add Staff Member</button>
+    </div>
+  </section>
+
+  <!-- 17. Emergency Contacts -->
+  <section class="panel" id="sec-emergency">
+    <div class="panel-header">
+      <div class="section-icon">🆘</div>
+      <h2>Emergency Contacts</h2>
+    </div>
+    <div class="panel-body p-0">
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="emergencyTable">
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Name / Organization</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th style="width:44px;"></th>
+            </tr>
+          </thead>
+          <tbody id="emergencyBody"></tbody>
+        </table>
+      </div>
+      <div style="padding:12px 16px;border-top:1px dashed var(--border);">
+        <button class="btn btn-ghost btn-sm" onclick="addEmergencyRow({})">+ Add Contact</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. Maps -->
+  <section class="panel" id="sec-maps">
+    <div class="panel-header">
+      <div class="section-icon">🗺️</div>
+      <h2>Venue Maps &amp; Diagrams</h2>
+    </div>
+    <div class="panel-body">
+      <div class="maps-grid" id="mapsGrid"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:16px;" onclick="promptAddMap()">+ Add Map</button>
+    </div>
+  </section>
+
+</div><!-- /main-content -->
+
+<!-- Photo Library Picker Modal -->
+<div id="photoPickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border-2);border-radius:16px;width:min(680px,94vw);max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+    <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div style="font-size:14px;font-weight:800;color:var(--text);">Photo Library</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:1px;">Select a photo or upload a new one</div>
+      </div>
+      <button onclick="closePhotoPicker()" style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text-2);font-size:14px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+    </div>
+    <div style="padding:16px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--surface-2);border:1px dashed var(--border-2);border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--text-2);transition:all 0.15s;" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border-2)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V8m0 0l-3 3m3-3l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Upload new photo to library
+        <input type="file" accept="image/*" multiple style="display:none;" onchange="pickerUploadNew(this.files)">
+      </label>
+    </div>
+    <div style="padding:16px;overflow-y:auto;flex:1;">
+      <div id="pickerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;"></div>
+      <div id="pickerEmpty" style="display:none;text-align:center;padding:40px;color:var(--text-3);font-size:13px;">No photos in library yet.<br>Upload photos in Settings → Photo Library.</div>
+      <div id="pickerLoading" style="text-align:center;padding:40px;color:var(--text-3);font-size:13px;">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/app.js?v=1774745000"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  initBriefBuilder(id);
+});
+</script>
+</body>
+</html>

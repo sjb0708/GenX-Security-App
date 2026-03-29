@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Brief — GenX Takeover</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- Top Nav -->
+<nav class="topnav no-print">
+  <a class="nav-brand" href="/">
+    <div class="nav-brand-icon">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4z" fill="#e63946"/></svg>
+    </div>
+    <div class="nav-brand-text">
+      <span class="nav-brand-name">GenX Takeover</span>
+      <span class="nav-brand-product">Security</span>
+      <span class="nav-brand-sub">Brief System</span>
+    </div>
+  </a>
+  <div class="nav-center">
+    <div class="nav-breadcrumb">
+      <a href="/" class="crumb" style="color:var(--text-2);text-decoration:none;">Dashboard</a>
+      <span class="sep">/</span>
+      <span class="current" id="viewNavTitle">Security Brief</span>
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-avatar">GX</div>
+  </div>
+</nav>
+
+<!-- View Topbar -->
+<div class="view-topbar no-print">
+  <a id="editBtn" href="#" class="btn btn-ghost btn-sm">← Edit</a>
+  <div style="flex:1;"></div>
+  <span class="confidential-tag">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M8 1L2 4v5c0 4 2.7 7.7 6 8.7 3.3-1 6-4.7 6-8.7V4L8 1z" fill="#e63946"/></svg>
+    Confidential
+  </span>
+  <button class="btn btn-primary btn-sm" onclick="window.print()">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="3" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M5 10v3h6v-3" stroke="currentColor" stroke-width="1.5"/><rect x="5" y="3" width="6" height="4" rx="0.5" fill="currentColor" opacity="0.3"/></svg>
+    Print / Export PDF
+  </button>
+</div>
+
+<!-- Brief Document -->
+<div class="view-content" id="briefDocument">
+  <div style="text-align:center;padding:80px 0;color:var(--text-2);">
+    <div class="loading-spinner" style="margin:0 auto 16px;width:32px;height:32px;"></div>
+    <div style="font-size:13px;">Loading brief…</div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<script src="/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  if (id) {
+    initBriefView(id);
+  } else {
+    document.getElementById('briefDocument').innerHTML =
+      '<div style="text-align:center;padding:80px;color:var(--text-2);">No brief ID specified.</div>';
+  }
+});
+</script>
+</body>
+</html>

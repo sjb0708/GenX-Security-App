@@ -1,0 +1,9 @@
+node_modules/
+.settings.json
+.briefs.json
+.photos.json
+public/uploads/*
+!public/uploads/.gitkeep
+.env
+*.log
+.DS_Store

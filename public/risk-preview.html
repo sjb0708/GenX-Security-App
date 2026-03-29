@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Risk Assessment Preview — GenX Security</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .ra-wrap { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* Header */
+    .ra-header { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .ra-header-top { background: linear-gradient(135deg, #1a0505 0%, #2d0a0a 100%); padding: 28px 32px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+    .ra-header-meta { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.45); margin-bottom: 6px; }
+    .ra-header-title { font-size: 22px; font-weight: 800; color: white; margin-bottom: 4px; }
+    .ra-header-venue { font-size: 14px; color: rgba(255,255,255,0.6); }
+    .ra-overall-badge { flex-shrink: 0; text-align: center; }
+    .ra-risk-ring { width: 90px; height: 90px; border-radius: 50%; border: 4px solid var(--red); display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(230,57,70,0.1); }
+    .ra-risk-ring .level { font-size: 13px; font-weight: 800; color: var(--red); text-transform: uppercase; letter-spacing: 0.5px; }
+    .ra-risk-ring .score { font-size: 26px; font-weight: 800; color: white; line-height: 1; }
+    .ra-risk-ring .score-label { font-size: 9px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .ra-header-bottom { padding: 16px 32px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; border-top: 1px solid var(--border); }
+    .ra-meta-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
+    .ra-meta-item span:first-child { color: var(--text-3); font-size: 11px; font-weight: 600; text-transform: uppercase; }
+
+    /* Score Summary Bar */
+    .ra-scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .ra-score-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+    .ra-score-card .score-num { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+    .ra-score-card .score-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-2); margin-bottom: 8px; }
+    .ra-score-card .score-bar { height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
+    .ra-score-card .score-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+    .score-high { color: var(--red); }
+    .score-medium { color: var(--gold); }
+    .score-low { color: var(--green); }
+    .fill-high { background: var(--red); }
+    .fill-medium { background: var(--gold); }
+    .fill-low { background: var(--green); }
+
+    /* Findings */
+    .ra-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+    .ra-section-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+    .ra-section-left { display: flex; align-items: center; gap: 12px; }
+    .ra-section-icon { font-size: 18px; }
+    .ra-section-name { font-size: 13px; font-weight: 700; color: var(--text); }
+    .ra-section-count { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+    .ra-section-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-critical { background: rgba(230,57,70,0.15); color: var(--red); border: 1px solid rgba(230,57,70,0.3); }
+    .badge-medium { background: rgba(212,160,23,0.12); color: var(--gold); border: 1px solid rgba(212,160,23,0.3); }
+    .badge-low { background: rgba(63,185,80,0.1); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+    .badge-info { background: rgba(56,139,253,0.1); color: var(--blue); border: 1px solid rgba(56,139,253,0.25); }
+
+    .ra-section-body { padding: 0 20px 20px; }
+
+    /* Finding items */
+    .finding { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .finding:last-child { border-bottom: none; padding-bottom: 0; }
+    .finding-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; margin-top: 2px; }
+    .finding-icon-critical { background: rgba(230,57,70,0.12); }
+    .finding-icon-medium { background: rgba(212,160,23,0.1); }
+    .finding-icon-low { background: rgba(63,185,80,0.08); }
+    .finding-icon-pass { background: rgba(63,185,80,0.08); }
+    .finding-content { flex: 1; }
+    .finding-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .finding-detail { font-size: 12px; color: var(--text-2); line-height: 1.6; margin-bottom: 8px; }
+    .finding-rec { display: flex; align-items: flex-start; gap: 6px; background: var(--surface-2); border-radius: 6px; padding: 8px 10px; font-size: 11px; color: var(--text-2); line-height: 1.5; }
+    .finding-rec::before { content: '→'; color: var(--red); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+    /* Crime Stats */
+    .crime-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .crime-stat-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+    .crime-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); margin-bottom: 6px; }
+    .crime-stat-value { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+    .crime-stat-compare { font-size: 11px; font-weight: 600; }
+    .compare-better { color: var(--green); }
+    .compare-worse { color: var(--red); }
+    .crime-source { font-size: 10px; color: var(--text-3); margin-top: 12px; }
+
+    /* Recommendations Summary */
+    .rec-list { list-style: none; padding: 0; }
+    .rec-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .rec-item:last-child { border-bottom: none; }
+    .rec-num { width: 24px; height: 24px; border-radius: 50%; background: var(--red); color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .rec-text { font-size: 12px; color: var(--text-2); line-height: 1.6; }
+    .rec-priority { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; margin-left: 6px; vertical-align: middle; }
+
+    /* Pass checks */
+    .pass-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pass-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); padding: 8px 10px; background: var(--surface-2); border-radius: 6px; }
+    .pass-check { color: var(--green); font-weight: 700; }
+
+    /* Watermark label */
+    .preview-banner { background: rgba(212,160,23,0.1); border: 1px solid rgba(212,160,23,0.3); border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--gold); font-weight: 600; }
+
+    @media (max-width: 640px) {
+      .ra-scores { grid-template-columns: repeat(2, 1fr); }
+      .crime-stats { grid-template-columns: 1fr 1fr; }
+      .pass-grid { grid-template-columns: 1fr; }
+      .ra-header-top { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Nav -->
+  <nav class="topnav">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2L3 7v6c0 5.25 3.75 10.15 9 11.35C17.25 23.15 21 18.25 21 13V7L12 2z"/></svg>
+      </div>
+      <div>
+        <span style="font-weight:800;font-size:14px;color:var(--text);">GenX Takeover</span>
+        <span style="color:var(--red);font-weight:700;"> Security</span>
+      </div>
+      <span style="color:var(--border);margin:0 4px;">›</span>
+      <span style="font-size:13px;color:var(--text-2);">Risk Assessment Preview</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="/" style="font-size:12px;font-weight:600;color:var(--text-2);text-decoration:none;">← Dashboard</a>
+    </div>
+  </nav>
+
+  <div style="margin-top:56px;">
+    <div class="ra-wrap">
+
+      <!-- Preview Banner -->
+      <div class="preview-banner">
+        ⚡ This is a design preview — connect your Anthropic API key in Settings to generate live AI assessments from any brief
+      </div>
+
+      <!-- Header -->
+      <div class="ra-header">
+        <div class="ra-header-top">
+          <div>
+            <div class="ra-header-meta">AI Risk Assessment · GenX Takeover Security</div>
+            <div class="ra-header-title">Security Risk Assessment</div>
+            <div class="ra-header-venue">Mesa Arts Center · Mesa, AZ · April 15, 2026</div>
+          </div>
+          <div class="ra-overall-badge">
+            <div class="ra-risk-ring">
+              <div class="score">72</div>
+              <div class="score-label">/100</div>
+              <div class="level">Medium</div>
+            </div>
+          </div>
+        </div>
+        <div class="ra-header-bottom">
+          <div class="ra-meta-item"><span>Venue</span> Mesa Arts Center</div>
+          <div class="ra-meta-item"><span>Capacity</span> 1,884</div>
+          <div class="ra-meta-item"><span>Security Ratio</span> 1:105</div>
+          <div class="ra-meta-item"><span>Findings</span> 3 Critical · 4 Medium · 6 Low</div>
+          <div class="ra-meta-item"><span>Generated</span> Apr 14, 2026 · 10:22 AM</div>
+        </div>
+      </div>
+
+      <!-- Score Cards -->
+      <div class="ra-scores">
+        <div class="ra-score-card">
+          <div class="score-num score-medium">68</div>
+          <div class="score-label">Staffing</div>
+          <div class="score-bar"><div class="score-fill fill-medium" style="width:68%"></div></div>
+        </div>
+        <div class="ra-score-card">
+          <div class="score-num score-low">85</div>
+          <div class="score-label">Medical</div>
+          <div class="score-bar"><div class="score-fill fill-low" style="width:85%"></div></div>
+        </div>
+        <div class="ra-score-card">
+          <div class="score-num score-high">54</div>
+          <div class="score-label">Evacuation</div>
+          <div class="score-bar"><div class="score-fill fill-high" style="width:54%"></div></div>
+        </div>
+        <div class="ra-score-card">
+          <div class="score-num score-low">91</div>
+          <div class="score-label">Access Control</div>
+          <div class="score-bar"><div class="score-fill fill-low" style="width:91%"></div></div>
+        </div>
+      </div>
+
+      <!-- Crime Stats -->
+      <div class="ra-section">
+        <div class="ra-section-header" onclick="toggleSection(this)">
+          <div class="ra-section-left">
+            <span class="ra-section-icon">📊</span>
+            <div>
+              <div class="ra-section-name">Crime Intelligence — Mesa, AZ</div>
+              <div class="ra-section-count">FBI Crime Data · 2024 Estimates</div>
+            </div>
+          </div>
+          <span class="ra-section-badge badge-info">INFO</span>
+        </div>
+        <div class="ra-section-body">
+          <div class="crime-stats">
+            <div class="crime-stat-card">
+              <div class="crime-stat-label">Violent Crime Rate</div>
+              <div class="crime-stat-value">312</div>
+              <div class="crime-stat-compare compare-better">↓ 18% below national avg</div>
+            </div>
+            <div class="crime-stat-card">
+              <div class="crime-stat-label">Property Crime Rate</div>
+              <div class="crime-stat-value">2,847</div>
+              <div class="crime-stat-compare compare-worse">↑ 6% above national avg</div>
+            </div>
+            <div class="crime-stat-card">
+              <div class="crime-stat-label">Assault Rate</div>
+              <div class="crime-stat-value">198</div>
+              <div class="crime-stat-compare compare-better">↓ 22% below national avg</div>
+            </div>
+          </div>
+          <div class="finding">
+            <div class="finding-icon finding-icon-low">✅</div>
+            <div class="finding-content">
+              <div class="finding-title">Venue Area — Favorable Crime Profile</div>
+              <div class="finding-detail">Mesa, AZ presents a below-average violent crime environment relative to national baselines. The venue district (downtown Mesa) has seen a 12% reduction in incident reports over the past 24 months. Standard security protocols are sufficient for this location.</div>
+            </div>
+          </div>
+          <p class="crime-source">Source: FBI Crime Data Explorer API · Rates per 100,000 population · 2024 estimates</p>
+        </div>
+      </div>
+
+      <!-- Critical Findings -->
+      <div class="ra-section">
+        <div class="ra-section-header" onclick="toggleSection(this)">
+          <div class="ra-section-left">
+            <span class="ra-section-icon">🚨</span>
+            <div>
+              <div class="ra-section-name">Critical Findings</div>
+              <div class="ra-section-count">3 issues require immediate attention</div>
+            </div>
+          </div>
+          <span class="ra-section-badge badge-critical">3 CRITICAL</span>
+        </div>
+        <div class="ra-section-body">
+
+          <div class="finding">
+            <div class="finding-icon finding-icon-critical">⛔</div>
+            <div class="finding-content">
+              <div class="finding-title">Evacuation Routes Share Single Egress Street</div>
+              <div class="finding-detail">Both the primary route (Gates A/B/C → Main St) and secondary route (Stage exits → Robson St) converge within 150ft of each other. In a mass evacuation scenario this creates a critical bottleneck for 1,884 attendees and may violate NFPA 101 separation requirements.</div>
+              <div class="finding-rec">Identify a third evacuation corridor — consider the Centennial Way side entrance as an independent route. Coordinate with Mesa Fire for pre-event walk-through sign-off.</div>
+            </div>
+          </div>
+
+          <div class="finding">
+            <div class="finding-icon finding-icon-critical">⛔</div>
+            <div class="finding-content">
+              <div class="finding-title">LEO Ratio Below Recommended Threshold</div>
+              <div class="finding-detail">4 LEOs assigned for a 1,884-capacity indoor event. Industry standard for ticketed entertainment events is 1 LEO per 250–300 attendees, suggesting a minimum of 6–8 officers. Current staffing provides approximately 1:471 coverage.</div>
+              <div class="finding-rec">Request 2–4 additional off-duty officers through Mesa PD or a licensed security contractor. Prioritize placement at main entry gates and backstage access points.</div>
+            </div>
+          </div>
+
+          <div class="finding">
+            <div class="finding-icon finding-icon-critical">⛔</div>
+            <div class="finding-content">
+              <div class="finding-title">No Medical Coverage Noted for VIP Mezzanine Level</div>
+              <div class="finding-detail">First aid stations are documented at Sections 101, 114, and Backstage Right — all on the main floor level. The VIP Lounge (Mezzanine) hosts 50 guests during Meet & Greet with no dedicated medical access point. AED locations do not include the mezzanine level.</div>
+              <div class="finding-rec">Station one EMT or trained first responder at the mezzanine level during VIP/M&G hours (19:00–19:50). Relocate or add one AED unit to the mezzanine level access corridor.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Medium Findings -->
+      <div class="ra-section">
+        <div class="ra-section-header" onclick="toggleSection(this)">
+          <div class="ra-section-left">
+            <span class="ra-section-icon">⚠️</span>
+            <div>
+              <div class="ra-section-name">Medium Risk Findings</div>
+              <div class="ra-section-count">4 items to review before event day</div>
+            </div>
+          </div>
+          <span class="ra-section-badge badge-medium">4 MEDIUM</span>
+        </div>
+        <div class="ra-section-body">
+
+          <div class="finding">
+            <div class="finding-icon finding-icon-medium">⚠️</div>
+            <div class="finding-content">
+              <div class="finding-title">30-Minute Ingress Window Is Aggressive for Venue Capacity</div>
+              <div class="finding-detail">Doors open at 18:30, show starts at 20:00 — providing a 90-minute ingress window. However with 3 gates, magnetometer screening, and bag check, maximum throughput is approximately 400–500 guests per gate per hour. Crowd density at gates between 18:30–19:15 may be significant.</div>
+              <div class="finding-rec">Consider opening VIP gate (Gate C) at 17:30 as planned, and pre-position 2 additional ushers at the primary gate choke points for the first 45 minutes of general admission.</div>
+            </div>
+          </div>
+
+          <div class="finding">
+            <div class="finding-icon finding-icon-medium">⚠️</div>
+            <div class="finding-content">
+              <div class="finding-title">Talent Arrival and Load-In Overlap Window</div>
+              <div class="finding-detail">Production load-in begins at 08:00 and talent arrives at 16:00 via the same Stage Door corridor. This creates a 60-minute overlap where uncleared production personnel may still be in backstage corridors during talent movement.</div>
+              <div class="finding-rec">Implement a 15:30 "backstage clear" — all non-credentialed production personnel must clear Stage Door corridor by 15:45 ahead of talent motorcade arrival at 16:00.</div>
+            </div>
+          </div>
+
+          <div class="finding">
+            <div class="finding-icon finding-icon-medium">⚠️</div>
+            <div class="finding-content">
+              <div class="finding-title">Gift Policy Lacks Enforcement Mechanism</div>
+              <div class="finding-detail">Brief states no food gifts accepted and all gifts must be inspected, but no designated gift inspection station or documented chain-of-custody procedure is specified. In a 50-person M&G environment this creates a practical enforcement gap.</div>
+              <div class="finding-rec">Designate one security staff member exclusively as gift inspector during M&G. Establish a physical inspection table at VIP Lounge entrance. Log all approved gifts before delivery to production office.</div>
+            </div>
+          </div>
+
+          <div class="finding">
+            <div class="finding-icon finding-icon-medium">⚠️</div>
+            <div class="finding-content">
+              <div class="finding-title">Load-Out Ends at 02:00 — Reduced Overnight Staffing Risk</div>
+              <div class="finding-detail">Load-out is documented to complete by 02:00 AM with security presence maintained. No specific staffing count is assigned to overnight load-out operations. Late-night dock operations present elevated vulnerability with reduced visibility and minimal public presence.</div>
+              <div class="finding-rec">Assign minimum 2 security staff to dock area through load-out completion. Confirm dock lighting is operational and coordinate with venue on after-hours security camera monitoring.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Low / Informational -->
+      <div class="ra-section">
+        <div class="ra-section-header" onclick="toggleSection(this)">
+          <div class="ra-section-left">
+            <span class="ra-section-icon">ℹ️</span>
+            <div>
+              <div class="ra-section-name">Low Risk & Informational</div>
+              <div class="ra-section-count">6 items noted for awareness</div>
+            </div>
+          </div>
+          <span class="ra-section-badge badge-low">6 LOW</span>
+        </div>
+        <div class="ra-section-body">
+          <div class="finding">
+            <div class="finding-icon finding-icon-low">🔵</div>
+            <div class="finding-content">
+              <div class="finding-title">Talent Medical Notes — Allergy Protocol</div>
+              <div class="finding-detail">Sherri Dindal has a documented severe nut allergy with EpiPen carried by personal assistant. Ensure venue catering and green room food service are fully informed. Confirm EMTs are briefed on this specific protocol.</div>
+            </div>
+          </div>
+          <div class="finding">
+            <div class="finding-icon finding-icon-low">🔵</div>
+            <div class="finding-content">
+              <div class="finding-title">Media Access — Photo Pit Duration Control</div>
+              <div class="finding-detail">Media credentialed for first 3 songs only. Ensure security staff at photo pit barrier has explicit instruction on song count and exit enforcement. Recommend one dedicated staff member assigned exclusively to media exit management.</div>
+            </div>
+          </div>
+          <div class="finding">
+            <div class="finding-icon finding-icon-low">🔵</div>
+            <div class="finding-content">
+              <div class="finding-title">Service Dog Protocol for Nick Harrison</div>
+              <div class="finding-detail">Nick Harrison travels with an approved service dog. Brief all gate and backstage security staff to ensure no access challenges. Confirm venue ADA compliance for service animal in backstage areas.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Passing Checks -->
+      <div class="ra-section">
+        <div class="ra-section-header" onclick="toggleSection(this)">
+          <div class="ra-section-left">
+            <span class="ra-section-icon">✅</span>
+            <div>
+              <div class="ra-section-name">Passing Checks</div>
+              <div class="ra-section-count">12 items meet or exceed standards</div>
+            </div>
+          </div>
+          <span class="ra-section-badge badge-low">12 PASS</span>
+        </div>
+        <div class="ra-section-body">
+          <div class="pass-grid">
+            <div class="pass-item"><span class="pass-check">✓</span> Multi-method screening (Mag + Bag + Wand)</div>
+            <div class="pass-item"><span class="pass-check">✓</span> Radio channel separation (5 channels)</div>
+            <div class="pass-item"><span class="pass-check">✓</span> AED units certified and mapped (4 units)</div>
+            <div class="pass-item"><span class="pass-check">✓</span> Credential system with 6 access tiers</div>
+            <div class="pass-item"><span class="pass-check">✓</span> Command post staffed full event day</div>
+            <div class="pass-item"><span class="pass-check">✓</span> EAP language avoids panic-inducing words</div>
+            <div class="pass-item"><span class="pass-check">✓</span> VIP early entry pre-staged (Gate C)</div>
+            <div class="pass-item"><span class="pass-check">✓</span> Hospital within 2 miles of venue</div>
+            <div class="pass-item"><span class="pass-check">✓</span> Talent motorcade with security escort</div>
+            <div class="pass-item"><span class="pass-check">✓</span> Production credential separation from talent</div>
+            <div class="pass-item"><span class="pass-check">✓</span> Run of Show documented with 15 entries</div>
+            <div class="pass-item"><span class="pass-check">✓</span> Backstage clear bag / electronic key system</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Priority Recommendations -->
+      <div class="ra-section">
+        <div class="ra-section-header" onclick="toggleSection(this)">
+          <div class="ra-section-left">
+            <span class="ra-section-icon">📋</span>
+            <div>
+              <div class="ra-section-name">Priority Action List</div>
+              <div class="ra-section-count">Recommended actions before event day</div>
+            </div>
+          </div>
+        </div>
+        <div class="ra-section-body">
+          <ul class="rec-list">
+            <li class="rec-item">
+              <div class="rec-num">1</div>
+              <div class="rec-text">Add independent third evacuation route via Centennial Way side entrance — coordinate Mesa Fire walk-through sign-off <span class="rec-priority badge-critical">CRITICAL</span></div>
+            </li>
+            <li class="rec-item">
+              <div class="rec-num">2</div>
+              <div class="rec-text">Request 2–4 additional LEOs from Mesa PD — target minimum 1:300 coverage ratio for 1,884 capacity <span class="rec-priority badge-critical">CRITICAL</span></div>
+            </li>
+            <li class="rec-item">
+              <div class="rec-num">3</div>
+              <div class="rec-text">Station EMT and add AED unit at Mezzanine level for VIP/M&G hours (19:00–19:50) <span class="rec-priority badge-critical">CRITICAL</span></div>
+            </li>
+            <li class="rec-item">
+              <div class="rec-num">4</div>
+              <div class="rec-text">Enforce 15:30 backstage clear ahead of 16:00 talent arrival — all production personnel clear Stage Door corridor <span class="rec-priority badge-medium">MEDIUM</span></div>
+            </li>
+            <li class="rec-item">
+              <div class="rec-num">5</div>
+              <div class="rec-text">Designate dedicated gift inspector with physical table at VIP Lounge entrance during M&G <span class="rec-priority badge-medium">MEDIUM</span></div>
+            </li>
+            <li class="rec-item">
+              <div class="rec-num">6</div>
+              <div class="rec-text">Assign minimum 2 staff to overnight dock operations through 02:00 load-out completion <span class="rec-priority badge-medium">MEDIUM</span></div>
+            </li>
+            <li class="rec-item">
+              <div class="rec-num">7</div>
+              <div class="rec-text">Brief all staff on Sherri Dindal nut allergy protocol — confirm catering and green room are nut-free <span class="rec-priority badge-low">LOW</span></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px;">
+        <button class="btn btn-ghost" onclick="window.print()">🖨️ Print Report</button>
+        <a href="/settings" class="btn btn-ghost">⚙️ Configure AI Key</a>
+        <button class="btn btn-primary">Generate Live Assessment →</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function toggleSection(header) {
+      const body = header.nextElementSibling;
+      const isOpen = body.style.display !== 'none';
+      body.style.display = isOpen ? 'none' : 'block';
+    }
+
+    // Animate score bars on load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.querySelectorAll('.score-fill').forEach(el => {
+          const w = el.style.width;
+          el.style.width = '0';
+          setTimeout(() => el.style.width = w, 100);
+        });
+      }, 200);
+    });
+  </script>
+</body>
+</html>

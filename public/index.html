@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GenX Takeover — Security Brief System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- Top Nav -->
+<nav class="topnav">
+  <a class="nav-brand" href="/">
+    <div class="nav-brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4z" fill="#e63946"/>
+      </svg>
+    </div>
+    <div class="nav-brand-text">
+      <span class="nav-brand-name">GenX Takeover</span>
+      <span class="nav-brand-product">Security</span>
+      <span class="nav-brand-sub">Brief System</span>
+    </div>
+  </a>
+  <div class="nav-center">
+    <div class="nav-breadcrumb">
+      <span class="current">Dashboard</span>
+    </div>
+  </div>
+  <div class="nav-right">
+    <a href="/settings" style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-2);text-decoration:none;padding:6px 10px;border-radius:7px;border:1px solid var(--border);transition:all 0.15s;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-2)'" onmouseout="this.style.color='var(--text-2)';this.style.borderColor='var(--border)'">
+      ⚙️ Settings
+    </a>
+    <button class="btn btn-primary btn-sm" onclick="createNewBrief()">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      New Brief
+    </button>
+    <div class="nav-avatar">GX</div>
+  </div>
+</nav>
+
+<!-- Mobile overlay -->
+<div class="mobile-overlay" id="mobileOverlay"></div>
+
+<!-- Main Content -->
+<div class="main-content-full" style="padding-top: 88px;">
+
+  <!-- Hero -->
+  <div class="hero fade-in-up">
+    <div class="hero-content">
+      <div class="hero-eyebrow">Enterprise Security Operations</div>
+      <h1 class="hero-title">Security Brief<br>System</h1>
+      <p class="hero-subtitle">Build, manage, and distribute professional event security briefings. Full chain of custody from advance planning to show day.</p>
+      <div class="hero-stats">
+        <div>
+          <div class="hero-stat-value" id="statBriefs">—</div>
+          <div class="hero-stat-label">Total Briefs</div>
+        </div>
+        <div>
+          <div class="hero-stat-value" id="statVenues">—</div>
+          <div class="hero-stat-label">Venues</div>
+        </div>
+        <div>
+          <div class="hero-stat-value" id="statShows">—</div>
+          <div class="hero-stat-label">Shows Planned</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-graphic">
+      <img src="/genx-logo.png" alt="GenX Corporate Security" style="width:220px;height:220px;object-fit:contain;">
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="flex items-center justify-between mb-24 gap-16" style="flex-wrap:wrap;">
+    <div class="flex items-center gap-12">
+      <h2 style="font-size:16px;font-weight:700;color:var(--text);">Your Briefs</h2>
+      <span class="tag tag-gray" id="briefCount">0</span>
+    </div>
+    <div class="flex items-center gap-12">
+      <div class="search-bar">
+        <span class="search-icon">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="#6e7681" stroke-width="1.5"/><path d="M11 11l3 3" stroke="#6e7681" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+        <input type="text" placeholder="Search briefs…" id="searchInput" oninput="filterBriefs(this.value)">
+      </div>
+    </div>
+  </div>
+
+  <!-- Briefs Grid -->
+  <div class="briefs-grid" id="briefsGrid"></div>
+
+  <!-- Empty State -->
+  <div class="empty-state hidden" id="emptyState">
+    <div class="empty-state-icon">
+      <svg width="56" height="56" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 4L10 22v30c0 27.6 19.2 53.4 40 60 20.8-6.6 40-32.4 40-60V22L50 4z" fill="none" stroke="#30363d" stroke-width="3"/>
+      </svg>
+    </div>
+    <h3>No security briefs yet</h3>
+    <p>Create your first brief to start building a professional security document for your event.</p>
+    <button class="btn btn-primary" onclick="createNewBrief()">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Create First Brief
+    </button>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<script src="/app.js"></script>
+</body>
+</html>

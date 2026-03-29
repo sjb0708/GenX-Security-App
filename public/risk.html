@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Risk Assessment — GenX Security</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .ra-wrap { max-width: 900px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* Loading state */
+    .ra-loading { text-align: center; padding: 80px 24px; }
+    .ra-loading-spinner { width: 56px; height: 56px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ra-loading-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .ra-loading-sub { font-size: 13px; color: var(--text-2); }
+    .ra-loading-steps { margin-top: 28px; display: flex; flex-direction: column; gap: 8px; max-width: 320px; margin-left: auto; margin-right: auto; }
+    .ra-loading-step { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-3); padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; transition: all 0.3s; }
+    .ra-loading-step.active { color: var(--text); border-color: var(--red); background: var(--red-dim); }
+    .ra-loading-step.done { color: var(--green); border-color: rgba(63,185,80,0.3); }
+    .step-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+    /* Error state */
+    .ra-error { background: var(--surface); border: 1px solid rgba(230,57,70,0.3); border-radius: 12px; padding: 40px; text-align: center; }
+    .ra-error-icon { font-size: 40px; margin-bottom: 16px; }
+    .ra-error-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .ra-error-msg { font-size: 13px; color: var(--text-2); margin-bottom: 20px; line-height: 1.6; }
+
+    /* No key state */
+    .ra-nokey { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 48px; text-align: center; }
+
+    /* Header */
+    .ra-header { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+    .ra-header-top { background: linear-gradient(135deg, #150303 0%, #2a0808 100%); padding: 28px 32px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+    .ra-header-meta { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+    .ra-header-title { font-size: 22px; font-weight: 800; color: white; margin-bottom: 4px; }
+    .ra-header-venue { font-size: 14px; color: rgba(255,255,255,0.55); }
+    .ra-risk-ring { width: 88px; height: 88px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ra-risk-ring .r-score { font-size: 26px; font-weight: 800; color: white; line-height: 1; }
+    .ra-risk-ring .r-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .ring-critical { border: 4px solid #e63946; background: rgba(230,57,70,0.15); }
+    .ring-critical .r-label { color: #e63946; }
+    .ring-high { border: 4px solid #e07840; background: rgba(224,120,64,0.15); }
+    .ring-high .r-label { color: #e07840; }
+    .ring-medium { border: 4px solid var(--gold); background: rgba(212,160,23,0.15); }
+    .ring-medium .r-label { color: var(--gold); }
+    .ring-low { border: 4px solid var(--green); background: rgba(63,185,80,0.12); }
+    .ring-low .r-label { color: var(--green); }
+
+    .ra-header-bottom { padding: 14px 32px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .ra-meta-item { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+    .ra-meta-item strong { color: var(--text-3); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+
+    /* Score grid */
+    .ra-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .ra-score-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .score-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .score-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-2); }
+    .score-num { font-size: 22px; font-weight: 800; }
+    .score-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .score-fill { height: 100%; border-radius: 2px; transition: width 1.2s cubic-bezier(0.4,0,0.2,1); width: 0; }
+    .s-critical { color: var(--red); } .fill-critical { background: var(--red); }
+    .s-high { color: #e07840; } .fill-high { background: #e07840; }
+    .s-medium { color: var(--gold); } .fill-medium { background: var(--gold); }
+    .s-low { color: var(--green); } .fill-low { background: var(--green); }
+
+    /* Section panels */
+    .ra-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+    .ra-panel-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+    .ra-panel-header:hover { background: var(--surface-2); }
+    .ra-panel-left { display: flex; align-items: center; gap: 10px; }
+    .ra-panel-icon { font-size: 17px; }
+    .ra-panel-title { font-size: 13px; font-weight: 700; color: var(--text); }
+    .ra-panel-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+    .ra-panel-chevron { color: var(--text-3); font-size: 11px; transition: transform 0.2s; }
+    .ra-panel.collapsed .ra-panel-chevron { transform: rotate(-90deg); }
+    .ra-panel.collapsed .ra-panel-body { display: none; }
+    .ra-panel-body { padding: 4px 20px 20px; }
+
+    /* Badge */
+    .severity-badge { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .sev-critical { background: rgba(230,57,70,0.15); color: var(--red); border: 1px solid rgba(230,57,70,0.3); }
+    .sev-medium { background: rgba(212,160,23,0.12); color: var(--gold); border: 1px solid rgba(212,160,23,0.3); }
+    .sev-low { background: rgba(63,185,80,0.1); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+    .sev-info { background: rgba(56,139,253,0.1); color: var(--blue); border: 1px solid rgba(56,139,253,0.25); }
+    .sev-pass { background: rgba(63,185,80,0.1); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+
+    /* Findings */
+    .finding { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .finding:last-child { border-bottom: none; padding-bottom: 0; }
+    .finding-icon-wrap { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; margin-top: 2px; }
+    .fi-critical { background: rgba(230,57,70,0.12); }
+    .fi-medium { background: rgba(212,160,23,0.1); }
+    .fi-low { background: rgba(63,185,80,0.08); }
+    .finding-body { flex: 1; }
+    .finding-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+    .finding-detail { font-size: 12px; color: var(--text-2); line-height: 1.65; margin-bottom: 8px; }
+    .finding-rec { display: flex; align-items: flex-start; gap: 6px; background: var(--surface-2); border-left: 2px solid var(--red); border-radius: 0 6px 6px 0; padding: 8px 10px; font-size: 11px; color: var(--text-2); line-height: 1.5; }
+
+    /* Crime Index */
+    .ci-top { display: flex; align-items: stretch; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+    .ci-score-box { background: linear-gradient(135deg, #0f1923 0%, #1a0a0a 100%); border: 1px solid rgba(230,57,70,0.25); border-radius: 10px; padding: 20px 24px; min-width: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; flex-shrink: 0; }
+    .ci-score-num { font-size: 52px; font-weight: 800; line-height: 1; }
+    .ci-score-sub { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+    .ci-score-desc { font-size: 11px; color: var(--text-3); margin-top: 8px; line-height: 1.4; }
+    .ci-scale { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 5px; justify-content: center; }
+    .ci-scale-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); margin-bottom: 4px; }
+    .ci-band { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 5px; font-size: 11px; font-weight: 600; }
+    .ci-band.active { background: rgba(255,255,255,0.07); }
+    .ci-band-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .ci-band-range { color: var(--text-3); font-size: 10px; font-weight: 500; margin-left: auto; }
+    .cib-0 { background: #3fb950; } .cib-1 { background: #a5c441; } .cib-2 { background: #d4a017; } .cib-3 { background: #e07840; } .cib-4 { background: #e63946; }
+    .col-0 { color: #3fb950; } .col-1 { color: #a5c441; } .col-2 { color: #d4a017; } .col-3 { color: #e07840; } .col-4 { color: #e63946; }
+
+    .ci-census { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .ci-census-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+    .ci-census-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); margin-bottom: 5px; }
+    .ci-census-val { font-size: 18px; font-weight: 800; color: var(--text); }
+    .ci-census-sub { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+
+    .ci-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 14px; }
+    .ci-table thead th { padding: 8px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); border-bottom: 1px solid var(--border); text-align: right; }
+    .ci-table thead th:first-child { text-align: left; }
+    .ci-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .ci-table tbody tr:hover { background: var(--surface-2); }
+    .ci-table tbody td { padding: 9px 10px; color: var(--text-2); text-align: right; }
+    .ci-table tbody td:first-child { text-align: left; font-weight: 600; color: var(--text); }
+    .ci-table .td-city { color: var(--text); font-weight: 700; }
+    .ci-table .td-above { color: #e07840; }
+    .ci-table .td-below { color: var(--green); }
+    .ci-table .td-national { color: var(--text-3); font-size: 11px; }
+    .ci-table .td-mult { font-weight: 700; font-size: 11px; border-radius: 4px; padding: 2px 6px; }
+    .mult-high { background: rgba(230,57,70,0.12); color: var(--red); }
+    .mult-med  { background: rgba(212,160,23,0.12); color: var(--gold); }
+    .mult-low  { background: rgba(63,185,80,0.1); color: var(--green); }
+
+    .crime-summary { font-size: 12px; color: var(--text-2); line-height: 1.65; padding: 12px; background: var(--surface-2); border-radius: 8px; margin-top: 4px; }
+    .c-better { color: var(--green); }
+    .c-worse { color: var(--red); }
+    .c-similar { color: var(--gold); }
+
+    /* Pass checks */
+    .pass-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pass-item { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-2); padding: 8px 10px; background: var(--surface-2); border-radius: 6px; line-height: 1.4; }
+    .pass-check { color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+    /* Priority actions */
+    .action-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .action-item:last-child { border-bottom: none; }
+    .action-num { width: 24px; height: 24px; border-radius: 50%; background: var(--red); color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .action-text { font-size: 12px; color: var(--text-2); line-height: 1.6; flex: 1; }
+
+    /* Source */
+    .data-source { font-size: 10px; color: var(--text-3); margin-top: 10px; }
+
+    @media (max-width: 640px) {
+      .ra-scores { grid-template-columns: repeat(2, 1fr); }
+      .crime-grid { grid-template-columns: 1fr 1fr; }
+      .pass-grid { grid-template-columns: 1fr; }
+    }
+    @media print {
+      .topnav, .no-print { display: none !important; }
+      body { background: white; color: black; }
+      .ra-wrap { padding-top: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Nav -->
+  <nav class="topnav no-print">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2L3 7v6c0 5.25 3.75 10.15 9 11.35C17.25 23.15 21 18.25 21 13V7L12 2z"/></svg>
+      </div>
+      <div>
+        <span style="font-weight:800;font-size:14px;color:var(--text);">GenX Takeover</span>
+        <span style="color:var(--red);font-weight:700;"> Security</span>
+      </div>
+      <span style="color:var(--border);margin:0 4px;">›</span>
+      <span style="font-size:13px;color:var(--text-2);" id="navBriefTitle">Risk Assessment</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-ghost btn-sm" id="btnEditBrief" style="display:none" onclick="editBrief()">✏️ Edit Brief</button>
+      <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Print</button>
+      <button class="btn btn-primary btn-sm" id="btnRegenerate" style="display:none" onclick="generate()">⚡ Regenerate</button>
+      <a href="/" style="font-size:12px;font-weight:600;color:var(--text-2);text-decoration:none;">← Dashboard</a>
+    </div>
+  </nav>
+
+  <div style="margin-top:56px;">
+    <div class="ra-wrap">
+      <div id="raContent"></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const briefId = params.get('id');
+    let currentBrief = null;
+
+    async function init() {
+      if (!briefId) { showError('No brief ID provided.', false); return; }
+      // Check settings first
+      const settingsRes = await fetch('/api/settings');
+      const settings = await settingsRes.json();
+      if (!settings.hasKey) {
+        showNoKey();
+        return;
+      }
+      // Load brief info for nav
+      try {
+        const bRes = await fetch(`/api/briefs/${briefId}`);
+        currentBrief = await bRes.json();
+        document.getElementById('navBriefTitle').textContent = currentBrief.venue?.name ? `Risk — ${currentBrief.venue.name}` : 'Risk Assessment';
+        document.getElementById('btnEditBrief').style.display = 'inline-flex';
+      } catch(e) {}
+      generate();
+    }
+
+    async function generate() {
+      document.getElementById('btnRegenerate').style.display = 'none';
+      showLoading();
+      try {
+        const res = await fetch(`/api/risk/${briefId}`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) { showError(data.error || 'Generation failed'); return; }
+        renderAssessment(data);
+        document.getElementById('btnRegenerate').style.display = 'inline-flex';
+      } catch(e) {
+        showError(e.message || 'Network error');
+      }
+    }
+
+    function editBrief() { window.location = `/brief?id=${briefId}`; }
+
+    function showLoading() {
+      const steps = [
+        { text: 'Reading security brief data...', delay: 0 },
+        { text: 'Fetching local crime statistics...', delay: 1200 },
+        { text: 'Analyzing staffing & coverage...', delay: 2800 },
+        { text: 'Running AI risk analysis...', delay: 4500 },
+        { text: 'Compiling findings & recommendations...', delay: 7000 }
+      ];
+      document.getElementById('raContent').innerHTML = `
+        <div class="ra-loading">
+          <div class="ra-loading-spinner"></div>
+          <div class="ra-loading-title">Generating Risk Assessment</div>
+          <div class="ra-loading-sub">Analyzing your brief with AI — this takes about 15–20 seconds</div>
+          <div class="ra-loading-steps">
+            ${steps.map((s, i) => `<div class="ra-loading-step" id="lstep${i}"><div class="step-dot"></div>${s.text}</div>`).join('')}
+          </div>
+        </div>`;
+      steps.forEach((s, i) => {
+        setTimeout(() => {
+          if (i > 0) { const prev = document.getElementById(`lstep${i-1}`); if (prev) { prev.classList.remove('active'); prev.classList.add('done'); prev.querySelector('.step-dot').textContent = ''; prev.innerHTML = '✓ ' + prev.textContent.trim(); } }
+          const el = document.getElementById(`lstep${i}`); if (el) el.classList.add('active');
+        }, s.delay);
+      });
+    }
+
+    function showError(msg, showRetry = true) {
+      document.getElementById('raContent').innerHTML = `
+        <div class="ra-error">
+          <div class="ra-error-icon">⚠️</div>
+          <div class="ra-error-title">Could Not Generate Assessment</div>
+          <div class="ra-error-msg">${msg}</div>
+          ${showRetry ? `<button class="btn btn-primary" onclick="generate()">Try Again</button>` : ''}
+        </div>`;
+    }
+
+    function showNoKey() {
+      document.getElementById('raContent').innerHTML = `
+        <div class="ra-nokey">
+          <div style="font-size:48px;margin-bottom:16px;">🤖</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">AI Key Required</div>
+          <p style="font-size:13px;color:var(--text-2);margin-bottom:24px;line-height:1.6;">To generate live risk assessments you need to add your Anthropic API key.<br>Get one free at <strong style="color:var(--text)">console.anthropic.com</strong></p>
+          <a href="/settings" class="btn btn-primary">⚙️ Go to Settings</a>
+        </div>`;
+    }
+
+    function scoreClass(n) {
+      if (n >= 80) return 's-low';
+      if (n >= 60) return 's-medium';
+      if (n >= 40) return 's-high';
+      return 's-critical';
+    }
+    function fillClass(n) {
+      if (n >= 80) return 'fill-low';
+      if (n >= 60) return 'fill-medium';
+      if (n >= 40) return 'fill-high';
+      return 'fill-critical';
+    }
+    function ringClass(level) {
+      const m = { Critical: 'ring-critical', High: 'ring-high', Medium: 'ring-medium', Low: 'ring-low' };
+      return m[level] || 'ring-medium';
+    }
+    function sevBadge(s) {
+      const m = { Critical: 'sev-critical', Medium: 'sev-medium', Low: 'sev-low', Pass: 'sev-pass' };
+      return `<span class="severity-badge ${m[s] || 'sev-info'}">${s.toUpperCase()}</span>`;
+    }
+    function multClass(m) {
+      if (m >= 2) return 'mult-high';
+      if (m >= 1.2) return 'mult-med';
+      return 'mult-low';
+    }
+    function rateClass(rate, natRate) {
+      if (!rate || !natRate) return '';
+      const r = rate / natRate;
+      if (r >= 1.5) return 'td-above';
+      if (r <= 0.75) return 'td-below';
+      return '';
+    }
+    function fmtRate(val) { return val != null ? val.toLocaleString() : '—'; }
+    function multBadge(rate, natRate) {
+      if (!rate || !natRate) return '<span style="color:var(--text-3)">—</span>';
+      const m = (rate / natRate).toFixed(2);
+      const cls = multClass(parseFloat(m));
+      return `<span class="td-mult ${cls}">${m}×</span>`;
+    }
+
+    function renderCrimeIndex(ci) {
+      if (!ci) return '';
+      const bands = [
+        { label: 'Below Average',        range: '0–99',    cls: 0 },
+        { label: 'Moderate',             range: '100–199', cls: 1 },
+        { label: 'Mildly Elevated',      range: '200–399', cls: 2 },
+        { label: 'Moderately Elevated',  range: '400–799', cls: 3 },
+        { label: 'Substantially Elevated', range: '800–2000', cls: 4 }
+      ];
+      const activeIdx = !ci.score ? -1 :
+        ci.score < 100 ? 0 : ci.score < 200 ? 1 : ci.score < 400 ? 2 : ci.score < 800 ? 3 : 4;
+      const scoreCls = activeIdx < 0 ? 'col-2' : `col-${activeIdx}`;
+
+      const loc = ci.city || ci.state;
+      const nat = ci.national || {};
+      const locLabel = ci.dataSource === 'city' && ci.city ? (ci.city.agencyName || 'City') : 'State';
+      const crimeRows = [
+        { label: 'Violent Crime',     locRate: loc?.violentRate,  natRate: nat.violentRate },
+        { label: 'Property Crime',    locRate: loc?.propertyRate, natRate: nat.propertyRate },
+        { label: 'Homicide',          locRate: loc?.homicideRate, natRate: nat.homicideRate },
+        { label: 'Robbery',           locRate: loc?.robberyRate,  natRate: nat.robberyRate },
+        { label: 'Aggravated Assault',locRate: loc?.assaultRate,  natRate: nat.assaultRate },
+        { label: 'Burglary',          locRate: loc?.burglaryRate, natRate: nat.burglaryRate },
+        { label: 'Motor Vehicle Theft', locRate: loc?.mvrRate,    natRate: nat.mvrRate }
+      ].filter(r => r.locRate != null || r.natRate != null);
+
+      const stateRows = ci.state && ci.dataSource === 'city' ? crimeRows.map(r => ({
+        ...r,
+        stateRate: ci.state[r.label === 'Violent Crime' ? 'violentRate' : r.label === 'Property Crime' ? 'propertyRate' :
+          r.label === 'Homicide' ? 'homicideRate' : r.label === 'Robbery' ? 'robberyRate' :
+          r.label === 'Aggravated Assault' ? 'assaultRate' : r.label === 'Burglary' ? 'burglaryRate' : 'mvrRate']
+      })) : crimeRows;
+
+      const hasState = ci.dataSource === 'city' && ci.state;
+
+      return `
+        <div class="ci-top">
+          <div class="ci-score-box">
+            <div class="ci-score-num ${scoreCls}">${ci.score ?? '—'}</div>
+            <div class="ci-score-sub ${scoreCls}">${ci.label || 'Crime Index'}</div>
+            <div class="ci-score-desc">Crime Index Score<br><span style="font-size:10px;color:var(--text-3);">100 = national average</span></div>
+          </div>
+          <div class="ci-scale">
+            <div class="ci-scale-title">Risk Scale</div>
+            ${bands.map((b, i) => `
+              <div class="ci-band${i === activeIdx ? ' active' : ''}">
+                <div class="ci-band-dot cib-${b.cls}"></div>
+                <span class="${i === activeIdx ? 'col-'+i : ''}" style="font-weight:${i === activeIdx ? 700 : 500}">${b.label}</span>
+                <span class="ci-band-range">${b.range}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        ${ci.census ? `<div class="ci-census">
+          <div class="ci-census-card">
+            <div class="ci-census-label">Median Income</div>
+            <div class="ci-census-val">${ci.census.medianHouseholdIncome ? '$' + ci.census.medianHouseholdIncome.toLocaleString() : '—'}</div>
+            <div class="ci-census-sub">Household / year</div>
+          </div>
+          <div class="ci-census-card">
+            <div class="ci-census-label">Poverty Rate</div>
+            <div class="ci-census-val ${ci.census.povertyRate > 20 ? 'c-worse' : ci.census.povertyRate < 10 ? 'c-better' : ''}">${ci.census.povertyRate != null ? ci.census.povertyRate + '%' : '—'}</div>
+            <div class="ci-census-sub">Below poverty line</div>
+          </div>
+          <div class="ci-census-card">
+            <div class="ci-census-label">Population</div>
+            <div class="ci-census-val">${ci.census.totalPopulation ? ci.census.totalPopulation.toLocaleString() : '—'}</div>
+            <div class="ci-census-sub">Census ACS 2022</div>
+          </div>
+        </div>` : ''}
+
+        ${crimeRows.length > 0 ? `<table class="ci-table">
+          <thead>
+            <tr>
+              <th>Crime Category</th>
+              <th>${locLabel}</th>
+              ${hasState ? '<th>State</th>' : ''}
+              <th>National Avg</th>
+              <th>vs. National</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${crimeRows.map((r, idx) => {
+              const sr = stateRows[idx];
+              return `<tr>
+                <td>${r.label}</td>
+                <td class="td-city ${rateClass(r.locRate, r.natRate)}">${fmtRate(r.locRate)}</td>
+                ${hasState ? `<td class="${rateClass(sr?.stateRate, r.natRate)}">${fmtRate(sr?.stateRate)}</td>` : ''}
+                <td class="td-national">${fmtRate(r.natRate)}</td>
+                <td>${multBadge(r.locRate, r.natRate)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>` : ''}`;
+    }
+
+    function renderAssessment(d) {
+      const scores = d.categoryScores || {};
+      const scoreCards = [
+        { label: 'Staffing', key: 'staffing' },
+        { label: 'Medical', key: 'medical' },
+        { label: 'Evacuation', key: 'evacuation' },
+        { label: 'Access Control', key: 'accessControl' },
+        { label: 'Communications', key: 'communications' },
+        { label: 'Ingress', key: 'ingress' }
+      ];
+
+      const genDate = d.generatedAt ? new Date(d.generatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+
+      let html = `
+        <!-- Header -->
+        <div class="ra-header">
+          <div class="ra-header-top">
+            <div>
+              <div class="ra-header-meta">AI Risk Assessment · GenX Takeover Security</div>
+              <div class="ra-header-title">Security Risk Assessment</div>
+              <div class="ra-header-venue">${d.venueName || ''}${d.venueCity ? ' · ' + d.venueCity : ''}${d.venueState ? ', ' + d.venueState : ''}${d.eventDate ? ' · ' + d.eventDate : ''}</div>
+            </div>
+            <div class="ra-risk-ring ${ringClass(d.riskLevel)}">
+              <div class="r-score">${d.overallScore}</div>
+              <div class="r-label">${d.riskLevel || 'Medium'}</div>
+            </div>
+          </div>
+          <div class="ra-header-bottom">
+            <div class="ra-meta-item"><strong>Findings</strong> ${(d.criticalFindings||[]).length} Critical · ${(d.mediumFindings||[]).length} Medium · ${(d.lowFindings||[]).length} Low</div>
+            <div class="ra-meta-item"><strong>Passing</strong> ${(d.passingChecks||[]).length} checks</div>
+            <div class="ra-meta-item"><strong>Generated</strong> ${genDate}</div>
+          </div>
+        </div>
+
+        <!-- Score Cards -->
+        <div class="ra-scores">
+          ${scoreCards.map(sc => {
+            const val = scores[sc.key] ?? 75;
+            return `<div class="ra-score-card">
+              <div class="score-top">
+                <span class="score-label">${sc.label}</span>
+                <span class="score-num ${scoreClass(val)}">${val}</span>
+              </div>
+              <div class="score-bar"><div class="score-fill ${fillClass(val)}" style="width:${val}%"></div></div>
+            </div>`;
+          }).join('')}
+        </div>`;
+
+      // Crime Intelligence section
+      if (d.crimeIndex || d.crimeSummary) {
+        const ci = d.crimeIndex || {};
+        const srcLabel = ci.dataSource === 'city' && ci.city ? ci.city.agencyName : 'State Estimates';
+        html += `
+        <div class="ra-panel">
+          <div class="ra-panel-header" onclick="togglePanel(this)">
+            <div class="ra-panel-left">
+              <span class="ra-panel-icon">📊</span>
+              <div>
+                <div class="ra-panel-title">Crime Intelligence — ${d.venueCity || ''}${d.venueState ? ', ' + d.venueState : ''}</div>
+                <div class="ra-panel-sub">FBI UCR 2022 · Census ACS · ${srcLabel}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              ${ci.score ? `<span class="severity-badge ${ci.score >= 800 ? 'sev-critical' : ci.score >= 400 ? 'sev-medium' : ci.score >= 100 ? 'sev-info' : 'sev-pass'}">INDEX: ${ci.score}</span>` : '<span class="severity-badge sev-info">CRIME DATA</span>'}
+              <span class="ra-panel-chevron">▼</span>
+            </div>
+          </div>
+          <div class="ra-panel-body">
+            ${renderCrimeIndex(ci)}
+            ${d.crimeSummary ? `<div class="crime-summary">${d.crimeSummary}</div>` : ''}
+            <div class="data-source">Sources: FBI Crime Data Explorer API · U.S. Census Bureau ACS 5-Year Estimates · Rates per 100,000 population · Crime Index: 100 = U.S. national average</div>
+          </div>
+        </div>`;
+      }
+
+      // Critical findings
+      if ((d.criticalFindings || []).length > 0) {
+        html += `
+        <div class="ra-panel">
+          <div class="ra-panel-header" onclick="togglePanel(this)">
+            <div class="ra-panel-left">
+              <span class="ra-panel-icon">🚨</span>
+              <div>
+                <div class="ra-panel-title">Critical Findings</div>
+                <div class="ra-panel-sub">${d.criticalFindings.length} issue${d.criticalFindings.length !== 1 ? 's' : ''} require immediate attention</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="severity-badge sev-critical">${d.criticalFindings.length} CRITICAL</span>
+              <span class="ra-panel-chevron">▼</span>
+            </div>
+          </div>
+          <div class="ra-panel-body">
+            ${d.criticalFindings.map(f => `
+              <div class="finding">
+                <div class="finding-icon-wrap fi-critical">⛔</div>
+                <div class="finding-body">
+                  <div class="finding-title">${f.title}</div>
+                  <div class="finding-detail">${f.detail}</div>
+                  ${f.recommendation ? `<div class="finding-rec">${f.recommendation}</div>` : ''}
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+      }
+
+      // Medium findings
+      if ((d.mediumFindings || []).length > 0) {
+        html += `
+        <div class="ra-panel">
+          <div class="ra-panel-header" onclick="togglePanel(this)">
+            <div class="ra-panel-left">
+              <span class="ra-panel-icon">⚠️</span>
+              <div>
+                <div class="ra-panel-title">Medium Risk Findings</div>
+                <div class="ra-panel-sub">${d.mediumFindings.length} item${d.mediumFindings.length !== 1 ? 's' : ''} to review before event day</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="severity-badge sev-medium">${d.mediumFindings.length} MEDIUM</span>
+              <span class="ra-panel-chevron">▼</span>
+            </div>
+          </div>
+          <div class="ra-panel-body">
+            ${d.mediumFindings.map(f => `
+              <div class="finding">
+                <div class="finding-icon-wrap fi-medium">⚠️</div>
+                <div class="finding-body">
+                  <div class="finding-title">${f.title}</div>
+                  <div class="finding-detail">${f.detail}</div>
+                  ${f.recommendation ? `<div class="finding-rec">${f.recommendation}</div>` : ''}
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+      }
+
+      // Low findings
+      if ((d.lowFindings || []).length > 0) {
+        html += `
+        <div class="ra-panel">
+          <div class="ra-panel-header" onclick="togglePanel(this)">
+            <div class="ra-panel-left">
+              <span class="ra-panel-icon">ℹ️</span>
+              <div>
+                <div class="ra-panel-title">Low Risk & Informational</div>
+                <div class="ra-panel-sub">${d.lowFindings.length} item${d.lowFindings.length !== 1 ? 's' : ''} noted for awareness</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="severity-badge sev-low">${d.lowFindings.length} LOW</span>
+              <span class="ra-panel-chevron">▼</span>
+            </div>
+          </div>
+          <div class="ra-panel-body">
+            ${d.lowFindings.map(f => `
+              <div class="finding">
+                <div class="finding-icon-wrap fi-low">🔵</div>
+                <div class="finding-body">
+                  <div class="finding-title">${f.title}</div>
+                  <div class="finding-detail">${f.detail}</div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+      }
+
+      // Passing checks
+      if ((d.passingChecks || []).length > 0) {
+        html += `
+        <div class="ra-panel">
+          <div class="ra-panel-header" onclick="togglePanel(this)">
+            <div class="ra-panel-left">
+              <span class="ra-panel-icon">✅</span>
+              <div>
+                <div class="ra-panel-title">Passing Checks</div>
+                <div class="ra-panel-sub">${d.passingChecks.length} items meet or exceed standards</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="severity-badge sev-pass">${d.passingChecks.length} PASS</span>
+              <span class="ra-panel-chevron">▼</span>
+            </div>
+          </div>
+          <div class="ra-panel-body">
+            <div class="pass-grid">
+              ${d.passingChecks.map(c => `<div class="pass-item"><span class="pass-check">✓</span>${c}</div>`).join('')}
+            </div>
+          </div>
+        </div>`;
+      }
+
+      // Priority actions
+      if ((d.priorityActions || []).length > 0) {
+        html += `
+        <div class="ra-panel">
+          <div class="ra-panel-header" onclick="togglePanel(this)">
+            <div class="ra-panel-left">
+              <span class="ra-panel-icon">📋</span>
+              <div>
+                <div class="ra-panel-title">Priority Action List</div>
+                <div class="ra-panel-sub">Recommended actions before event day</div>
+              </div>
+            </div>
+            <span class="ra-panel-chevron">▼</span>
+          </div>
+          <div class="ra-panel-body">
+            ${d.priorityActions.map((a, i) => `
+              <div class="action-item">
+                <div class="action-num">${i + 1}</div>
+                <div class="action-text">${a.action} ${sevBadge(a.severity)}</div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+      }
+
+      document.getElementById('raContent').innerHTML = html;
+
+      // Animate score bars
+      setTimeout(() => {
+        document.querySelectorAll('.score-fill').forEach(el => {
+          const target = el.style.width;
+          el.style.width = '0';
+          setTimeout(() => { el.style.width = target; }, 50);
+        });
+      }, 100);
+    }
+
+    function togglePanel(header) {
+      header.closest('.ra-panel').classList.toggle('collapsed');
+    }
+
+    function toast(msg, type = 'info') {
+      const el = document.createElement('div');
+      el.className = `toast toast-${type}`;
+      el.innerHTML = `<span>${type === 'success' ? '✓' : '⚠'}</span> ${msg}`;
+      document.getElementById('toastContainer').appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+
+    init();
+  </script>
+</body>
+</html>
