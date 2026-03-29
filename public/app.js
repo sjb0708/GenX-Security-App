@@ -142,9 +142,11 @@ function renderDashboard(briefs) {
     card.innerHTML = `
       <div class="brief-card-top"></div>
       <div class="brief-card-body" onclick="window.location='/brief?id=${esc(b.id)}'">
-        <div class="brief-card-venue">${esc(b.venueName || 'Untitled Brief')}</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
+          <div class="brief-card-venue" style="margin-bottom:0;">${esc(b.venueName || 'Untitled Brief')}</div>
+          ${b.showDate ? `<div style="text-align:right;flex-shrink:0;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">Venue Date</div><div style="font-size:12px;font-weight:700;color:var(--red);">${esc(formatDate(b.showDate))}</div></div>` : ''}
+        </div>
         <div class="brief-card-meta">
-          ${b.showDate ? `<span class="tag tag-red">${esc(formatDate(b.showDate))}</span>` : ''}
           ${b.city || b.state ? `<span class="brief-card-location">${esc([b.city, b.state].filter(Boolean).join(', '))}</span>` : ''}
         </div>
         <div class="brief-card-stats" style="grid-template-columns:repeat(4,1fr);">
@@ -166,11 +168,8 @@ function renderDashboard(briefs) {
           </div>
         </div>
       </div>
-      <div class="brief-card-footer" style="padding:0 20px 16px;display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;flex-direction:column;gap:2px;">
-          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">Venue Date</span>
-          <span class="brief-updated">${b.showDate ? formatDate(b.showDate) : '—'}</span>
-        </div>
+      <div class="brief-card-footer" style="padding:0 20px 16px;display:flex;align-items:center;justify-content:flex-end;">
+        <div>
         <div class="brief-actions">
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();window.location='/brief?id=${esc(b.id)}'">Edit</button>
           <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();window.location='/view?id=${esc(b.id)}'">View Brief</button>
