@@ -950,20 +950,25 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 }
 
 @media (max-width: 480px) {
-  /* Nav — hide text, keep only icon + key actions */
+  /* Boost text contrast for mobile screens */
+  :root {
+    --text-2: #b0bec8;
+    --text-3: #8b949e;
+  }
+
+  /* Nav — compact but still readable */
   .topnav { padding: 0 12px; gap: 8px; }
-  .nav-brand-text { display: none; }
+  .nav-brand-sub { display: none; }
+  .nav-brand-name { font-size: 13px; }
+  .nav-brand-product { font-size: 12px; }
   .nav-center { display: none; }
   .nav-right { gap: 6px; }
-  /* Hide settings link (has inline style so need !important) */
+  /* Hide settings text link, access via Settings page directly */
   .nav-right a[href="/settings"] { display: none !important; }
-  /* Shrink New Brief to icon only */
-  .nav-right .btn-primary svg { margin-right: 0; }
-  .nav-right .btn-primary .btn-label { display: none; }
 
   /* Main content */
   .main-content { padding: 12px; }
-  .main-content-full { padding: 88px 12px 24px; }
+  .main-content-full { padding: 76px 12px 24px; }
 
   /* Hero */
   .hero { padding: 20px 0; }
