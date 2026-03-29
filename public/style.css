@@ -950,17 +950,20 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 }
 
 @media (max-width: 480px) {
-  /* Nav */
-  .topnav { padding: 0 12px; gap: 10px; }
+  /* Nav — hide text, keep only icon + key actions */
+  .topnav { padding: 0 12px; gap: 8px; }
   .nav-brand-text { display: none; }
-  .nav-breadcrumb .crumb { display: none; }
-  .nav-breadcrumb .sep { display: none; }
-  .nav-right { gap: 8px; }
-  .nav-right a[href="/settings"] { display: none; }
+  .nav-center { display: none; }
+  .nav-right { gap: 6px; }
+  /* Hide settings link (has inline style so need !important) */
+  .nav-right a[href="/settings"] { display: none !important; }
+  /* Shrink New Brief to icon only */
+  .nav-right .btn-primary svg { margin-right: 0; }
+  .nav-right .btn-primary .btn-label { display: none; }
 
   /* Main content */
   .main-content { padding: 12px; }
-  .main-content-full { padding-left: 12px; padding-right: 12px; }
+  .main-content-full { padding: 88px 12px 24px; }
 
   /* Hero */
   .hero { padding: 20px 0; }
