@@ -615,7 +615,6 @@ if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 })();
 
 app.get('/api/photos', (req, res) => {
-  // Return metadata only (no base64 blobs)
   res.json(photoLibrary.map(p => ({ id: p.id, name: p.name, url: p.url, addedAt: p.addedAt })));
 });
 
@@ -623,10 +622,9 @@ app.post('/api/photos', upload.array('files', 100), (req, res) => {
   if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files' });
   const added = req.files.map(f => {
     const id  = uuidv4();
-    const ext = (f.originalname.split('.').pop() || 'jpg').toLowerCase().replace('jpeg','jpg');
-    const filename = `${id}.${ext}`;
-    fs.writeFileSync(path.join(UPLOADS_DIR, filename), f.buffer);
-    return { id, name: f.originalname, url: `/uploads/${filename}`, addedAt: new Date().toISOString() };
+    const b64 = f.buffer.toString('base64');
+    const url = `data:${f.mimetype};base64,${b64}`;
+    return { id, name: f.originalname, url, addedAt: new Date().toISOString() };
   });
   photoLibrary = [...photoLibrary, ...added];
   saveJSON(PHOTOS_FILE, photoLibrary);
@@ -634,12 +632,7 @@ app.post('/api/photos', upload.array('files', 100), (req, res) => {
 });
 
 app.delete('/api/photos/:id', (req, res) => {
-  const photo = photoLibrary.find(p => p.id === req.params.id);
-  if (!photo) return res.status(404).json({ error: 'Not found' });
-  // Remove file from disk
-  if (photo.url && photo.url.startsWith('/uploads/')) {
-    try { fs.unlinkSync(path.join(__dirname, 'public', photo.url)); } catch (_) {}
-  }
+  if (!photoLibrary.find(p => p.id === req.params.id)) return res.status(404).json({ error: 'Not found' });
   photoLibrary = photoLibrary.filter(p => p.id !== req.params.id);
   saveJSON(PHOTOS_FILE, photoLibrary);
   res.json({ ok: true });
