@@ -202,6 +202,19 @@
     const briefId = params.get('id');
     let currentBrief = null;
 
+    const CACHE_KEY = `risk_assessment_${briefId}`;
+
+    function loadCached() {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch(e) { return null; }
+    }
+
+    function saveCache(data) {
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch(e) {}
+    }
+
     async function init() {
       if (!briefId) { showError('No brief ID provided.', false); return; }
       // Load brief info for nav
@@ -212,18 +225,15 @@
         document.getElementById('btnEditBrief').style.display = 'inline-flex';
       } catch(e) {}
 
-      // Try to load cached assessment first (no API tokens used)
-      try {
-        const cached = await fetch(`/api/risk/${briefId}`);
-        if (cached.ok) {
-          const data = await cached.json();
-          renderAssessment(data);
-          document.getElementById('btnRegenerate').style.display = 'inline-flex';
-          return;
-        }
-      } catch(e) {}
+      // Check localStorage cache first — instant load, zero tokens
+      const cached = loadCached();
+      if (cached) {
+        renderAssessment(cached);
+        document.getElementById('btnRegenerate').style.display = 'inline-flex';
+        return;
+      }
 
-      // No cached assessment — check for API key then generate
+      // No cache — check API key then generate
       const settingsRes = await fetch('/api/settings');
       const settings = await settingsRes.json();
       if (!settings.hasKey) { showNoKey(); return; }
@@ -231,7 +241,6 @@
     }
 
     async function generate() {
-      // Check API key before spinning up
       const settingsRes = await fetch('/api/settings');
       const settings = await settingsRes.json();
       if (!settings.hasKey) { showNoKey(); return; }
@@ -242,6 +251,7 @@
         const res = await fetch(`/api/risk/${briefId}`, { method: 'POST' });
         const data = await res.json();
         if (!res.ok) { showError(data.error || 'Generation failed'); return; }
+        saveCache(data);   // Store in localStorage for future visits
         renderAssessment(data);
         document.getElementById('btnRegenerate').style.display = 'inline-flex';
       } catch(e) {
