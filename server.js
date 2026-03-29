@@ -47,9 +47,12 @@ const settings = Object.assign({
 // ── In-memory store ──────────────────────────────────────────────────────────
 const briefs = new Map();
 
-// ── Demo data ────────────────────────────────────────────────────────────────
-const demoId = 'demo-001';
-briefs.set(demoId, {
+// ── Demo data (loaded from demo-data.json) ────────────────────────────────────
+const demoBriefs = loadJSON(path.join(__dirname, 'demo-data.json'), {});
+Object.entries(demoBriefs).forEach(([id, b]) => briefs.set(id, b));
+
+// Legacy inline demo placeholder (kept for reference, overridden by demo-data.json)
+if (false) { const demoId = 'demo-001'; briefs.set(demoId, {
   id: demoId,
   createdAt: new Date('2025-06-10T14:00:00Z').toISOString(),
   updatedAt: new Date('2025-06-10T18:30:00Z').toISOString(),
@@ -259,7 +262,7 @@ briefs.set(demoId, {
     { title:'Backstage Layout',    description:'Dressing rooms, green room, stage access, dock',  image:'' },
     { title:'Parking & Perimeter', description:'Lots A/B/C, fire lanes, staging areas',           image:'' }
   ]
-});
+}); } // end if(false)
 
 // Load any saved briefs (overrides / adds to demo data)
 const savedBriefs = loadJSON(BRIEFS_FILE, {});

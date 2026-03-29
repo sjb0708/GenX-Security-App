@@ -1,0 +1,477 @@
+{
+  "demo-001": {
+    "id": "demo-001",
+    "createdAt": "2025-06-10T14:00:00.000Z",
+    "updatedAt": "2026-03-29T01:43:10.119Z",
+    "venue": {
+      "name": "Mesa Arts Center",
+      "street": "1 E Main St",
+      "city": "Mesa",
+      "state": "AZ",
+      "zip": "85201",
+      "phone": "(480) 644-6500",
+      "capacity": "1900",
+      "totalTicketed": "",
+      "type": "Persforming Arts Center"
+    },
+    "hotel": {
+      "name": "Sheraton Mesa Hotel at Wrigleyville West",
+      "street": "860 N Dobson Rd",
+      "city": "Mesa",
+      "state": "AZ",
+      "zip": "85201",
+      "phone": "(480) 664-1221",
+      "checkin": "2025-07-14",
+      "checkinTime": "15:00",
+      "checkout": "2025-07-16",
+      "checkoutTime": "11:00"
+    },
+    "timeline": {
+      "arrivalDate": "2025-07-14",
+      "arrivalTime": "14:00",
+      "mediaDate": "2025-07-15",
+      "mediaTime": "10:00",
+      "showDate": "2025-07-15",
+      "doorsTime": "18:30",
+      "showTime": "20:00",
+      "departureDate": "2025-07-16",
+      "departureTime": "09:00",
+      "notes": "All talent to be escorted from hotel to venue. No early access without security presence. Media credential check at Stage Door only."
+    },
+    "contacts": {
+      "primary": {
+        "name": "Marcus Webb",
+        "title": "Director of Security",
+        "email": "mwebb@genxsecurity.com",
+        "phone": "(602) 555-0142",
+        "cell": "(602) 555-8871"
+      },
+      "backup": {
+        "name": "Dana Ortiz",
+        "title": "Security Supervisor",
+        "email": "dortiz@genxsecurity.com",
+        "phone": "(602) 555-0143",
+        "cell": "(602) 555-9934"
+      }
+    },
+    "ingress": {
+      "magnetometer": true,
+      "bagCheck": true,
+      "wand": true,
+      "patDown": false,
+      "visualInspection": true,
+      "evolv": false,
+      "ticketingType": "Digital + Physical",
+      "gateCount": "4",
+      "gateOpenTime": "18:00",
+      "notes": "Magnetometers at main entrance (Gates 1 & 2). Bag check at all gates. No bags larger than 12\"x6\"x12\". Clear bag policy in effect.",
+      "prohibitedItems": [
+        "Weapons",
+        "Outside Food/Beverages",
+        "Professional Cameras",
+        "Laser Pointers",
+        "Selfie Sticks",
+        "Backpacks over 12\""
+      ]
+    },
+    "staffing": {
+      "totalSecurity": "18",
+      "ushers": "9",
+      "leo": "4",
+      "backstageSecurity": "6",
+      "genxSecurity": "2",
+      "uniformed": true,
+      "uniformDesc": "Black polo shirt with GenX Security patch, black tactical pants, black boots. Supervisors wear red lanyard.",
+      "notes": "4 off-duty MCPD officers assigned to perimeter and main entrance. All staff briefed at 17:00 in loading dock."
+    },
+    "medical": {
+      "onSite": true,
+      "firstResponderCount": "",
+      "aedOnSite": false,
+      "aedNearStage": false,
+      "firstAidLocations": "Medical station near Gate 2, backstage right",
+      "emergencyProtocol": "In case of medical emergency: 1) Call 911 immediately. 2) Notify Command Post. 3) Clear area around patient. 4) Do not move patient unless in immediate danger. 5) Meet EMS at Gate 1.",
+      "hospitalName": "Banner Desert Medical Center",
+      "hospitalAddress": "1400 S Dobson Rd, Mesa, AZ 85202",
+      "hospitalPhone": "(480) 412-3000",
+      "announcementMethod": "PA System + Radio"
+    },
+    "evacuation": {
+      "primaryExit": "Main lobby doors (north facade) to E Main St",
+      "secondaryExit": "Stage door (west side) to loading dock / N Center St",
+      "safeRooms": [
+        "Green Room",
+        "Main Office",
+        "Loading Dock"
+      ],
+      "rallyPoint": "Mesa Convention Center Parking Lot (north side)",
+      "eapNotes": "Evacuation signal: 3 short blasts on venue PA followed by \"Please proceed to the nearest exit.\" Security sweeps begin from rear of venue forward. Do not use elevators.",
+      "lockdownProtocol": "Lockdown signal: continuous tone on PA. Lock all perimeter doors. Move patrons to interior rooms. No entry or exit until all-clear from MCPD Command."
+    },
+    "meetgreet": {
+      "scheduled": true,
+      "time": "17:30",
+      "duration": "45",
+      "location": "VIP Lounge — Level 2, East Wing",
+      "totalVips": "",
+      "staffAssigned": "3",
+      "protocol": "Fans escorted in groups of 10 by VIP Security. No gifts over 8\" in any dimension. One photo per fan (no selfies). Talent has final say on all interactions. Security remains within arm's reach at all times.",
+      "giftPolicy": "Handmade items accepted. No food. No liquids. All gifts inspected and tagged. Gifts transported to tour bus post-show."
+    },
+    "communications": {
+      "venueShareComms": true,
+      "channels": [
+        {
+          "ch": "1",
+          "use": "Command / All Security"
+        },
+        {
+          "ch": "2",
+          "use": "Ingress / Gate Teams"
+        },
+        {
+          "ch": "3",
+          "use": "Backstage / Production"
+        },
+        {
+          "ch": "4",
+          "use": "VIP / Meet & Greet"
+        },
+        {
+          "ch": "5",
+          "use": "Medical / Emergency"
+        },
+        {
+          "ch": "9",
+          "use": "LEO Liaison"
+        }
+      ],
+      "securityOps": "Mesa Security",
+      "securityOpsPhone": "843-391-4100",
+      "cellOk": true,
+      "notes": "All supervisors carry both radio and cell. Radio check at 17:00 mandatory. Spare batteries in Command Post."
+    },
+    "access": {
+      "doorSystems": [],
+      "credentials": [
+        {
+          "name": "Artist / Talent",
+          "color": "Red",
+          "level": "All Access",
+          "location": "",
+          "image": ""
+        },
+        {
+          "name": "Production / Crew",
+          "color": "Blue",
+          "level": "Production Zones",
+          "location": "",
+          "image": ""
+        },
+        {
+          "name": "Security Staff",
+          "color": "Black",
+          "level": "All Access + Armory",
+          "location": "",
+          "image": ""
+        },
+        {
+          "name": "Press / Media",
+          "color": "Green",
+          "level": "Designated Press Areas Only",
+          "location": "",
+          "image": ""
+        },
+        {
+          "name": "Venue Staff",
+          "color": "White",
+          "level": "Front of House",
+          "location": "",
+          "image": ""
+        },
+        {
+          "name": "VIP Guests",
+          "color": "Gold",
+          "level": "VIP Lounge + Floor",
+          "location": "",
+          "image": ""
+        }
+      ],
+      "genxCred": {
+        "frontImage": "/uploads/453d809f-8a77-4ca0-ac9a-4912bb6127bd.png",
+        "backImage": "/uploads/38f0e007-9afd-48a4-90b7-9d64fdcf1424.png",
+        "name": "All ACCESS",
+        "issuedBy": "",
+        "notes": "1"
+      },
+      "parkingNotes": "Artist / Crew: Loading dock (west side). Security: Lot C. General: Lot A & B (paid). ADA: Designated spaces on north facade. No vehicles in fire lane at any time."
+    },
+    "loadinout": {
+      "dockLocation": "West side, N Center St entrance — Gate W1",
+      "loadinDate": "2025-07-15",
+      "loadinTime": "08:00",
+      "loadinNotes": "Production company arrives 08:00. Security check-in required for all vendors. Valid ID + guest list confirmation. No tailgating through security door.",
+      "loadoutDate": "2025-07-15",
+      "loadoutTime": "23:30",
+      "loadoutNotes": "Load-out begins immediately post-show. All talent/crew off-site by 01:00. Tour bus positioned at dock by 22:30.",
+      "vehicleCount": "7",
+      "securityAtDock": true
+    },
+    "runofshow": [
+      {
+        "time": "08:00",
+        "activity": "Venue opens — Production load-in begins",
+        "notes": "2 security at dock. Check all credentials.",
+        "critical": false
+      },
+      {
+        "time": "12:00",
+        "activity": "Catering delivery — Backstage only",
+        "notes": "Inspect all containers. Log vendor name.",
+        "critical": false
+      },
+      {
+        "time": "14:00",
+        "activity": "Talent arrival — Hotel transfer",
+        "notes": "Escort team departs hotel at 13:30. Clear Stage Door prior.",
+        "critical": true
+      },
+      {
+        "time": "14:30",
+        "activity": "Soundcheck begins",
+        "notes": "Venue closed to public. Perimeter patrol active.",
+        "critical": false
+      },
+      {
+        "time": "15:30",
+        "activity": "Production photo shoot (backstage)",
+        "notes": "Approved media only. Badge check at stage door.",
+        "critical": false
+      },
+      {
+        "time": "17:00",
+        "activity": "Security briefing — all staff muster",
+        "notes": "Loading dock. Attendance mandatory.",
+        "critical": true
+      },
+      {
+        "time": "17:30",
+        "activity": "Meet & Greet — VIP Lounge Level 2",
+        "notes": "VIP escort begins. 3 security in room at all times.",
+        "critical": true
+      },
+      {
+        "time": "18:00",
+        "activity": "Gate Open — public ingress begins",
+        "notes": "All gates active. Mag sweep and bag check in effect.",
+        "critical": false
+      },
+      {
+        "time": "18:30",
+        "activity": "Doors open — general admission to floor",
+        "notes": "Monitor crowd density at floor perimeter.",
+        "critical": false
+      },
+      {
+        "time": "19:00",
+        "activity": "Opening act — stage security positions",
+        "notes": "Stage left/right barrier monitors deployed.",
+        "critical": false
+      },
+      {
+        "time": "20:00",
+        "activity": "MAIN SHOW — GenX Takeover",
+        "notes": "Full security protocol active. All positions confirmed.",
+        "critical": true
+      },
+      {
+        "time": "21:45",
+        "activity": "Encore break — crowd management",
+        "notes": "Monitor exits and crowd flow. Watch barrier zones.",
+        "critical": false
+      },
+      {
+        "time": "22:00",
+        "activity": "Show ends — controlled egress begins",
+        "notes": "Hold VIP until general public clear. Announce exits on PA.",
+        "critical": true
+      },
+      {
+        "time": "22:30",
+        "activity": "Talent departure — tour bus",
+        "notes": "Clear loading dock. Escort to vehicles. Block paparazzi.",
+        "critical": true
+      },
+      {
+        "time": "23:30",
+        "activity": "Load-out begins. Venue sweep complete.",
+        "notes": "Final sweep team. Log all incidents. Supervisor sign-off.",
+        "critical": false
+      }
+    ],
+    "talent": [
+      {
+        "name": "Sherri Dindal",
+        "stageName": "The Real Slim Sherri",
+        "role": "Talent — All Access",
+        "notes": "",
+        "photo": ""
+      },
+      {
+        "name": "Nick Harrison",
+        "stageName": "Mr. Professor",
+        "role": "Talent — All Access",
+        "notes": "",
+        "photo": ""
+      },
+      {
+        "name": "Kelly Manno",
+        "stageName": "Kelly Manno",
+        "role": "Talent — All Access",
+        "notes": "",
+        "photo": ""
+      },
+      {
+        "name": "Jon Wellington",
+        "stageName": "The Dadbod Veteran",
+        "role": "Talent — All Access",
+        "notes": "",
+        "photo": "http://localhost:3000/uploads/d4045f40-7149-449a-b2e0-3e27015684a0.jpg"
+      },
+      {
+        "name": "Justin Rupple",
+        "stageName": "Justin Rupple",
+        "role": "Talent — All Access",
+        "notes": "",
+        "photo": "http://localhost:3000/uploads/05cfd5dd-56a3-4a2d-93c9-fc1e191bd577.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Reuben Buck",
+        "function": "Tour Manager",
+        "phone": "",
+        "notes": "Close Group — All Access",
+        "photo": "http://localhost:3000/uploads/9dc50cca-642a-4120-b856-1c1338880a5c.jpg"
+      },
+      {
+        "name": "Jojo Maligar",
+        "function": "Musical Component / Audio Engineer",
+        "phone": "",
+        "notes": "Close Group — All Access",
+        "photo": "http://localhost:3000/uploads/4da4b7fd-b961-4438-809a-d718f38cbae6.jpg"
+      },
+      {
+        "name": "Joyce Cene",
+        "function": "Catering",
+        "phone": "",
+        "notes": "Close Group — All Access",
+        "photo": "http://localhost:3000/uploads/9c654ddb-6e69-4eee-afc4-341299bf4adc.jpg"
+      },
+      {
+        "name": "Christa Dias",
+        "function": "Spouse to Sherri Dindal",
+        "phone": "",
+        "notes": "Close Group — All Access",
+        "photo": "http://localhost:3000/uploads/a0d3b9a2-6fce-485d-8620-590356eda202.jpg"
+      },
+      {
+        "name": "Julie Walker",
+        "function": "Spouse to Jon Wellington",
+        "phone": "",
+        "notes": "Close Group — All Access",
+        "photo": "http://localhost:3000/uploads/642c113e-5d18-4640-9ee0-21068e7ac271.jpg"
+      },
+      {
+        "name": "Lisa Harrison",
+        "function": "Spouse to Nick Harrison",
+        "phone": "",
+        "notes": "Close Group — All Access",
+        "photo": "http://localhost:3000/uploads/36fd1d22-ddda-41fe-90d6-cbdcd80e8e2d.jpg"
+      }
+    ],
+    "emergency": [
+      {
+        "role": "MCPD Non-Emergency",
+        "name": "Mesa PD Dispatch",
+        "phone": "(480) 644-2211",
+        "email": ""
+      },
+      {
+        "role": "Security Chief",
+        "name": "Tom Briggs",
+        "phone": "(480) 555-0101",
+        "email": "tbriggs@mesaartscenter.com"
+      },
+      {
+        "role": "Show Promoter",
+        "name": "Alex Rivera",
+        "phone": "(602) 555-0177",
+        "email": "arivera@genxpresents.com"
+      },
+      {
+        "role": "Talent Rep / Agency",
+        "name": "Marcia Stone",
+        "phone": "(310) 555-0188",
+        "email": "mstone@stonetalent.com"
+      },
+      {
+        "role": "Building Manager",
+        "name": "Facilities Desk",
+        "phone": "(480) 644-6520",
+        "email": "facilities@mesaartscenter.com"
+      },
+      {
+        "role": "Insurance / Risk",
+        "name": "Greg Holloway",
+        "phone": "(602) 555-0166",
+        "email": "gholloway@genxrisk.com"
+      }
+    ],
+    "maps": [
+      {
+        "title": "Venue Floor Plan",
+        "description": "Ground level — FOH, seating, gates",
+        "image": ""
+      },
+      {
+        "title": "Backstage Layout",
+        "description": "Dressing rooms, green room, stage access, dock",
+        "image": ""
+      },
+      {
+        "title": "Parking & Perimeter",
+        "description": "Lots A/B/C, fire lanes, staging areas",
+        "image": ""
+      }
+    ],
+    "genxstaff": [
+      {
+        "name": "Steve Bailey",
+        "role": "Security",
+        "phone": "864-293-9696",
+        "email": "stevebailey130@gmail.com",
+        "certs": [
+          "Retired LEO",
+          "EMT",
+          "HR-218",
+          "Defensive Tactics"
+        ],
+        "photo": "http://localhost:3000/uploads/0838c802-ae5f-4e7a-a151-8ce47962811e.png"
+      },
+      {
+        "name": "Ben Lunbeck",
+        "role": "Security Lead",
+        "phone": "555-555555",
+        "email": "imsexy@gmail.com",
+        "certs": [
+          "Prior LEO",
+          "First Aid",
+          "Defensive Tactics",
+          "Other"
+        ],
+        "photo": "http://localhost:3000/uploads/34f1b5d8-10fa-40be-a582-6afe83646959.jpg"
+      }
+    ]
+  }
+}
