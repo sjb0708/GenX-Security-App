@@ -419,10 +419,12 @@ app.get('/api/briefs', (req, res) => {
     city:      b.venue?.city || '',
     state:     b.venue?.state || '',
     showDate:  b.timeline?.showDate || '',
-    talent:    (b.talent || []).length,
-    crew:      (b.crew || []).length,
-    updatedAt: b.updatedAt,
-    createdAt: b.createdAt
+    talent:      (b.talent || []).length,
+    crew:        (b.crew || []).length,
+    genxSecurity:(b.genxstaff || []).length,
+    status:      b.status || 'draft',
+    updatedAt:   b.updatedAt,
+    createdAt:   b.createdAt
   }));
   res.json(list);
 });

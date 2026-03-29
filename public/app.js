@@ -116,12 +116,16 @@ function renderDashboard(briefs) {
   if (count) count.textContent = briefs.length;
 
   // Stats
-  const statBriefs = document.getElementById('statBriefs');
-  const statVenues = document.getElementById('statVenues');
-  const statShows  = document.getElementById('statShows');
-  if (statBriefs) statBriefs.textContent = briefs.length;
-  if (statVenues) statVenues.textContent = new Set(briefs.map(b => b.venueName).filter(Boolean)).size;
-  if (statShows)  statShows.textContent  = briefs.filter(b => b.showDate).length;
+  const statBriefs    = document.getElementById('statBriefs');
+  const statVenues    = document.getElementById('statVenues');
+  const statShows     = document.getElementById('statShows');
+  const statFinalized = document.getElementById('statFinalized');
+  const statDraft     = document.getElementById('statDraft');
+  if (statBriefs)    statBriefs.textContent    = briefs.length;
+  if (statVenues)    statVenues.textContent    = new Set(briefs.map(b => b.venueName).filter(Boolean)).size;
+  if (statShows)     statShows.textContent     = briefs.filter(b => b.showDate).length;
+  if (statFinalized) statFinalized.textContent = briefs.filter(b => b.status === 'finalized').length;
+  if (statDraft)     statDraft.textContent     = briefs.filter(b => !b.status || b.status === 'draft').length;
 
   if (!grid) return;
   grid.innerHTML = '';
@@ -143,7 +147,7 @@ function renderDashboard(briefs) {
           ${b.showDate ? `<span class="tag tag-red">${esc(formatDate(b.showDate))}</span>` : ''}
           ${b.city || b.state ? `<span class="brief-card-location">${esc([b.city, b.state].filter(Boolean).join(', '))}</span>` : ''}
         </div>
-        <div class="brief-card-stats">
+        <div class="brief-card-stats" style="grid-template-columns:repeat(4,1fr);">
           <div class="brief-stat">
             <div class="brief-stat-num">${b.talent || 0}</div>
             <div class="brief-stat-lbl">Talent</div>
@@ -153,13 +157,20 @@ function renderDashboard(briefs) {
             <div class="brief-stat-lbl">Crew</div>
           </div>
           <div class="brief-stat">
+            <div class="brief-stat-num">${b.genxSecurity || 0}</div>
+            <div class="brief-stat-lbl">GenX Staff</div>
+          </div>
+          <div class="brief-stat">
             <div class="brief-stat-num">${b.updatedAt ? timeAgo(b.updatedAt) : '—'}</div>
             <div class="brief-stat-lbl">Updated</div>
           </div>
         </div>
       </div>
       <div class="brief-card-footer" style="padding:0 20px 16px;display:flex;align-items:center;justify-content:space-between;">
-        <span class="brief-updated">${b.createdAt ? formatDate(b.createdAt) : ''}</span>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">Venue Date</span>
+          <span class="brief-updated">${b.showDate ? formatDate(b.showDate) : '—'}</span>
+        </div>
         <div class="brief-actions">
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();window.location='/brief?id=${esc(b.id)}'">Edit</button>
           <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();window.location='/view?id=${esc(b.id)}'">View Brief</button>
@@ -213,22 +224,21 @@ function deleteBrief(id) {
 function showConfirm(message, onConfirm) {
   const existing = document.getElementById('customConfirm');
   if (existing) existing.remove();
+  window._confirmCb = onConfirm;
   const overlay = document.createElement('div');
   overlay.id = 'customConfirm';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
   overlay.innerHTML = `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px;">Confirm</div>
-      <div style="font-size:13px;color:var(--text-2);margin-bottom:20px;">${message}</div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;">
-        <button id="confirmCancel" class="btn btn-ghost btn-sm">Cancel</button>
-        <button id="confirmOk" class="btn btn-sm" style="background:var(--red);color:#fff;border-color:var(--red);">Delete</button>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px;">Delete Brief</div>
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:24px;">${message}</div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-ghost btn-sm" style="min-width:80px;" onclick="document.getElementById('customConfirm').remove();window._confirmCb=null;">Cancel</button>
+        <button class="btn btn-sm" style="min-width:80px;background:var(--red);color:#fff;border-color:var(--red);font-weight:700;" onclick="var cb=window._confirmCb;document.getElementById('customConfirm').remove();window._confirmCb=null;if(cb)cb();">Delete</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
-  document.getElementById('confirmCancel').onclick = () => overlay.remove();
-  document.getElementById('confirmOk').onclick = () => { overlay.remove(); onConfirm(); };
-  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.remove(); window._confirmCb = null; } });
 }
 
 async function duplicateBrief(id) {
@@ -272,6 +282,7 @@ async function initBriefBuilder(id) {
       populateBrief(brief);
       const viewBtn = document.getElementById('viewBriefBtn');
       if (viewBtn) { viewBtn.href = `/view?id=${id}`; viewBtn.style.display = ''; }
+      updateFinalizeBtn(brief.status);
     } catch (e) {
       toast('Failed to load brief', 'error');
     }
@@ -655,6 +666,44 @@ function updateNav() {
 function updateStatusBar(name) {
   updateNav();
   setStatus('Ready', true);
+}
+
+let _briefStatus = 'draft';
+function updateFinalizeBtn(status) {
+  _briefStatus = status || 'draft';
+  const btn = document.getElementById('finalizeBtn');
+  if (!btn) return;
+  btn.style.display = '';
+  if (_briefStatus === 'finalized') {
+    btn.textContent = '✓ Finalized';
+    btn.style.background = 'rgba(34,197,94,0.15)';
+    btn.style.color = '#22c55e';
+    btn.style.borderColor = 'rgba(34,197,94,0.4)';
+  } else {
+    btn.textContent = 'Mark Finalized';
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }
+}
+
+async function toggleFinalized() {
+  _briefStatus = _briefStatus === 'finalized' ? 'draft' : 'finalized';
+  updateFinalizeBtn(_briefStatus);
+  if (!currentBriefId) return;
+  try {
+    const res = await fetch(`${API}/api/briefs/${currentBriefId}`);
+    const brief = await res.json();
+    brief.status = _briefStatus;
+    await fetch(`${API}/api/briefs/${currentBriefId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(brief)
+    });
+    toast(_briefStatus === 'finalized' ? 'Brief finalized' : 'Marked as draft', 'success');
+  } catch (e) {
+    toast('Failed to update status', 'error');
+  }
 }
 
 // ── Maps Buttons ──────────────────────────────────────────────────────────────
