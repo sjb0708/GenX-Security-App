@@ -168,19 +168,14 @@ function renderDashboard(briefs) {
           </div>
         </div>
       </div>
-      <div class="brief-card-footer" style="padding:0 20px 16px;display:flex;align-items:center;justify-content:flex-end;">
-        <div>
+      <div class="brief-card-footer" id="footer-${esc(b.id)}" style="padding:0 20px 16px;display:flex;align-items:center;justify-content:space-between;">
+        <button class="btn btn-sm" onclick="event.stopPropagation();confirmDeleteInline('${esc(b.id)}')" style="background:transparent;border:1px solid rgba(230,57,70,0.3);color:var(--red);padding:6px 8px;" title="Delete brief">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 9a1 1 0 001 1h6a1 1 0 001-1l1-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
         <div class="brief-actions">
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();window.location='/brief?id=${esc(b.id)}'">Edit</button>
           <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();window.location='/view?id=${esc(b.id)}'">View Brief</button>
           <button class="btn btn-sm" onclick="event.stopPropagation();window.location='/risk?id=${esc(b.id)}'" style="background:rgba(230,57,70,0.12);color:var(--red);border:1px solid rgba(230,57,70,0.3);font-weight:700;">⚡ Risk Assessment</button>
-          <div class="dropdown-wrap">
-            <button class="btn btn-ghost btn-icon btn-sm" onclick="event.stopPropagation();toggleDropdown(this)">···</button>
-            <div class="dropdown-menu">
-              <div class="dropdown-item" onclick="event.stopPropagation();duplicateBrief('${esc(b.id)}')">⧉ Duplicate</div>
-              <div class="dropdown-item danger" onclick="event.stopPropagation();deleteBrief('${esc(b.id)}')">✕ Delete</div>
-            </div>
-          </div>
         </div>
       </div>`;
     grid.appendChild(card);
@@ -207,37 +202,28 @@ async function createNewBrief() {
   }
 }
 
-function deleteBrief(id) {
-  showConfirm('Delete this brief? This cannot be undone.', async () => {
-    try {
-      await fetch(`${API}/api/briefs/${id}`, { method: 'DELETE' });
-      allBriefs = allBriefs.filter(b => b.id !== id);
-      renderDashboard(allBriefs);
-      toast('Brief deleted', 'success');
-    } catch (e) {
-      toast('Delete failed', 'error');
-    }
-  });
-}
-
-function showConfirm(message, onConfirm) {
-  const existing = document.getElementById('customConfirm');
-  if (existing) existing.remove();
-  window._confirmCb = onConfirm;
-  const overlay = document.createElement('div');
-  overlay.id = 'customConfirm';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
-  overlay.innerHTML = `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
-      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px;">Delete Brief</div>
-      <div style="font-size:13px;color:var(--text-2);margin-bottom:24px;">${message}</div>
-      <div style="display:flex;gap:10px;justify-content:flex-end;">
-        <button class="btn btn-ghost btn-sm" style="min-width:80px;" onclick="document.getElementById('customConfirm').remove();window._confirmCb=null;">Cancel</button>
-        <button class="btn btn-sm" style="min-width:80px;background:var(--red);color:#fff;border-color:var(--red);font-weight:700;" onclick="var cb=window._confirmCb;document.getElementById('customConfirm').remove();window._confirmCb=null;if(cb)cb();">Delete</button>
+function confirmDeleteInline(id) {
+  const footer = document.getElementById('footer-' + id);
+  if (!footer) return;
+  footer.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;width:100%;justify-content:space-between;">
+      <span style="font-size:12px;font-weight:600;color:var(--red);">Are you sure you want to delete this brief?</span>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();renderDashboard(allBriefs)">Cancel</button>
+        <button class="btn btn-sm" style="background:var(--red);color:#fff;border-color:var(--red);font-weight:700;" onclick="event.stopPropagation();doDeleteBrief('${id}')">Yes, Delete</button>
       </div>
     </div>`;
-  document.body.appendChild(overlay);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.remove(); window._confirmCb = null; } });
+}
+
+async function doDeleteBrief(id) {
+  try {
+    await fetch(`${API}/api/briefs/${id}`, { method: 'DELETE' });
+    allBriefs = allBriefs.filter(b => b.id !== id);
+    renderDashboard(allBriefs);
+    toast('Brief deleted', 'success');
+  } catch (e) {
+    toast('Delete failed', 'error');
+  }
 }
 
 async function duplicateBrief(id) {
@@ -253,19 +239,6 @@ async function duplicateBrief(id) {
     toast('Duplicate failed', 'error');
   }
 }
-
-function toggleDropdown(btn) {
-  document.querySelectorAll('.dropdown-menu.open').forEach(m => {
-    if (m !== btn.nextElementSibling) m.classList.remove('open');
-  });
-  btn.nextElementSibling.classList.toggle('open');
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.dropdown-wrap')) {
-    document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
-  }
-});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // BRIEF BUILDER
