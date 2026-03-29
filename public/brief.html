@@ -168,7 +168,20 @@
         </div>
         <div class="field-group">
           <label class="field-label">Venue Type</label>
-          <input class="field-input" id="venueType" placeholder="Performing Arts Center" oninput="scheduleSave()">
+          <select class="field-input" id="venueType" onchange="scheduleSave()">
+            <option value="">Select…</option>
+            <option>Performing Arts Center</option>
+            <option>Theater</option>
+            <option>Amphitheater</option>
+            <option>Bar</option>
+            <option>Casino</option>
+            <option>Hotel Ballroom</option>
+            <option>Convention Center</option>
+            <option>Stadium</option>
+            <option>Arena</option>
+            <option>Club / Nightclub</option>
+            <option>Other</option>
+          </select>
         </div>
       </div>
       <div class="maps-buttons-row no-print hidden" id="maps-buttons">
@@ -385,10 +398,17 @@
       <div class="grid-3">
         <div class="field-group">
           <label class="field-label">Ticketing Type</label>
-          <input class="field-input" id="ticketingType" placeholder="Digital + Physical" oninput="scheduleSave()">
+          <select class="field-input" id="ticketingType" onchange="scheduleSave()">
+            <option value="">Select…</option>
+            <option>Digital</option>
+            <option>Physical</option>
+            <option>Digital + Physical</option>
+            <option>Complimentary</option>
+            <option>Mixed</option>
+          </select>
         </div>
         <div class="field-group">
-          <label class="field-label">Gate Count</label>
+          <label class="field-label">Total Screening Entry Points</label>
           <input class="field-input" type="number" id="gateCount" placeholder="4" oninput="scheduleSave()">
         </div>
         <div class="field-group">
@@ -471,8 +491,8 @@
     <div class="panel-body">
       <div class="toggle-row" style="margin-bottom:16px;">
         <div class="toggle-info">
-          <div class="toggle-label">Medical Personnel On-Site</div>
-          <div class="toggle-desc">EMTs or paramedics assigned to this event</div>
+          <div class="toggle-label">Trained Medical Staff On-Site</div>
+          <div class="toggle-desc">Location has trained medical staff on-site for this event</div>
         </div>
         <label class="toggle">
           <input type="checkbox" id="medicalOnSite" onchange="scheduleSave()">
@@ -527,16 +547,6 @@
           <input class="field-input" id="hospitalPhone" oninput="scheduleSave()">
         </div>
       </div>
-      <div class="field-group" style="max-width:300px;">
-        <label class="field-label">Announcement Method</label>
-        <select class="field-input" id="announcementMethod" onchange="scheduleSave()">
-          <option value="">Select…</option>
-          <option>PA System + Radio</option>
-          <option>Radio Only</option>
-          <option>PA System Only</option>
-          <option>PA + Text Alert</option>
-        </select>
-      </div>
     </div>
   </section>
 
@@ -567,8 +577,18 @@
         <label class="field-label">Rally Point</label>
         <input class="field-input" id="rallyPoint" oninput="scheduleSave()">
       </div>
+      <div class="field-group" style="max-width:300px;">
+        <label class="field-label">Evacuation Announcement Method</label>
+        <select class="field-input" id="announcementMethod" onchange="scheduleSave()">
+          <option value="">Select…</option>
+          <option>PA System + Radio</option>
+          <option>Radio Only</option>
+          <option>PA System Only</option>
+          <option>PA + Text Alert</option>
+        </select>
+      </div>
       <div class="field-group">
-        <label class="field-label">EAP Announcement Script</label>
+        <label class="field-label">EAP Additional Notes</label>
         <textarea class="field-input" id="eapNotes" placeholder="Exact announcement language for evacuation…" oninput="scheduleSave()"></textarea>
       </div>
       <div class="field-group">
@@ -613,9 +633,15 @@
           <input class="field-input" type="number" id="mgTotalVips" placeholder="30" oninput="scheduleSave()">
         </div>
       </div>
-      <div class="field-group" style="max-width:200px;">
-        <label class="field-label">Security Staff Assigned</label>
-        <input class="field-input" type="number" id="mgStaff" placeholder="3" oninput="scheduleSave()">
+      <div class="grid-2" style="max-width:420px;">
+        <div class="field-group">
+          <label class="field-label">Security Staff Assigned</label>
+          <input class="field-input" type="number" id="mgStaff" placeholder="3" oninput="scheduleSave()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Total GenX Security Staff</label>
+          <input class="field-input" type="number" id="mgGenxStaff" placeholder="2" oninput="scheduleSave()">
+        </div>
       </div>
       <div class="field-group">
         <label class="field-label">M&amp;G Protocol</label>
@@ -684,7 +710,7 @@
     </div>
     <div class="panel-body">
       <div class="field-group">
-        <label class="field-label">Door / Entry System</label>
+        <label class="field-label">Venue Access Control Devices</label>
         <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:6px;">
           <label class="checkbox-item"><input type="checkbox" id="doorCardAccess" onchange="scheduleSave()"> Card Access</label>
           <label class="checkbox-item"><input type="checkbox" id="doorFacial" onchange="scheduleSave()"> Facial Recognition</label>

@@ -167,8 +167,8 @@ function renderDashboard(briefs) {
           <div class="dropdown-wrap">
             <button class="btn btn-ghost btn-icon btn-sm" onclick="event.stopPropagation();toggleDropdown(this)">···</button>
             <div class="dropdown-menu">
-              <div class="dropdown-item" onclick="duplicateBrief('${esc(b.id)}')">⧉ Duplicate</div>
-              <div class="dropdown-item danger" onclick="deleteBrief('${esc(b.id)}')">✕ Delete</div>
+              <div class="dropdown-item" onclick="event.stopPropagation();duplicateBrief('${esc(b.id)}')">⧉ Duplicate</div>
+              <div class="dropdown-item danger" onclick="event.stopPropagation();deleteBrief('${esc(b.id)}')">✕ Delete</div>
             </div>
           </div>
         </div>
@@ -197,16 +197,38 @@ async function createNewBrief() {
   }
 }
 
-async function deleteBrief(id) {
-  if (!confirm('Delete this brief? This cannot be undone.')) return;
-  try {
-    await fetch(`${API}/api/briefs/${id}`, { method: 'DELETE' });
-    allBriefs = allBriefs.filter(b => b.id !== id);
-    renderDashboard(allBriefs);
-    toast('Brief deleted', 'success');
-  } catch (e) {
-    toast('Delete failed', 'error');
-  }
+function deleteBrief(id) {
+  showConfirm('Delete this brief? This cannot be undone.', async () => {
+    try {
+      await fetch(`${API}/api/briefs/${id}`, { method: 'DELETE' });
+      allBriefs = allBriefs.filter(b => b.id !== id);
+      renderDashboard(allBriefs);
+      toast('Brief deleted', 'success');
+    } catch (e) {
+      toast('Delete failed', 'error');
+    }
+  });
+}
+
+function showConfirm(message, onConfirm) {
+  const existing = document.getElementById('customConfirm');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'customConfirm';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px;">Confirm</div>
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:20px;">${message}</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button id="confirmCancel" class="btn btn-ghost btn-sm">Cancel</button>
+        <button id="confirmOk" class="btn btn-sm" style="background:var(--red);color:#fff;border-color:var(--red);">Delete</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('confirmCancel').onclick = () => overlay.remove();
+  document.getElementById('confirmOk').onclick = () => { overlay.remove(); onConfirm(); };
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
 
 async function duplicateBrief(id) {
@@ -366,6 +388,7 @@ function populateBrief(b) {
   setVal('mgLocation',  mg.location);
   setVal('mgTotalVips', mg.totalVips);
   setVal('mgStaff',     mg.staffAssigned);
+  setVal('mgGenxStaff', mg.genxStaff);
   setVal('mgProtocol',  mg.protocol);
   setVal('giftPolicy',  mg.giftPolicy);
 
@@ -544,6 +567,7 @@ function collectBrief() {
       location:     val('mgLocation'),
       totalVips:    val('mgTotalVips'),
       staffAssigned:val('mgStaff'),
+      genxStaff:    val('mgGenxStaff'),
       protocol:     val('mgProtocol'),
       giftPolicy:   val('giftPolicy')
     },
@@ -1404,7 +1428,7 @@ function renderBriefView(b, id) {
         <div class="view-kv">
           ${kv('Methods', [ing.magnetometer && 'Magnetometer', ing.bagCheck && 'Bag Check', ing.wand && 'Wand', ing.patDown && 'Pat Down', ing.visualInspection && 'Visual Inspection', ing.evolv && 'Evolv'].filter(Boolean).join(', '))}
           ${kv('Ticketing', ing.ticketingType)}
-          ${kv('Gates', ing.gateCount)}
+          ${kv('Entry Points', ing.gateCount)}
           ${kv('Gate Open', ing.gateOpenTime ? formatTime(ing.gateOpenTime) : '')}
         </div>
         ${ing.prohibitedItems?.length ? `<div style="margin-top:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">Prohibited Items</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${ing.prohibitedItems.map(t => `<span class="tag tag-red">${esc(t)}</span>`).join('')}</div></div>` : ''}
@@ -1425,14 +1449,13 @@ function renderBriefView(b, id) {
     <div class="grid-2" style="margin-bottom:20px;">
       ${viewPanel('⚕️', 'Medical & Emergency', `
         <div class="view-kv">
-          ${kv('On-Site Medical', med.onSite ? 'Yes' : 'No')}
-          ${kv('First Responders', med.firstResponderCount)}
+          ${kv('Trained Medical Staff', med.onSite ? 'Yes' : 'No')}
+          ${kv('Medical Personnel', med.firstResponderCount)}
           ${kv('AED On Site', med.aedOnSite ? 'Yes' : 'No')}
           ${kv('AED Near Stage', med.aedNearStage ? 'Yes' : 'No')}
           ${kv('First Aid', med.firstAidLocations)}
           ${kv('Hospital', med.hospitalName)}
           ${kv('Hosp. Phone', med.hospitalPhone)}
-          ${kv('Announce', med.announcementMethod)}
         </div>
         ${med.emergencyProtocol ? `<div style="margin-top:12px;font-size:12px;color:var(--text-2);padding:10px;background:var(--surface-2);border-radius:8px;">${esc(med.emergencyProtocol)}</div>` : ''}`)}
       ${viewPanel('🚨', 'Evacuation', `
@@ -1440,6 +1463,7 @@ function renderBriefView(b, id) {
           ${kv('Primary Exit',   ev.primaryExit)}
           ${kv('Secondary Exit', ev.secondaryExit)}
           ${kv('Rally Point',    ev.rallyPoint)}
+          ${kv('Evacuation Announcement', med.announcementMethod)}
         </div>
         ${ev.safeRooms?.length ? `<div style="margin-top:10px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:5px;">Safe Rooms</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${ev.safeRooms.map(r => `<span class="tag tag-blue">${esc(r)}</span>`).join('')}</div></div>` : ''}
         ${ev.eapNotes ? `<div style="margin-top:10px;font-size:12px;color:var(--text-2);padding:10px;background:var(--surface-2);border-radius:8px;">${esc(ev.eapNotes)}</div>` : ''}
@@ -1456,6 +1480,7 @@ function renderBriefView(b, id) {
           ${kv('Location',     mg.location)}
           ${kv('Total VIPs',   mg.totalVips)}
           ${kv('Security Staff', mg.staffAssigned)}
+          ${kv('GenX Staff', mg.genxStaff)}
         </div>
         ${mg.protocol ? `<div style="margin-top:10px;font-size:12px;color:var(--text-2);padding:10px;background:var(--surface-2);border-radius:8px;">${esc(mg.protocol)}</div>` : ''}` :
         '<div style="color:var(--text-3);font-size:13px;">No Meet &amp; Greet scheduled.</div>'}`)}
@@ -1471,7 +1496,7 @@ function renderBriefView(b, id) {
 
     <!-- Access Control -->
     ${viewPanel('🔑', 'Access Control', `
-      ${(ac.doorSystems || []).length ? `<div style="margin-bottom:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">Door / Entry Systems</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${(ac.doorSystems || []).map(s => `<span class="tag tag-gray">${esc(s)}</span>`).join('')}</div></div>` : ''}
+      ${(ac.doorSystems || []).length ? `<div style="margin-bottom:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">Venue Access Control Devices</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${(ac.doorSystems || []).map(s => `<span class="tag tag-gray">${esc(s)}</span>`).join('')}</div></div>` : ''}
       ${(ac.credentials || []).length ? `
         <div style="overflow-x:auto;margin-top:4px;">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">Additional Venue-Required Credentials</div>
