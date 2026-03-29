@@ -184,7 +184,7 @@
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-ghost btn-sm" id="btnEditBrief" style="display:none" onclick="editBrief()">✏️ Edit Brief</button>
       <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Print</button>
-      <button class="btn btn-primary btn-sm" id="btnRegenerate" style="display:none" onclick="generate()">⚡ Regenerate</button>
+      <button class="btn btn-primary btn-sm" id="btnRegenerate" style="display:none" onclick="generate()">⚡ Regenerate Assessment</button>
       <a href="/" style="font-size:12px;font-weight:600;color:var(--text-2);text-decoration:none;">← Dashboard</a>
     </div>
   </nav>
@@ -204,13 +204,6 @@
 
     async function init() {
       if (!briefId) { showError('No brief ID provided.', false); return; }
-      // Check settings first
-      const settingsRes = await fetch('/api/settings');
-      const settings = await settingsRes.json();
-      if (!settings.hasKey) {
-        showNoKey();
-        return;
-      }
       // Load brief info for nav
       try {
         const bRes = await fetch(`/api/briefs/${briefId}`);
@@ -218,10 +211,31 @@
         document.getElementById('navBriefTitle').textContent = currentBrief.venue?.name ? `Risk — ${currentBrief.venue.name}` : 'Risk Assessment';
         document.getElementById('btnEditBrief').style.display = 'inline-flex';
       } catch(e) {}
+
+      // Try to load cached assessment first (no API tokens used)
+      try {
+        const cached = await fetch(`/api/risk/${briefId}`);
+        if (cached.ok) {
+          const data = await cached.json();
+          renderAssessment(data);
+          document.getElementById('btnRegenerate').style.display = 'inline-flex';
+          return;
+        }
+      } catch(e) {}
+
+      // No cached assessment — check for API key then generate
+      const settingsRes = await fetch('/api/settings');
+      const settings = await settingsRes.json();
+      if (!settings.hasKey) { showNoKey(); return; }
       generate();
     }
 
     async function generate() {
+      // Check API key before spinning up
+      const settingsRes = await fetch('/api/settings');
+      const settings = await settingsRes.json();
+      if (!settings.hasKey) { showNoKey(); return; }
+
       document.getElementById('btnRegenerate').style.display = 'none';
       showLoading();
       try {

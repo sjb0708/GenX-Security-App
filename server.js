@@ -542,6 +542,13 @@ app.put('/api/settings', (req, res) => {
 });
 
 // ── Risk Assessment ───────────────────────────────────────────────────────────
+app.get('/api/risk/:id', (req, res) => {
+  const brief = briefs.get(req.params.id);
+  if (!brief) return res.status(404).json({ error: 'Brief not found' });
+  if (!brief.riskAssessment) return res.status(404).json({ error: 'No saved assessment' });
+  res.json(brief.riskAssessment);
+});
+
 app.post('/api/risk/:id', async (req, res) => {
   const brief = briefs.get(req.params.id);
   if (!brief) return res.status(404).json({ error: 'Brief not found' });
@@ -641,6 +648,11 @@ Return this exact JSON structure:
       census: crimeData.census,
       venueState: brief.venue?.state || ''
     };
+
+    // Save assessment to brief so it can be loaded without regenerating
+    brief.riskAssessment = assessment;
+    briefs.set(req.params.id, brief);
+    saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
 
     res.json(assessment);
   } catch (err) {
