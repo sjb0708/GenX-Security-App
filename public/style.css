@@ -938,8 +938,8 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   .maps-grid { grid-template-columns: 1fr; }
   .contact-cards-grid { grid-template-columns: 1fr; }
   .channel-grid { grid-template-columns: 1fr; }
-  .mobile-overlay { display: block; pointer-events: none; }
-  .mobile-overlay.visible { pointer-events: auto; }
+  .mobile-overlay { display: none; pointer-events: none; }
+  .mobile-overlay.visible { display: block; pointer-events: auto; }
   .hero { flex-direction: column; padding: 24px; }
   .hero-graphic { display: none; }
   .view-content { margin-top: 80px; padding: 16px; }
