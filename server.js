@@ -706,8 +706,9 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 const UPLOADS_DIR = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
-// Migrate any existing base64 photos to files on startup
+// Migrate any existing base64 photos to files on startup (skip on Vercel — no persistent /public/uploads)
 (function migrateBase64Photos() {
+  if (process.env.VERCEL) return;
   let changed = false;
   photoLibrary = photoLibrary.map(p => {
     if (p.url && p.url.startsWith('data:')) {

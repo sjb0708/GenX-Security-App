@@ -968,7 +968,7 @@ function collectCredentials() {
   return [...body.querySelectorAll('tr')].map(tr => {
     const inputs = [...tr.querySelectorAll('input:not([type=file])')];
     const img = tr.querySelector('.cred-img-cell img');
-    return { name: inputs[0]?.value || '', color: inputs[1]?.value || '', level: inputs[2]?.value || '', location: inputs[3]?.value || '', image: img?.src || '' };
+    return { name: inputs[0]?.value || '', color: inputs[1]?.value || '', level: inputs[2]?.value || '', location: inputs[3]?.value || '', image: img?.getAttribute('src') || '' };
   });
 }
 
@@ -1176,9 +1176,9 @@ function collectPersonGrid(gridId) {
     const img = card.querySelector('.person-photo img');
     const type = card.dataset.type;
     if (type === 'talent') {
-      return { name: inputs[0]?.value || '', stageName: inputs[1]?.value || '', role: inputs[2]?.value || '', notes: textarea?.value || '', photo: img?.src || '' };
+      return { name: inputs[0]?.value || '', stageName: inputs[1]?.value || '', role: inputs[2]?.value || '', notes: textarea?.value || '', photo: img?.getAttribute('src') || '' };
     } else {
-      return { name: inputs[0]?.value || '', function: inputs[1]?.value || '', phone: inputs[2]?.value || '', notes: textarea?.value || '', photo: img?.src || '' };
+      return { name: inputs[0]?.value || '', function: inputs[1]?.value || '', phone: inputs[2]?.value || '', notes: textarea?.value || '', photo: img?.getAttribute('src') || '' };
     }
   });
 }
@@ -1296,7 +1296,7 @@ function collectGenxStaff() {
       phone: inputs[1]?.value || '',
       email: inputs[2]?.value || '',
       certs: [...card.querySelectorAll('.cert-tag input[type=hidden]')].map(i => i.value).filter(Boolean),
-      photo: img?.src || ''
+      photo: img?.getAttribute('src') || ''
     };
   });
 }
@@ -1430,7 +1430,7 @@ function collectMaps() {
   return [...grid.querySelectorAll('.map-zone')].map(zone => {
     const inputs = zone.querySelectorAll('input:not(.map-input)');
     const img = zone.querySelector('.map-preview');
-    return { title: inputs[0]?.value || '', description: inputs[1]?.value || '', image: img?.src || '' };
+    return { title: inputs[0]?.value || '', description: inputs[1]?.value || '', image: img?.getAttribute('src') || '' };
   });
 }
 

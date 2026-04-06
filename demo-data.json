@@ -219,94 +219,94 @@
     },
     "runofshow": [
       {
-        "time": "08:00",
-        "activity": "Venue opens — Production load-in begins",
-        "notes": "2 security at dock. Check all credentials.",
-        "critical": false
-      },
-      {
-        "time": "12:00",
-        "activity": "Catering delivery — Backstage only",
-        "notes": "Inspect all containers. Log vendor name.",
-        "critical": false
-      },
-      {
-        "time": "14:00",
-        "activity": "Talent arrival — Hotel transfer",
-        "notes": "Escort team departs hotel at 13:30. Clear Stage Door prior.",
-        "critical": true
-      },
-      {
         "time": "14:30",
-        "activity": "Soundcheck begins",
-        "notes": "Venue closed to public. Perimeter patrol active.",
+        "activity": "Load in / Tech setup",
+        "notes": "Security at dock. Check all credentials. 2:30–4:30 pm window.",
         "critical": false
       },
       {
         "time": "15:30",
-        "activity": "Production photo shoot (backstage)",
-        "notes": "Approved media only. Badge check at stage door.",
-        "critical": false
+        "activity": "Talent reports to venue",
+        "notes": "Escort team ready at Stage Door. Clear all access points.",
+        "critical": true
       },
       {
-        "time": "17:00",
-        "activity": "Security briefing — all staff muster",
-        "notes": "Loading dock. Attendance mandatory.",
-        "critical": true
+        "time": "16:30",
+        "activity": "Soundcheck",
+        "notes": "Venue closed to public. Perimeter patrol active. 4:30–5:30 pm.",
+        "critical": false
       },
       {
         "time": "17:30",
-        "activity": "Meet & Greet — VIP Lounge Level 2",
-        "notes": "VIP escort begins. 3 security in room at all times.",
+        "activity": "Meet & Greet",
+        "notes": "VIP escort begins. 3 security in room at all times. 5:30–6:30 pm.",
         "critical": true
       },
       {
-        "time": "18:00",
-        "activity": "Gate Open — public ingress begins",
-        "notes": "All gates active. Mag sweep and bag check in effect.",
-        "critical": false
-      },
-      {
         "time": "18:30",
-        "activity": "Doors open — general admission to floor",
-        "notes": "Monitor crowd density at floor perimeter.",
+        "activity": "Doors open",
+        "notes": "All gates active. Mag sweep and bag check in effect. 6:30–7:30 pm.",
         "critical": false
       },
       {
         "time": "19:00",
-        "activity": "Opening act — stage security positions",
-        "notes": "Stage left/right barrier monitors deployed.",
+        "activity": "JoJo — Opening set",
+        "notes": "Stage security positions active. Barrier monitors deployed.",
+        "critical": false
+      },
+      {
+        "time": "19:30",
+        "activity": "Justin Rupple — 10 min (Battle Without Honor or Humanity – HOTEI)",
+        "notes": "Stage left/right coverage. Full security protocol.",
+        "critical": false
+      },
+      {
+        "time": "19:40",
+        "activity": "Jon Wellington — 20 min ("Top Gun Anthem" – Harold Faltermeyer)",
+        "notes": "Monitor crowd density at floor perimeter.",
         "critical": false
       },
       {
         "time": "20:00",
-        "activity": "MAIN SHOW — GenX Takeover",
+        "activity": "Nick Harrison — 20 min (School's Out – Alice Cooper)",
+        "notes": "Watch barrier zones. Stage security maintain positions.",
+        "critical": false
+      },
+      {
+        "time": "20:20",
+        "activity": "Kelly Manno — 20 min ("The Right Stuff" – NKOTB)",
+        "notes": "Monitor exits and crowd flow.",
+        "critical": false
+      },
+      {
+        "time": "20:40",
+        "activity": "Sherri Dindal — 20 min (The Real Slim Shady – Eminem)",
         "notes": "Full security protocol active. All positions confirmed.",
         "critical": true
       },
       {
-        "time": "21:45",
-        "activity": "Encore break — crowd management",
-        "notes": "Monitor exits and crowd flow. Watch barrier zones.",
+        "time": "21:00",
+        "activity": "Car Scene — 4 min",
+        "notes": "Coordinate with production. Clear stage access.",
         "critical": false
       },
       {
-        "time": "22:00",
+        "time": "21:04",
+        "activity": "Sing Along — 8 min",
+        "notes": "Monitor crowd energy. Barrier team on alert.",
+        "critical": false
+      },
+      {
+        "time": "21:12",
         "activity": "Show ends — controlled egress begins",
         "notes": "Hold VIP until general public clear. Announce exits on PA.",
         "critical": true
       },
       {
-        "time": "22:30",
-        "activity": "Talent departure — tour bus",
-        "notes": "Clear loading dock. Escort to vehicles. Block paparazzi.",
+        "time": "23:00",
+        "activity": "Expected departure — talent and crew off-site",
+        "notes": "Clear loading dock. Escort to vehicles. Final sweep and supervisor sign-off.",
         "critical": true
-      },
-      {
-        "time": "23:30",
-        "activity": "Load-out begins. Venue sweep complete.",
-        "notes": "Final sweep team. Log all incidents. Supervisor sign-off.",
-        "critical": false
       }
     ],
     "talent": [
@@ -336,14 +336,14 @@
         "stageName": "The Dadbod Veteran",
         "role": "Talent — All Access",
         "notes": "",
-        "photo": "http://localhost:3000/uploads/d4045f40-7149-449a-b2e0-3e27015684a0.jpg"
+        "photo": "/uploads/d4045f40-7149-449a-b2e0-3e27015684a0.jpg"
       },
       {
         "name": "Justin Rupple",
         "stageName": "Justin Rupple",
         "role": "Talent — All Access",
         "notes": "",
-        "photo": "http://localhost:3000/uploads/05cfd5dd-56a3-4a2d-93c9-fc1e191bd577.jpg"
+        "photo": "/uploads/05cfd5dd-56a3-4a2d-93c9-fc1e191bd577.jpg"
       }
     ],
     "crew": [
@@ -352,42 +352,42 @@
         "function": "Tour Manager",
         "phone": "",
         "notes": "Close Group — All Access",
-        "photo": "http://localhost:3000/uploads/9dc50cca-642a-4120-b856-1c1338880a5c.jpg"
+        "photo": "/uploads/9dc50cca-642a-4120-b856-1c1338880a5c.jpg"
       },
       {
         "name": "Jojo Maligar",
         "function": "Musical Component / Audio Engineer",
         "phone": "",
         "notes": "Close Group — All Access",
-        "photo": "http://localhost:3000/uploads/4da4b7fd-b961-4438-809a-d718f38cbae6.jpg"
+        "photo": "/uploads/4da4b7fd-b961-4438-809a-d718f38cbae6.jpg"
       },
       {
         "name": "Joyce Cene",
         "function": "Catering",
         "phone": "",
         "notes": "Close Group — All Access",
-        "photo": "http://localhost:3000/uploads/9c654ddb-6e69-4eee-afc4-341299bf4adc.jpg"
+        "photo": "/uploads/9c654ddb-6e69-4eee-afc4-341299bf4adc.jpg"
       },
       {
         "name": "Christa Dias",
         "function": "Spouse to Sherri Dindal",
         "phone": "",
         "notes": "Close Group — All Access",
-        "photo": "http://localhost:3000/uploads/a0d3b9a2-6fce-485d-8620-590356eda202.jpg"
+        "photo": "/uploads/a0d3b9a2-6fce-485d-8620-590356eda202.jpg"
       },
       {
         "name": "Julie Walker",
         "function": "Spouse to Jon Wellington",
         "phone": "",
         "notes": "Close Group — All Access",
-        "photo": "http://localhost:3000/uploads/642c113e-5d18-4640-9ee0-21068e7ac271.jpg"
+        "photo": "/uploads/642c113e-5d18-4640-9ee0-21068e7ac271.jpg"
       },
       {
         "name": "Lisa Harrison",
         "function": "Spouse to Nick Harrison",
         "phone": "",
         "notes": "Close Group — All Access",
-        "photo": "http://localhost:3000/uploads/36fd1d22-ddda-41fe-90d6-cbdcd80e8e2d.jpg"
+        "photo": "/uploads/36fd1d22-ddda-41fe-90d6-cbdcd80e8e2d.jpg"
       }
     ],
     "emergency": [
@@ -457,7 +457,7 @@
           "HR-218",
           "Defensive Tactics"
         ],
-        "photo": "http://localhost:3000/uploads/0838c802-ae5f-4e7a-a151-8ce47962811e.png"
+        "photo": "/uploads/0838c802-ae5f-4e7a-a151-8ce47962811e.png"
       },
       {
         "name": "Ben Lunbeck",
@@ -470,7 +470,7 @@
           "Defensive Tactics",
           "Other"
         ],
-        "photo": "http://localhost:3000/uploads/34f1b5d8-10fa-40be-a582-6afe83646959.jpg"
+        "photo": "/uploads/34f1b5d8-10fa-40be-a582-6afe83646959.jpg"
       }
     ]
   }
