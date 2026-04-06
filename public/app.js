@@ -81,6 +81,25 @@ function setVal(id, v) {
   else { el.value = v || ''; }
 }
 
+function toggleTBD(fieldId) {
+  const cb = document.getElementById(fieldId + 'TBD');
+  const inp = document.getElementById(fieldId);
+  if (!cb || !inp) return;
+  if (cb.checked) {
+    inp.classList.add('tbd-active');
+    inp.disabled = true;
+  } else {
+    inp.classList.remove('tbd-active');
+    inp.disabled = false;
+  }
+}
+
+function applyTBDState(fieldId, isTbd) {
+  const cb = document.getElementById(fieldId + 'TBD');
+  if (cb) cb.checked = !!isTbd;
+  toggleTBD(fieldId);
+}
+
 // ── Toast ─────────────────────────────────────────────────────────────────────
 
 function toast(msg, type = 'info', duration = 3000) {
@@ -168,6 +187,7 @@ function renderDashboard(briefs) {
           </div>
         </div>
       </div>
+      ${intakeBadgeHtml(b)}
       <div class="brief-card-footer" id="footer-${esc(b.id)}" style="padding:0 20px 16px;display:flex;align-items:center;justify-content:space-between;">
         <button class="btn btn-sm" onclick="event.stopPropagation();confirmDeleteInline('${esc(b.id)}')" style="background:transparent;border:1px solid rgba(230,57,70,0.3);color:var(--red);padding:6px 8px;" title="Delete brief">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 9a1 1 0 001 1h6a1 1 0 001-1l1-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -175,11 +195,51 @@ function renderDashboard(briefs) {
         <div class="brief-actions">
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();window.location='/brief?id=${esc(b.id)}'">Edit</button>
           <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();window.location='/view?id=${esc(b.id)}'">View Brief</button>
+          ${b.riskScore !== null && b.riskScore !== undefined ? (() => {
+            const lvl = b.riskLevel || '';
+            const color = lvl === 'Critical' ? '#e63946' : lvl === 'High' ? '#f4845f' : lvl === 'Medium' ? '#e9c46a' : '#57cc99';
+            return `<span onclick="event.stopPropagation();window.location='/risk?id=${esc(b.id)}'" title="Risk Assessment: ${esc(lvl)}" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid ${color}33;background:${color}18;cursor:pointer;font-size:11px;font-weight:700;color:${color};line-height:1;">
+              <span style="font-size:14px;font-weight:800;">${b.riskScore}</span><span style="font-size:9px;text-transform:uppercase;letter-spacing:0.5px;opacity:0.85;">${esc(lvl)}</span>
+            </span>`;
+          })() : ''}
           <button class="btn btn-sm" onclick="event.stopPropagation();window.location='/risk?id=${esc(b.id)}'" style="background:rgba(230,57,70,0.12);color:var(--red);border:1px solid rgba(230,57,70,0.3);font-weight:700;">⚡ Risk Assessment</button>
         </div>
       </div>`;
     grid.appendChild(card);
   });
+}
+
+function intakeBadgeHtml(b) {
+  if (!b.intakeStatus) {
+    return `<div style="padding:8px 20px 12px;border-top:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">Venue Intake</span>
+        <span style="font-size:11px;color:var(--text-3);">— Not sent</span>
+        <a href="/brief?id=${esc(b.id)}" onclick="event.stopPropagation();" style="margin-left:auto;font-size:11px;font-weight:700;color:var(--text-3);text-decoration:none;padding:3px 8px;border:1px solid var(--border);border-radius:5px;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-2)'" onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">Send →</a>
+      </div>
+    </div>`;
+  }
+  if (b.intakeStatus === 'pending') {
+    const sent = b.intakeSentAt ? new Date(b.intakeSentAt).toLocaleDateString('en-US', { month:'short', day:'numeric' }) : '';
+    return `<div style="padding:8px 20px 12px;border-top:1px solid rgba(210,153,34,0.25);background:rgba(210,153,34,0.04);">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:10px;color:#d29922;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">⏳ Awaiting Venue</span>
+        <span style="font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;" title="${esc(b.intakeEmail || '')}">${esc(b.intakeEmail || '')}</span>
+        ${sent ? `<span style="font-size:10px;color:var(--text-3);margin-left:auto;">Sent ${sent}</span>` : ''}
+      </div>
+    </div>`;
+  }
+  if (b.intakeStatus === 'completed') {
+    const done = b.intakeDoneAt ? new Date(b.intakeDoneAt).toLocaleDateString('en-US', { month:'short', day:'numeric' }) : '';
+    return `<div style="padding:8px 20px 12px;border-top:1px solid rgba(63,185,80,0.25);background:rgba(63,185,80,0.04);">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:10px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">✅ Venue Submitted</span>
+        <span style="font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;" title="${esc(b.intakeEmail || '')}">${esc(b.intakeEmail || '')}</span>
+        ${done ? `<span style="font-size:10px;color:var(--text-3);margin-left:auto;">Done ${done}</span>` : ''}
+      </div>
+    </div>`;
+  }
+  return '';
 }
 
 function filterBriefs(q) {
@@ -255,6 +315,8 @@ async function initBriefBuilder(id) {
       const viewBtn = document.getElementById('viewBriefBtn');
       if (viewBtn) { viewBtn.href = `/view?id=${id}`; viewBtn.style.display = ''; }
       updateFinalizeBtn(brief.status);
+      if (typeof initVenueIntakeUI  === 'function') initVenueIntakeUI(brief);
+      if (typeof initTravelSection  === 'function') initTravelSection(brief);
     } catch (e) {
       toast('Failed to load brief', 'error');
     }
@@ -274,7 +336,8 @@ function populateBrief(b) {
   setVal('venuePhone',   b.venue?.phone);
   setVal('venueCapacity',b.venue?.capacity);
   setVal('venueTotalTicketed',b.venue?.totalTicketed);
-  setVal('venueType',    b.venue?.type);
+  setVal('venueType',         b.venue?.type);
+  setVal('venueContactEmail', b.venue?.contactEmail);
   updateMapsButtons(); updateNav();
 
   // Hotel
@@ -300,6 +363,16 @@ function populateBrief(b) {
   setVal('departureDate', b.timeline?.departureDate);
   setVal('departureTime', b.timeline?.departureTime);
   setVal('timelineNotes', b.timeline?.notes);
+  // Restore TBD states
+  applyTBDState('arrivalDate',   b.timeline?.arrivalDateTBD);
+  applyTBDState('arrivalTime',   b.timeline?.arrivalTimeTBD);
+  applyTBDState('mediaDate',     b.timeline?.mediaDateTBD);
+  applyTBDState('mediaTime',     b.timeline?.mediaTimeTBD);
+  applyTBDState('showDate',      b.timeline?.showDateTBD);
+  applyTBDState('doorsTime',     b.timeline?.doorsTimeTBD);
+  applyTBDState('showTime',      b.timeline?.showTimeTBD);
+  applyTBDState('departureDate', b.timeline?.departureDateTBD);
+  applyTBDState('departureTime', b.timeline?.departureTimeTBD);
   renderTimeline();
 
   // Contacts
@@ -458,7 +531,8 @@ function collectBrief() {
       phone:    val('venuePhone'),
       capacity: val('venueCapacity'),
       totalTicketed: val('venueTotalTicketed'),
-      type:     val('venueType')
+      type:         val('venueType'),
+      contactEmail: val('venueContactEmail')
     },
     hotel: {
       name:        val('hotelName'),
@@ -473,16 +547,25 @@ function collectBrief() {
       checkoutTime:val('hotelCheckoutTime')
     },
     timeline: {
-      arrivalDate:   val('arrivalDate'),
-      arrivalTime:   val('arrivalTime'),
-      mediaDate:     val('mediaDate'),
-      mediaTime:     val('mediaTime'),
-      showDate:      val('showDate'),
-      doorsTime:     val('doorsTime'),
-      showTime:      val('showTime'),
-      departureDate: val('departureDate'),
-      departureTime: val('departureTime'),
-      notes:         val('timelineNotes')
+      arrivalDate:      val('arrivalDate'),
+      arrivalDateTBD:   val('arrivalDateTBD'),
+      arrivalTime:      val('arrivalTime'),
+      arrivalTimeTBD:   val('arrivalTimeTBD'),
+      mediaDate:        val('mediaDate'),
+      mediaDateTBD:     val('mediaDateTBD'),
+      mediaTime:        val('mediaTime'),
+      mediaTimeTBD:     val('mediaTimeTBD'),
+      showDate:         val('showDate'),
+      showDateTBD:      val('showDateTBD'),
+      doorsTime:        val('doorsTime'),
+      doorsTimeTBD:     val('doorsTimeTBD'),
+      showTime:         val('showTime'),
+      showTimeTBD:      val('showTimeTBD'),
+      departureDate:    val('departureDate'),
+      departureDateTBD: val('departureDateTBD'),
+      departureTime:    val('departureTime'),
+      departureTimeTBD: val('departureTimeTBD'),
+      notes:            val('timelineNotes')
     },
     contacts: {
       primary: {
@@ -590,7 +673,8 @@ function collectBrief() {
     crew:       collectPersonGrid('crewGrid'),
     genxstaff:  collectGenxStaff(),
     emergency:  collectEmergency(),
-    maps:       collectMaps()
+    maps:       collectMaps(),
+    travel:     window._travelersData || []
   };
 }
 
@@ -707,12 +791,13 @@ function renderTimeline() {
   const container = document.getElementById('timelineVisual');
   if (!wrap || !container) return;
 
+  const isTBD = id => { const el = document.getElementById(id + 'TBD'); return el && el.checked; };
   const events = [
-    { label: 'Arrival',   date: val('arrivalDate'),   time: val('arrivalTime')  },
-    { label: 'Media Day', date: val('mediaDate'),     time: val('mediaTime')    },
-    { label: 'Show Day',  date: val('showDate'),      time: val('showTime')     },
-    { label: 'Departure', date: val('departureDate'), time: val('departureTime')}
-  ].filter(e => e.date);
+    { label: 'Arrival',   date: val('arrivalDate'),   time: val('arrivalTime'),   dateTBD: isTBD('arrivalDate'),   timeTBD: isTBD('arrivalTime')   },
+    { label: 'Media Day', date: val('mediaDate'),     time: val('mediaTime'),     dateTBD: isTBD('mediaDate'),     timeTBD: isTBD('mediaTime')     },
+    { label: 'Show Day',  date: val('showDate'),      time: val('showTime'),      dateTBD: isTBD('showDate'),      timeTBD: isTBD('showTime')      },
+    { label: 'Departure', date: val('departureDate'), time: val('departureTime'), dateTBD: isTBD('departureDate'), timeTBD: isTBD('departureTime') }
+  ].filter(e => e.date || e.dateTBD);
 
   if (events.length < 2) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
@@ -724,8 +809,8 @@ function renderTimeline() {
         <div class="timeline-event${i === 0 || i === events.length - 1 ? '' : ''}">
           <div class="timeline-dot"></div>
           <div class="timeline-label">${esc(e.label)}</div>
-          <div class="timeline-value">${esc(formatDate(e.date))}</div>
-          ${e.time ? `<div class="timeline-sublabel">${esc(formatTime(e.time))}</div>` : ''}
+          <div class="timeline-value">${e.dateTBD ? '<span style="color:var(--text-3);font-style:italic;">TBD</span>' : esc(formatDate(e.date))}</div>
+          ${e.timeTBD ? `<div class="timeline-sublabel" style="color:var(--text-3);font-style:italic;">TBD</div>` : (e.time ? `<div class="timeline-sublabel">${esc(formatTime(e.time))}</div>` : '')}
         </div>`).join('')}
     </div>`;
 }
@@ -1100,7 +1185,26 @@ function collectPersonGrid(gridId) {
 
 // ── GenX Security Staff ───────────────────────────────────────────────────────
 
-const CERT_OPTIONS = ['', 'Prior LEO', 'Retired LEO', 'HR-218', 'First Aid', 'EMT', 'Defensive Tactics', 'Other'];
+const CERT_OPTIONS = ['', 'First Aid', 'Med.Resp', 'EMT', 'CPR', 'Medic', 'HR-218'];
+
+const GENX_ROLE_OPTIONS = [
+  '',
+  'Security Lead',
+  'Security',
+  'Advance Security',
+  'Close Protection',
+  'Crowd Management',
+  'Access Control',
+  'Stage Security',
+  'Backstage Security',
+  'Perimeter Security',
+  'Command Post',
+  'Driver / Transportation',
+  'Medical Support',
+  'K-9 Handler',
+  'Supervisor',
+  'Other',
+];
 
 function renderGenxStaffGrid(staff) {
   const grid = document.getElementById('genxStaffGrid');
@@ -1114,12 +1218,18 @@ function addGenxStaffCard(p = {}) {
   const grid = document.getElementById('genxStaffGrid');
   if (!grid) return;
 
-  const certs = p.certs || ['', '', '', ''];
-  const certSelects = certs.map((c, i) => `
-    <select class="field-input" style="font-size:11px;padding:4px 6px;height:auto;" onchange="scheduleSave()">
-      <option value="">Cert ${i + 1}…</option>
-      ${CERT_OPTIONS.filter(o => o).map(o => `<option value="${esc(o)}"${c === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}
-    </select>`).join('');
+  const activeCerts = (p.certs || []).filter(Boolean);
+  const certTagsHtml = activeCerts.map(c => `
+    <span class="cert-tag">
+      <input type="hidden" value="${esc(c)}">
+      ${esc(c)}<button type="button" onclick="this.parentElement.remove();scheduleSave()" title="Remove">×</button>
+    </span>`).join('');
+
+  const certAddSelect = `
+    <select class="cert-add-select" onchange="addCertTag(this)">
+      <option value="">+ Add Cert</option>
+      ${CERT_OPTIONS.filter(o => o).map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}
+    </select>`;
 
   const div = document.createElement('div');
   div.className = 'person-card genx-staff-card';
@@ -1138,15 +1248,31 @@ function addGenxStaffCard(p = {}) {
       </div>
     </div>
     <input class="person-name-input" value="${esc(p.name || '')}" placeholder="Full Name" oninput="updateInitials(this);scheduleSave()">
-    <input class="person-role-input" value="${esc(p.role || '')}" placeholder="Role / Position" oninput="scheduleSave()">
+    <select class="person-role-input" style="text-align:center;text-align-last:center;cursor:pointer;" onchange="scheduleSave()">
+      ${GENX_ROLE_OPTIONS.map(o => `<option value="${esc(o)}"${p.role === o ? ' selected' : ''}>${o || 'Select Role…'}</option>`).join('')}
+    </select>
     <input class="person-role-input" style="color:var(--text-2);font-size:11px;" value="${esc(p.phone || '')}" placeholder="Phone" oninput="scheduleSave()">
     <input class="person-role-input" style="color:var(--text-2);font-size:11px;" value="${esc(p.email || '')}" placeholder="Email" oninput="scheduleSave()">
-    <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-      ${certSelects}
-    </div>`;
+    <div class="cert-tags-wrap" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-items:center;">
+      ${certTagsHtml}
+      ${certAddSelect}
+    </div>
+    <div style="margin-top:8px;text-align:center;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-2);text-transform:uppercase;border-top:1px solid var(--border);padding-top:8px;">NOT ARMED</div>`;
 
   grid.appendChild(div);
   updateGenxStaffCount();
+}
+
+function addCertTag(select) {
+  const val = select.value;
+  if (!val) return;
+  const wrap = select.closest('.cert-tags-wrap');
+  const tag = document.createElement('span');
+  tag.className = 'cert-tag';
+  tag.innerHTML = `<input type="hidden" value="${esc(val)}">${esc(val)}<button type="button" onclick="this.parentElement.remove();scheduleSave()" title="Remove">×</button>`;
+  wrap.insertBefore(tag, select);
+  select.value = '';
+  scheduleSave();
 }
 
 function updateGenxStaffCount() {
@@ -1161,15 +1287,15 @@ function collectGenxStaff() {
   const grid = document.getElementById('genxStaffGrid');
   if (!grid) return [];
   return [...grid.querySelectorAll('.genx-staff-card')].map(card => {
-    const inputs = [...card.querySelectorAll('input:not(.photo-input)')];
+    const inputs  = [...card.querySelectorAll('input:not(.photo-input):not([type=hidden])')];
     const selects = [...card.querySelectorAll('select')];
     const img = card.querySelector('.person-photo img');
     return {
       name:  inputs[0]?.value || '',
-      role:  inputs[1]?.value || '',
-      phone: inputs[2]?.value || '',
-      email: inputs[3]?.value || '',
-      certs: selects.map(s => s.value),
+      role:  selects[0]?.value || '',
+      phone: inputs[1]?.value || '',
+      email: inputs[2]?.value || '',
+      certs: [...card.querySelectorAll('.cert-tag input[type=hidden]')].map(i => i.value).filter(Boolean),
       photo: img?.src || ''
     };
   });
@@ -1233,8 +1359,41 @@ function addMapZone(m = {}) {
       <input type="file" accept="image/*" class="map-input" onchange="handleMapUpload(this)">
       <div class="map-upload-icon" style="font-size:28px;margin-bottom:8px;opacity:0.4;">⬆</div>
       <div class="map-upload-text">Drop image or click to upload</div>
-    </label>`;
+    </label>
+    ${m.image ? `<div style="padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm btn-xs" style="font-size:11px;" onclick="openMapEditor(this)" title="Annotate this map with arrows, icons & labels">✏️ Annotate</button>
+      <button class="btn btn-ghost btn-sm btn-xs" style="font-size:11px;color:var(--text-3);" onclick="replaceMapImage(this)">↺ Replace</button>
+    </div>` : ''}`;
   grid.appendChild(div);
+}
+
+function openMapEditor(btn) {
+  const zone     = btn.closest('.map-zone');
+  const grid     = document.getElementById('mapsGrid');
+  const zones    = [...grid.querySelectorAll('.map-zone')];
+  const mapIndex = zones.indexOf(zone);
+  const img      = zone.querySelector('.map-preview');
+  if (!img?.src) return;
+  const url = `/map-editor?briefId=${currentBriefId}&mapIndex=${mapIndex}`;
+  const win = window.open(url, 'mapEditor', 'width=1200,height=800,resizable=yes');
+  // Reload the map image when editor closes
+  const timer = setInterval(() => {
+    if (win.closed) {
+      clearInterval(timer);
+      fetch(`${API}/api/briefs/${currentBriefId}`)
+        .then(r => r.json())
+        .then(b => {
+          const maps = b.maps || [];
+          if (maps[mapIndex]?.image) img.src = maps[mapIndex].image;
+        });
+    }
+  }, 500);
+}
+
+function replaceMapImage(btn) {
+  const zone  = btn.closest('.map-zone');
+  const input = zone.querySelector('.map-input');
+  if (input) input.click();
 }
 
 function promptAddMap() {
@@ -1370,18 +1529,19 @@ function renderBriefView(b, id) {
     <div class="brief-header-block">
       <div class="brief-header-red"></div>
       <div class="brief-header-body">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
           <div>
             <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--red);margin-bottom:8px;">Security Brief — Confidential</div>
             <div class="brief-header-venue">${esc(v.name || 'Security Brief')}</div>
             <div class="brief-header-meta">
-              ${tl.showDate ? `<span class="tag tag-red">${esc(formatDate(tl.showDate))}</span>` : ''}
+              ${tl.showDateTBD ? `<span class="tag tag-red">TBD</span>` : (tl.showDate ? `<span class="tag tag-red">${esc(formatDate(tl.showDate))}</span>` : '')}
               ${v.city || v.state ? `<span class="tag tag-gray">${esc([v.city, v.state].filter(Boolean).join(', '))}</span>` : ''}
-              ${tl.showTime ? `<span class="tag tag-gold">Show: ${esc(formatTime(tl.showTime))}</span>` : ''}
+              ${tl.showTimeTBD ? `<span class="tag tag-gold">Show: TBD</span>` : (tl.showTime ? `<span class="tag tag-gold">Show: ${esc(formatTime(tl.showTime))}</span>` : '')}
+              ${mg.scheduled && mg.totalVips ? `<span class="tag tag-gold">${esc(mg.totalVips)} VIPs</span>` : ''}
             </div>
           </div>
           <div class="brief-header-logo">
-            <img src="/genx-logo.png" alt="GenX Corporate Security" style="width:200px;height:200px;object-fit:contain;">
+            <img src="/genx-logo.png" alt="GenX Corporate Security" style="width:160px;height:160px;object-fit:contain;">
           </div>
         </div>
       </div>
@@ -1411,10 +1571,10 @@ function renderBriefView(b, id) {
     <!-- Timeline -->
     ${viewPanel('📅', 'Event Timeline', `
       <div class="grid-4" style="margin-bottom:16px;">
-        ${miniStat('Arrival',   tl.arrivalDate   ? formatDate(tl.arrivalDate)   : '—', tl.arrivalTime   ? formatTime(tl.arrivalTime)   : '')}
-        ${miniStat('Show Day',  tl.showDate      ? formatDate(tl.showDate)      : '—', tl.showTime      ? 'Show ' + formatTime(tl.showTime)      : '')}
-        ${miniStat('Doors',     tl.doorsTime     ? formatTime(tl.doorsTime)     : '—', '')}
-        ${miniStat('Departure', tl.departureDate ? formatDate(tl.departureDate) : '—', tl.departureTime ? formatTime(tl.departureTime) : '')}
+        ${miniStat('Arrival',   tl.arrivalDateTBD   ? 'TBD' : (tl.arrivalDate   ? formatDate(tl.arrivalDate)   : '—'), tl.arrivalTimeTBD   ? 'TBD' : (tl.arrivalTime   ? formatTime(tl.arrivalTime)   : ''))}
+        ${miniStat('Show Day',  tl.showDateTBD      ? 'TBD' : (tl.showDate      ? formatDate(tl.showDate)      : '—'), tl.showTimeTBD      ? 'TBD' : (tl.showTime      ? 'Show ' + formatTime(tl.showTime)      : ''))}
+        ${miniStat('Doors',     tl.doorsTimeTBD     ? 'TBD' : (tl.doorsTime     ? formatTime(tl.doorsTime)     : '—'), '')}
+        ${miniStat('Departure', tl.departureDateTBD ? 'TBD' : (tl.departureDate ? formatDate(tl.departureDate) : '—'), tl.departureTimeTBD ? 'TBD' : (tl.departureTime ? formatTime(tl.departureTime) : ''))}
       </div>
       ${tl.notes ? `<div style="font-size:13px;color:var(--text-2);padding:12px;background:var(--surface-2);border-radius:8px;">${esc(tl.notes)}</div>` : ''}`)}
 
@@ -1495,11 +1655,14 @@ function renderBriefView(b, id) {
     <div class="grid-2" style="margin-bottom:20px;">
       ${viewPanel('🤝', 'Meet & Greet', `
         ${mg.scheduled ? `
+        ${mg.totalVips ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:12px 16px;background:var(--surface-2);border-radius:10px;border:1px solid var(--border);">
+          <div style="font-size:28px;font-weight:800;color:var(--gold);line-height:1;">${esc(mg.totalVips)}</div>
+          <div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-3);">Total VIPs</div><div style="font-size:11px;color:var(--text-2);">Meet &amp; Greet</div></div>
+        </div>` : ''}
         <div class="view-kv">
           ${kv('Time',         mg.time ? formatTime(mg.time) : '')}
           ${kv('Duration',     mg.duration ? mg.duration + ' min' : '')}
           ${kv('Location',     mg.location)}
-          ${kv('Total VIPs',   mg.totalVips)}
           ${kv('Security Staff', mg.staffAssigned)}
           ${kv('GenX Staff', mg.genxStaff)}
         </div>
@@ -1646,13 +1809,14 @@ function renderBriefView(b, id) {
 
     <!-- Maps -->
     ${(b.maps || []).some(m => m.image) ? viewPanel('🗺️', 'Venue Maps & Diagrams', `
-      <div class="maps-grid">
+      <div style="display:flex;flex-direction:column;gap:24px;">
         ${(b.maps || []).filter(m => m.image).map(m => `
-          <div class="map-zone">
-            <div class="map-zone-header">
-              <div><div class="map-zone-title">${esc(m.title)}</div><div class="map-zone-desc">${esc(m.description)}</div></div>
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+              <div style="font-size:13px;font-weight:700;color:var(--text);">${esc(m.title)}</div>
+              ${m.description ? `<div style="font-size:11px;color:var(--text-2);margin-top:2px;">${esc(m.description)}</div>` : ''}
             </div>
-            <img class="map-preview" src="${esc(m.image)}" alt="${esc(m.title)}">
+            <img src="${esc(m.image)}" alt="${esc(m.title)}" style="display:block;width:100%;height:auto;object-fit:contain;max-height:600px;background:#000;">
           </div>`).join('')}
       </div>`) : ''}
 

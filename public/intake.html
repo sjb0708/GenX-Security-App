@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venue Security Questionnaire</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface-2: #1c2128; --border: #30363d; --border-2: #3d444d;
+      --text: #e6edf3; --text-2: #8b949e; --text-3: #484f58;
+      --red: #e63946; --red-dim: rgba(230,57,70,0.12);
+      --green: #3fb950; --blue: #58a6ff;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; min-height: 100vh; }
+
+    /* Header */
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+    .header-icon { width: 34px; height: 34px; background: var(--red); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .header-org { font-size: 13px; font-weight: 800; color: var(--text); }
+    .header-sub { font-size: 11px; color: var(--text-2); margin-top: 1px; }
+    .header-badge { margin-left: auto; background: var(--red-dim); border: 1px solid rgba(230,57,70,0.3); color: var(--red); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+
+    .wrap { max-width: 680px; margin: 0 auto; padding: 36px 20px 80px; }
+    .page-title { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+    .page-sub { font-size: 13px; color: var(--text-2); line-height: 1.65; margin-bottom: 6px; }
+    .expires-note { font-size: 12px; color: var(--text-3); margin-bottom: 32px; }
+    .expires-note strong { color: var(--text-2); }
+
+    /* Panels */
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 18px; }
+    .panel-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .panel-icon { font-size: 17px; width: 28px; text-align: center; }
+    .panel-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text); }
+    .panel-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* Grids */
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 540px) { .g2,.g3,.g4 { grid-template-columns: 1fr; } }
+
+    /* Fields */
+    .f { display: flex; flex-direction: column; gap: 5px; }
+    .f label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-2); }
+    .f label .req { color: var(--red); margin-left: 2px; }
+    .f input, .f select, .f textarea {
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: inherit; font-size: 13px; padding: 9px 12px;
+      width: 100%; outline: none; transition: border-color 0.15s;
+    }
+    .f input:focus, .f select:focus, .f textarea:focus { border-color: var(--red); }
+    .f textarea { resize: vertical; min-height: 76px; line-height: 1.6; }
+    .f select option { background: var(--surface-2); }
+    .f .hint { font-size: 11px; color: var(--text-3); line-height: 1.5; }
+
+    /* Checkboxes group */
+    .check-group { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 4px; }
+    .check-item { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text); cursor: pointer; }
+    .check-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--red); cursor: pointer; }
+
+    /* Toggle */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
+    .toggle-row:first-child { border-top: none; padding-top: 0; }
+    .toggle-label { font-size: 13px; color: var(--text); font-weight: 600; }
+    .toggle-desc { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+    .toggle { position: relative; width: 38px; height: 21px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track { position: absolute; inset: 0; background: var(--border-2); border-radius: 11px; cursor: pointer; transition: background 0.2s; }
+    .toggle input:checked + .toggle-track { background: var(--green); }
+    .toggle-track::after { content:''; position:absolute; width:15px; height:15px; background:#fff; border-radius:50%; top:3px; left:3px; transition:left 0.2s; }
+    .toggle input:checked + .toggle-track::after { left:20px; }
+
+    /* Section divider */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+    /* Map upload */
+    .map-upload { border: 2px dashed var(--border-2); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.15s; background: var(--surface-2); }
+    .map-upload:hover { border-color: var(--red); background: rgba(230,57,70,0.04); }
+    .map-upload.has-file { border-color: var(--green); border-style: solid; }
+    .map-upload input { display: none; }
+    .map-upload-label { font-size: 12px; font-weight: 600; color: var(--text-2); margin-top: 6px; }
+    .map-upload-hint { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+    .map-preview { max-width: 100%; max-height: 180px; border-radius: 6px; margin-top: 10px; }
+
+    /* Submit */
+    .submit-bar { margin-top: 28px; }
+    .btn-submit { width: 100%; background: var(--red); color: #fff; border: none; border-radius: 10px; padding: 15px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+    .btn-submit:hover { opacity: 0.9; }
+    .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* States */
+    .state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 65vh; text-align: center; padding: 40px 24px; gap: 14px; }
+    .state-icon { font-size: 52px; }
+    .state h2 { font-size: 20px; font-weight: 800; }
+    .state p { font-size: 13px; color: var(--text-2); line-height: 1.7; max-width: 380px; }
+    .spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2L3 7v6c0 5.25 3.75 10.15 9 11.35C17.25 23.15 21 18.25 21 13V7L12 2z"/></svg>
+  </div>
+  <div>
+    <div class="header-org" id="orgName">GenX Takeover Security</div>
+    <div class="header-sub">Venue Security Questionnaire</div>
+  </div>
+  <div class="header-badge">Secure · 7-Day Link</div>
+</div>
+
+<!-- Loading -->
+<div class="state" id="stateLoading">
+  <div class="spinner"></div>
+  <p>Loading questionnaire…</p>
+</div>
+
+<!-- Error -->
+<div class="state" id="stateError" style="display:none;">
+  <div class="state-icon">🔒</div>
+  <h2>Link Unavailable</h2>
+  <p id="stateErrorMsg">This link is no longer valid.</p>
+</div>
+
+<!-- Success -->
+<div class="state" id="stateSuccess" style="display:none;">
+  <div class="state-icon">✅</div>
+  <h2>Questionnaire Submitted</h2>
+  <p>Thank you — your responses have been sent to the security team. You can close this window.</p>
+</div>
+
+<!-- Form -->
+<div class="wrap" id="formWrap" style="display:none;">
+  <h1 class="page-title">Venue Questionnaire</h1>
+  <p class="page-sub" id="formSub">Please fill out as much as you can — no fields are required. Complete what you have available and submit when ready.</p>
+  <p class="expires-note" id="expiresNote"></p>
+
+  <form id="intakeForm" onsubmit="submitForm(event)">
+
+    <!-- 1. VENUE -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">🏛️</div>
+        <div class="panel-title">Venue</div>
+      </div>
+      <div class="panel-body">
+        <div class="g2">
+          <div class="f">
+            <label>Venue Name</label>
+            <input type="text" name="venueName" placeholder="Mesa Arts Center">
+          </div>
+          <div class="f">
+            <label>Main Phone</label>
+            <input type="tel" name="venuePhone" placeholder="(480) 644-6500">
+          </div>
+        </div>
+        <div class="f">
+          <label>Street Address</label>
+          <input type="text" name="venueStreet" placeholder="1 E Main St">
+        </div>
+        <div class="g3">
+          <div class="f">
+            <label>City</label>
+            <input type="text" name="venueCity" placeholder="Mesa">
+          </div>
+          <div class="f">
+            <label>State</label>
+            <input type="text" name="venueState" placeholder="AZ" maxlength="2" style="text-transform:uppercase;">
+          </div>
+          <div class="f">
+            <label>Zip</label>
+            <input type="text" name="venueZip" placeholder="85201">
+          </div>
+        </div>
+        <div class="g3">
+          <div class="f">
+            <label>Venue Type</label>
+            <select name="venueType">
+              <option value="">Select…</option>
+              <option>Performing Arts Center</option>
+              <option>Arena / Stadium</option>
+              <option>Amphitheater</option>
+              <option>Convention Center</option>
+              <option>Club / Nightclub</option>
+              <option>Fairgrounds / Outdoor</option>
+              <option>Theater</option>
+              <option>Hotel Ballroom</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="f">
+            <label>Total Capacity</label>
+            <input type="number" name="venueCapacity" placeholder="1900" min="0">
+          </div>
+          <div class="f">
+            <label>Ticketed Attendance</label>
+            <input type="number" name="venueTotalTicketed" placeholder="1750" min="0">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. SECURITY CONTACTS -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">🛡️</div>
+        <div class="panel-title">Security Contacts</div>
+      </div>
+      <div class="panel-body">
+        <p style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Venue Security Chief</p>
+        <div class="g2">
+          <div class="f">
+            <label>Name</label>
+            <input type="text" name="secChiefName" placeholder="Tom Briggs">
+          </div>
+          <div class="f">
+            <label>Title</label>
+            <input type="text" name="secChiefTitle" placeholder="Director of Security">
+          </div>
+          <div class="f">
+            <label>Phone</label>
+            <input type="tel" name="secChiefPhone" placeholder="(480) 555-0101">
+          </div>
+          <div class="f">
+            <label>Email</label>
+            <input type="email" name="secChiefEmail" placeholder="security@venue.com">
+          </div>
+        </div>
+        <hr class="divider" style="margin-top:4px;">
+        <p style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Building / Facilities Manager</p>
+        <div class="g2">
+          <div class="f">
+            <label>Name</label>
+            <input type="text" name="facilityName" placeholder="Facilities Desk">
+          </div>
+          <div class="f">
+            <label>Phone</label>
+            <input type="tel" name="facilityPhone" placeholder="(480) 644-6520">
+          </div>
+          <div class="f" style="grid-column:1/-1;">
+            <label>Email</label>
+            <input type="email" name="facilityEmail" placeholder="facilities@venue.com">
+          </div>
+        </div>
+        <hr class="divider" style="margin-top:4px;">
+        <div class="f">
+          <label>Local PD Non-Emergency Number</label>
+          <input type="tel" name="localPdPhone" placeholder="(480) 644-2211">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. INGRESS -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">🚪</div>
+        <div class="panel-title">Ingress &amp; Screening</div>
+      </div>
+      <div class="panel-body">
+        <div class="f">
+          <label>Screening Methods Available at This Venue</label>
+          <div class="check-group">
+            <label class="check-item"><input type="checkbox" name="chkMag"> Magnetometer</label>
+            <label class="check-item"><input type="checkbox" name="chkBag"> Bag Check</label>
+            <label class="check-item"><input type="checkbox" name="chkWand"> Wand</label>
+            <label class="check-item"><input type="checkbox" name="chkPatDown"> Pat Down</label>
+            <label class="check-item"><input type="checkbox" name="chkVisual"> Visual Inspection</label>
+            <label class="check-item"><input type="checkbox" name="chkEvolv"> Evolv</label>
+          </div>
+        </div>
+        <div class="g3">
+          <div class="f">
+            <label>Ticketing Type</label>
+            <select name="ticketingType">
+              <option value="">Select…</option>
+              <option>Digital</option>
+              <option>Physical</option>
+              <option>Digital + Physical</option>
+              <option>Complimentary</option>
+              <option>Mixed</option>
+            </select>
+          </div>
+          <div class="f">
+            <label>Total Screening Entry Points</label>
+            <input type="number" name="gateCount" placeholder="4" min="0">
+          </div>
+          <div class="f">
+            <label>Gate Open Time</label>
+            <input type="time" name="gateOpenTime">
+          </div>
+        </div>
+        <div class="f">
+          <label>Prohibited Items (one per line or comma separated)</label>
+          <textarea name="prohibitedItems" placeholder="Weapons&#10;Outside food/beverages&#10;Professional cameras&#10;Laser pointers"></textarea>
+        </div>
+        <div class="f">
+          <label>Notes</label>
+          <textarea name="ingressNotes" placeholder="VIP entry procedures, gate assignments, special instructions…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. STAFFING -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">👮</div>
+        <div class="panel-title">Staffing</div>
+      </div>
+      <div class="panel-body">
+        <p style="font-size:12px;color:var(--text-2);">Provide counts for staff <em>your venue / production is providing</em>. GenX Security personnel are handled internally.</p>
+        <div class="g4">
+          <div class="f">
+            <label>Total Security</label>
+            <input type="number" name="totalSecurity" placeholder="24" min="0">
+          </div>
+          <div class="f">
+            <label>Ushers</label>
+            <input type="number" name="ushers" placeholder="12" min="0">
+          </div>
+          <div class="f">
+            <label>LEO Officers</label>
+            <input type="number" name="leoCount" placeholder="4" min="0">
+          </div>
+          <div class="f">
+            <label>Backstage</label>
+            <input type="number" name="backstageSecurity" placeholder="6" min="0">
+          </div>
+        </div>
+        <div class="toggle-row" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+          <div>
+            <div class="toggle-label">Uniformed Staff</div>
+            <div class="toggle-desc">Security personnel wear identifying uniforms</div>
+          </div>
+          <label class="toggle"><input type="checkbox" name="uniformed" onchange="toggleUniformDesc(this)"><span class="toggle-track"></span></label>
+        </div>
+        <div class="f" id="uniformDescWrap" style="display:none;">
+          <label>Uniform Description</label>
+          <textarea name="uniformDesc" placeholder="Black polo with logo patch, black tactical pants, black boots…"></textarea>
+        </div>
+        <div class="f">
+          <label>Staffing Notes</label>
+          <textarea name="staffingNotes" placeholder="Briefing times, position assignments, special instructions…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. MEDICAL -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">⚕️</div>
+        <div class="panel-title">Medical &amp; Emergency</div>
+      </div>
+      <div class="panel-body">
+        <div class="toggle-row" style="border-top:none;padding-top:0;">
+          <div>
+            <div class="toggle-label">Trained Medical Staff On-Site</div>
+            <div class="toggle-desc">Location has trained medical staff on-site for this event</div>
+          </div>
+          <label class="toggle"><input type="checkbox" name="medicalOnSite"><span class="toggle-track"></span></label>
+        </div>
+        <div class="f" style="max-width:200px;">
+          <label>First Responder Count</label>
+          <input type="number" name="firstResponderCount" placeholder="2" min="0">
+        </div>
+        <div style="display:flex;gap:32px;flex-wrap:wrap;">
+          <div class="toggle-row" style="border:none;padding:0;flex:1;min-width:200px;">
+            <div class="toggle-label" style="font-size:12px;">AED Located On Site?</div>
+            <label class="toggle" style="margin-left:12px;"><input type="checkbox" name="aedOnSite"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row" style="border:none;padding:0;flex:1;min-width:220px;">
+            <div class="toggle-label" style="font-size:12px;">AED Close to Stage &amp; Backstage?</div>
+            <label class="toggle" style="margin-left:12px;"><input type="checkbox" name="aedNearStage"><span class="toggle-track"></span></label>
+          </div>
+        </div>
+        <div class="f">
+          <label>First Aid Station Locations</label>
+          <input type="text" name="firstAidLocations" placeholder="Section 101, backstage right…">
+        </div>
+        <div class="f">
+          <label>Emergency Protocol</label>
+          <textarea name="emergencyProtocol" placeholder="Response procedures, code words, radio channels…"></textarea>
+        </div>
+        <div class="g3">
+          <div class="f">
+            <label>Nearest Hospital</label>
+            <input type="text" name="hospitalName" placeholder="Banner Desert Medical Center">
+          </div>
+          <div class="f">
+            <label>Hospital Address</label>
+            <input type="text" name="hospitalAddress" placeholder="1400 S Dobson Rd, Mesa AZ">
+          </div>
+          <div class="f">
+            <label>Hospital Phone</label>
+            <input type="tel" name="hospitalPhone" placeholder="(480) 412-3000">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. EVACUATION -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">🚨</div>
+        <div class="panel-title">Evacuation Plan</div>
+      </div>
+      <div class="panel-body">
+        <div class="g2">
+          <div class="f">
+            <label>Primary Exit Route</label>
+            <textarea name="primaryExit" placeholder="Main lobby doors (north facade) to E Main St"></textarea>
+          </div>
+          <div class="f">
+            <label>Secondary Exit Route</label>
+            <textarea name="secondaryExit" placeholder="Stage door (west side) to loading dock"></textarea>
+          </div>
+        </div>
+        <div class="f">
+          <label>Safe Rooms (one per line)</label>
+          <textarea name="safeRooms" placeholder="Green Room&#10;Main Office&#10;Loading Dock"></textarea>
+        </div>
+        <div class="f">
+          <label>Rally Point</label>
+          <input type="text" name="rallyPoint" placeholder="Convention Center Parking Lot (north side)">
+        </div>
+        <div class="f" style="max-width:280px;">
+          <label>Evacuation Announcement Method</label>
+          <select name="announcementMethod">
+            <option value="">Select…</option>
+            <option>PA System + Radio</option>
+            <option>Radio Only</option>
+            <option>PA System Only</option>
+            <option>PA + Text Alert</option>
+          </select>
+        </div>
+        <div class="f">
+          <label>EAP Additional Notes</label>
+          <textarea name="eapNotes" placeholder="Exact announcement language for evacuation…"></textarea>
+        </div>
+        <div class="f">
+          <label>Lockdown Protocol</label>
+          <textarea name="lockdownProtocol" placeholder="Steps to initiate and maintain lockdown…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. MEET & GREET -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">🤝</div>
+        <div class="panel-title">Meet &amp; Greet / Gift Policy</div>
+      </div>
+      <div class="panel-body">
+        <div class="toggle-row" style="border-top:none;padding-top:0;">
+          <div>
+            <div class="toggle-label">Meet &amp; Greet Scheduled</div>
+            <div class="toggle-desc">Fan meet and greet session included in this event</div>
+          </div>
+          <label class="toggle"><input type="checkbox" name="mgScheduled"><span class="toggle-track"></span></label>
+        </div>
+        <div class="g4">
+          <div class="f">
+            <label>Time</label>
+            <input type="time" name="mgTime">
+          </div>
+          <div class="f">
+            <label>Duration (min)</label>
+            <input type="number" name="mgDuration" placeholder="45" min="0">
+          </div>
+          <div class="f">
+            <label>Location</label>
+            <input type="text" name="mgLocation" placeholder="VIP Lounge">
+          </div>
+          <div class="f">
+            <label>Total VIPs</label>
+            <input type="number" name="mgTotalVips" placeholder="30" min="0">
+          </div>
+        </div>
+        <div class="f" style="max-width:220px;">
+          <label>Security Staff Assigned</label>
+          <input type="number" name="mgStaff" placeholder="3" min="0">
+          <span class="hint">Venue / event security — GenX staff handled internally</span>
+        </div>
+        <div class="f">
+          <label>M&amp;G Protocol</label>
+          <textarea name="mgProtocol" placeholder="Escort procedures, interaction rules, fan flow…"></textarea>
+        </div>
+        <div class="f">
+          <label>Gift Policy</label>
+          <textarea name="giftPolicy" placeholder="Inspection requirements, prohibited items, storage…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. COMMUNICATIONS -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">📻</div>
+        <div class="panel-title">Communications</div>
+      </div>
+      <div class="panel-body">
+        <div class="toggle-row" style="border-top:none;padding-top:0;">
+          <div>
+            <div class="toggle-label">Does Venue Need to Share Communications?</div>
+            <div class="toggle-desc">Venue security will share radio channels with GenX Security</div>
+          </div>
+          <label class="toggle"><input type="checkbox" name="venueShareComms"><span class="toggle-track"></span></label>
+        </div>
+        <div class="g2">
+          <div class="f">
+            <label>Security Operations Location</label>
+            <input type="text" name="securityOps" placeholder="Production Office, Backstage Level — Room 104">
+          </div>
+          <div class="f">
+            <label>Security Operations Phone</label>
+            <input type="tel" name="securityOpsPhone" placeholder="(602) 555-0150">
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">GenX Security Radios Permitted</div>
+          </div>
+          <label class="toggle"><input type="checkbox" name="cellOk"><span class="toggle-track"></span></label>
+        </div>
+        <div class="f">
+          <label>Notes</label>
+          <textarea name="commsNotes" placeholder="Radio restrictions, dead zones, interference concerns…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. ACCESS CONTROL -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">🔑</div>
+        <div class="panel-title">Access Control</div>
+      </div>
+      <div class="panel-body">
+        <div class="f">
+          <label>Venue Access Control Devices</label>
+          <div class="check-group">
+            <label class="check-item"><input type="checkbox" name="doorCardAccess"> Card Access</label>
+            <label class="check-item"><input type="checkbox" name="doorFacial"> Facial Recognition</label>
+            <label class="check-item"><input type="checkbox" name="doorPin"> PIN</label>
+            <label class="check-item"><input type="checkbox" name="doorKey"> Key</label>
+            <label class="check-item"><input type="checkbox" name="doorFob"> Fob</label>
+            <label class="check-item"><input type="checkbox" name="doorOther"> Other</label>
+          </div>
+        </div>
+        <div class="f">
+          <label>Additional Venue-Required Credentials (name, color, access level)</label>
+          <textarea name="additionalCredentials" placeholder="e.g. Venue All Access — Red lanyard — All areas&#10;House Staff — White badge — Front of house only"></textarea>
+        </div>
+        <div class="f">
+          <label>Parking Notes</label>
+          <textarea name="parkingNotes" placeholder="Artist/Crew: loading dock west. Security: Lot C. General: Lots A & B…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10. LOAD IN / LOAD OUT -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">🚚</div>
+        <div class="panel-title">Load In / Load Out</div>
+      </div>
+      <div class="panel-body">
+        <div class="f">
+          <label>Dock Location</label>
+          <input type="text" name="dockLocation" placeholder="Rear Loading Dock — Robson St entrance">
+        </div>
+        <div class="g3">
+          <div class="f">
+            <label>Load-In Date</label>
+            <input type="date" name="loadinDate">
+          </div>
+          <div class="f">
+            <label>Load-In Time</label>
+            <input type="time" name="loadinTime">
+          </div>
+          <div class="f" style="justify-content:flex-end;">
+            <div class="toggle-row" style="border:none;padding:8px 0 0;">
+              <div>
+                <div class="toggle-label" style="font-size:12px;">Security at Dock</div>
+              </div>
+              <label class="toggle" style="margin-left:10px;"><input type="checkbox" name="securityAtDock"><span class="toggle-track"></span></label>
+            </div>
+          </div>
+        </div>
+        <div class="f">
+          <label>Load-In Notes</label>
+          <textarea name="loadinNotes" placeholder="Vendor requirements, union rules, no-tailgate policy…"></textarea>
+        </div>
+        <div class="g3">
+          <div class="f">
+            <label>Load-Out Date</label>
+            <input type="date" name="loadoutDate">
+          </div>
+          <div class="f">
+            <label>Load-Out Time</label>
+            <input type="time" name="loadoutTime">
+          </div>
+          <div class="f">
+            <label>Vehicle Count</label>
+            <input type="number" name="vehicleCount" placeholder="7" min="0">
+          </div>
+        </div>
+        <div class="f">
+          <label>Load-Out Notes</label>
+          <textarea name="loadoutNotes" placeholder="Post-show procedures, sweep requirements…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 11. MAPS -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">🗺️</div>
+        <div class="panel-title">Maps</div>
+      </div>
+      <div class="panel-body">
+        <p style="font-size:12px;color:var(--text-2);">Upload venue maps so the security team can include them in the brief. JPG, PNG, or PDF accepted.</p>
+        <div class="f">
+          <label>Venue Floor Plan</label>
+          <label class="map-upload" id="mapFloorLabel">
+            <input type="file" name="mapFloor" accept="image/*,.pdf" onchange="previewMap(this,'mapFloorLabel','mapFloorPreview')">
+            <div style="font-size:24px;">🏛️</div>
+            <div class="map-upload-label">Tap to upload floor plan</div>
+            <div class="map-upload-hint">Ground level — FOH, seating, gates</div>
+            <img id="mapFloorPreview" class="map-preview" style="display:none;">
+          </label>
+        </div>
+        <div class="f">
+          <label>Backstage Layout</label>
+          <label class="map-upload" id="mapBackstageLabel">
+            <input type="file" name="mapBackstage" accept="image/*,.pdf" onchange="previewMap(this,'mapBackstageLabel','mapBackstagePreview')">
+            <div style="font-size:24px;">🎭</div>
+            <div class="map-upload-label">Tap to upload backstage layout</div>
+            <div class="map-upload-hint">Dressing rooms, green room, stage access, dock</div>
+            <img id="mapBackstagePreview" class="map-preview" style="display:none;">
+          </label>
+        </div>
+        <div class="f">
+          <label>Parking &amp; Perimeter</label>
+          <label class="map-upload" id="mapParkingLabel">
+            <input type="file" name="mapParking" accept="image/*,.pdf" onchange="previewMap(this,'mapParkingLabel','mapParkingPreview')">
+            <div style="font-size:24px;">🚗</div>
+            <div class="map-upload-label">Tap to upload parking / perimeter map</div>
+            <div class="map-upload-hint">Lots, fire lanes, staging areas</div>
+            <img id="mapParkingPreview" class="map-preview" style="display:none;">
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="submit-bar">
+      <button type="submit" class="btn-submit" id="submitBtn">Submit Questionnaire</button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+  const token = location.pathname.split('/intake/')[1];
+
+  // ── Load form ────────────────────────────────────────────────────────────────
+  async function load() {
+    try {
+      const res  = await fetch(`/api/intake/${token}`);
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || 'This link is unavailable.'); return; }
+
+      document.getElementById('orgName').textContent = data.orgName || 'GenX Takeover Security';
+      document.title = `Venue Questionnaire — ${data.orgName || 'GenX Security'}`;
+
+      const f = document.getElementById('intakeForm');
+      if (data.venueName)   f.venueName.value   = data.venueName;
+      if (data.venueStreet) f.venueStreet.value  = data.venueStreet;
+      if (data.venueCity)   f.venueCity.value    = data.venueCity;
+      if (data.venueState)  f.venueState.value   = data.venueState;
+      if (data.venueZip)    f.venueZip.value     = data.venueZip;
+
+      const eventStr = data.eventDate ? ` for the event on <strong>${fmtDate(data.eventDate)}</strong>` : '';
+      document.getElementById('formSub').innerHTML =
+        `${data.orgName || 'The security team'} is preparing the security operations plan${eventStr}. Fill out as much as you can — no fields are required.`;
+
+      if (data.expiresAt) {
+        const exp = new Date(data.expiresAt).toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+        document.getElementById('expiresNote').innerHTML = `<strong>Link expires:</strong> ${exp}`;
+      }
+
+      document.getElementById('stateLoading').style.display = 'none';
+      document.getElementById('formWrap').style.display = '';
+    } catch (e) {
+      showError('Unable to load the questionnaire. Please try again or contact the security team.');
+    }
+  }
+
+  function fmtDate(ds) {
+    try { return new Date(ds + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }); }
+    catch (_) { return ds; }
+  }
+
+  function showError(msg) {
+    document.getElementById('stateLoading').style.display = 'none';
+    document.getElementById('stateError').style.display   = '';
+    document.getElementById('stateErrorMsg').textContent  = msg;
+  }
+
+  // ── Uniform description toggle ───────────────────────────────────────────────
+  function toggleUniformDesc(cb) {
+    document.getElementById('uniformDescWrap').style.display = cb.checked ? '' : 'none';
+  }
+
+  // ── Map preview ───────────────────────────────────────────────────────────────
+  function previewMap(input, labelId, previewId) {
+    const file = input.files?.[0];
+    if (!file) return;
+    const label   = document.getElementById(labelId);
+    const preview = document.getElementById(previewId);
+    label.classList.add('has-file');
+    label.querySelector('.map-upload-label').textContent = file.name;
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = e => { preview.src = e.target.result; preview.style.display = ''; };
+      reader.readAsDataURL(file);
+    } else {
+      preview.style.display = 'none';
+    }
+  }
+
+  // ── Submit ────────────────────────────────────────────────────────────────────
+  async function submitForm(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Uploading maps…';
+
+    const form = e.target;
+    const body = {};
+
+    // Text / select / number fields
+    ['venueName','venuePhone','venueStreet','venueCity','venueState','venueZip',
+     'venueType','venueCapacity','venueTotalTicketed',
+     'secChiefName','secChiefTitle','secChiefPhone','secChiefEmail',
+     'facilityName','facilityPhone','facilityEmail','localPdPhone',
+     'ticketingType','gateCount','gateOpenTime','prohibitedItems','ingressNotes',
+     'totalSecurity','ushers','leoCount','backstageSecurity','uniformDesc','staffingNotes',
+     'firstResponderCount','firstAidLocations','emergencyProtocol',
+     'hospitalName','hospitalAddress','hospitalPhone',
+     'primaryExit','secondaryExit','safeRooms','rallyPoint',
+     'announcementMethod','eapNotes','lockdownProtocol',
+     'mgTime','mgDuration','mgLocation','mgTotalVips','mgStaff','mgProtocol','giftPolicy',
+     'securityOps','securityOpsPhone','commsNotes',
+     'additionalCredentials','parkingNotes',
+     'dockLocation','loadinDate','loadinTime','loadinNotes',
+     'loadoutDate','loadoutTime','vehicleCount','loadoutNotes'
+    ].forEach(name => {
+      const el = form.elements[name];
+      if (el) body[name] = el.value;
+    });
+
+    // Checkboxes
+    ['chkMag','chkBag','chkWand','chkPatDown','chkVisual','chkEvolv',
+     'uniformed','medicalOnSite','aedOnSite','aedNearStage','mgScheduled',
+     'venueShareComms','cellOk','securityAtDock',
+     'doorCardAccess','doorFacial','doorPin','doorKey','doorFob','doorOther'
+    ].forEach(name => {
+      const el = form.elements[name];
+      body[name] = el ? el.checked : false;
+    });
+
+    // Map uploads — convert to base64
+    btn.textContent = 'Uploading maps…';
+    const mapFields = ['mapFloor','mapBackstage','mapParking'];
+    for (const name of mapFields) {
+      const el   = form.elements[name];
+      const file = el?.files?.[0];
+      if (file) {
+        body[name] = await fileToBase64(file);
+        body[name + 'Name'] = file.name;
+        body[name + 'Type'] = file.type;
+      }
+    }
+
+    btn.textContent = 'Submitting…';
+    try {
+      const res = await fetch(`/api/intake/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || 'Submission failed. Please try again.'); btn.disabled = false; btn.textContent = 'Submit Questionnaire'; return; }
+      document.getElementById('formWrap').style.display   = 'none';
+      document.getElementById('stateSuccess').style.display = '';
+    } catch (_) {
+      btn.disabled = false;
+      btn.textContent = 'Submit Questionnaire';
+      alert('Submission failed — please check your connection and try again.');
+    }
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  load();
+</script>
+</body>
+</html>

@@ -1,11 +1,12 @@
 'use strict';
 
-const express   = require('express');
-const multer    = require('multer');
+const express    = require('express');
+const multer     = require('multer');
 const { v4: uuidv4 } = require('uuid');
-const path      = require('path');
-const fs        = require('fs');
-const Anthropic = require('@anthropic-ai/sdk');
+const path       = require('path');
+const fs         = require('fs');
+const Anthropic  = require('@anthropic-ai/sdk');
+const nodemailer = require('nodemailer');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -41,8 +42,17 @@ let photoLibrary = loadJSON(PHOTOS_FILE, []);
 const settings = Object.assign({
   anthropicKey: process.env.ANTHROPIC_API_KEY || '',
   orgName: 'GenX Takeover Security',
-  orgContact: '', orgEmail: '', orgPhone: ''
+  orgContact: '', orgEmail: '', orgPhone: '',
+  smtpHost: '', smtpPort: 587, smtpUser: '', smtpPass: '',
+  smtpFrom: '', smtpFromName: 'GenX Takeover Security',
+  notifyEmail: '', appUrl: process.env.APP_URL || '',
+  emailSubject: '', emailIntro: '', emailInstructions: ''
 }, loadJSON(SETTINGS_FILE, {}));
+
+// ── Venue intake token store ───────────────────────────────────────────────────
+const TOKENS_FILE = path.join(__dirname, '.tokens.json');
+let intakeTokens = loadJSON(TOKENS_FILE, {});
+function saveTokens() { saveJSON(TOKENS_FILE, intakeTokens); }
 
 // ── In-memory store ──────────────────────────────────────────────────────────
 const briefs = new Map();
@@ -479,12 +489,19 @@ app.get('/api/briefs', (req, res) => {
     city:      b.venue?.city || '',
     state:     b.venue?.state || '',
     showDate:  b.timeline?.showDate || '',
-    talent:      (b.talent || []).length,
-    crew:        (b.crew || []).length,
-    genxSecurity:(b.genxstaff || []).length,
-    status:      b.status || 'draft',
-    updatedAt:   b.updatedAt,
-    createdAt:   b.createdAt
+    talent:        (b.talent || []).length,
+    crew:          (b.crew || []).length,
+    genxSecurity:  (b.genxstaff || []).length,
+    status:        b.status || 'draft',
+    updatedAt:     b.updatedAt,
+    createdAt:     b.createdAt,
+    intakeStatus:  b.venueIntake?.status || null,
+    intakeEmail:   b.venueIntake?.venueEmail || null,
+    intakeSentAt:  b.venueIntake?.sentAt || null,
+    intakeDoneAt:  b.venueIntake?.submittedAt || null,
+    riskScore:     b.riskAssessment?.overallScore ?? null,
+    riskLevel:     b.riskAssessment?.riskLevel || null,
+    riskGeneratedAt: b.riskAssessment?.generatedAt || null
   }));
   res.json(list);
 });
@@ -521,24 +538,40 @@ app.delete('/api/briefs/:id', (req, res) => {
 
 // ── Settings routes ───────────────────────────────────────────────────────────
 app.get('/api/settings', (req, res) => {
-  // Never expose the full key — mask it
-  const masked = settings.anthropicKey
-    ? 'sk-ant-....' + settings.anthropicKey.slice(-6)
-    : '';
-  res.json({ ...settings, anthropicKey: masked, hasKey: !!settings.anthropicKey });
+  const maskedKey  = settings.anthropicKey ? 'sk-ant-....' + settings.anthropicKey.slice(-6) : '';
+  const maskedPass = settings.smtpPass ? '••••••••' : '';
+  res.json({
+    ...settings,
+    anthropicKey: maskedKey,
+    hasKey: !!settings.anthropicKey,
+    smtpPass: maskedPass,
+    hasSmtp: !!(settings.smtpHost && settings.smtpUser && settings.smtpPass)
+  });
 });
 
 app.put('/api/settings', (req, res) => {
-  const { anthropicKey, orgName, orgContact, orgEmail, orgPhone } = req.body;
-  if (anthropicKey !== undefined && !anthropicKey.startsWith('sk-ant-....')) {
-    settings.anthropicKey = anthropicKey; // only update if it's a real new key
-  }
-  if (orgName !== undefined) settings.orgName = orgName;
-  if (orgContact !== undefined) settings.orgContact = orgContact;
-  if (orgEmail !== undefined) settings.orgEmail = orgEmail;
-  if (orgPhone !== undefined) settings.orgPhone = orgPhone;
+  const { anthropicKey, orgName, orgContact, orgEmail, orgPhone,
+          smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, smtpFromName,
+          notifyEmail, appUrl,
+          emailSubject, emailIntro, emailInstructions } = req.body;
+  if (anthropicKey !== undefined && !anthropicKey.startsWith('sk-ant-....')) settings.anthropicKey = anthropicKey;
+  if (orgName      !== undefined) settings.orgName      = orgName;
+  if (orgContact   !== undefined) settings.orgContact   = orgContact;
+  if (orgEmail     !== undefined) settings.orgEmail     = orgEmail;
+  if (orgPhone     !== undefined) settings.orgPhone     = orgPhone;
+  if (smtpHost     !== undefined) settings.smtpHost     = smtpHost;
+  if (smtpPort     !== undefined) settings.smtpPort     = smtpPort;
+  if (smtpUser     !== undefined) settings.smtpUser     = smtpUser;
+  if (smtpPass !== undefined && smtpPass !== '••••••••') settings.smtpPass = smtpPass;
+  if (smtpFrom     !== undefined) settings.smtpFrom     = smtpFrom;
+  if (smtpFromName !== undefined) settings.smtpFromName = smtpFromName;
+  if (notifyEmail        !== undefined) settings.notifyEmail        = notifyEmail;
+  if (appUrl             !== undefined) settings.appUrl             = appUrl;
+  if (emailSubject       !== undefined) settings.emailSubject       = emailSubject;
+  if (emailIntro         !== undefined) settings.emailIntro         = emailIntro;
+  if (emailInstructions  !== undefined) settings.emailInstructions  = emailInstructions;
   saveJSON(SETTINGS_FILE, settings);
-  res.json({ ok: true, hasKey: !!settings.anthropicKey });
+  res.json({ ok: true, hasKey: !!settings.anthropicKey, hasSmtp: !!(settings.smtpHost && settings.smtpUser && settings.smtpPass) });
 });
 
 // ── Risk Assessment ───────────────────────────────────────────────────────────
@@ -716,13 +749,240 @@ app.delete('/api/photos/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Email helpers ─────────────────────────────────────────────────────────────
+function makeTransporter() {
+  return nodemailer.createTransport({
+    host: settings.smtpHost,
+    port: parseInt(settings.smtpPort) || 587,
+    secure: parseInt(settings.smtpPort) === 465,
+    auth: { user: settings.smtpUser, pass: settings.smtpPass }
+  });
+}
+
+function fromAddress() {
+  return `"${settings.smtpFromName || settings.orgName}" <${settings.smtpFrom || settings.smtpUser}>`;
+}
+
+function venueIntakeEmailHtml(intakeUrl, brief, expiresAt) {
+  const event = brief.venue?.name || 'your venue';
+  const date  = brief.timeline?.showDate ? new Date(brief.timeline.showDate + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }) : '';
+  const exp   = new Date(expiresAt).toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+  const org   = settings.orgName || 'GenX Takeover Security';
+
+  // Use custom template text if set, otherwise fall back to defaults
+  const introText = (settings.emailIntro || `You are receiving this email from the ${org} security team. We have been contracted to provide security services for the upcoming event at [Venue]${date ? ' on [Date]' : ''}.
+
+As part of our pre-event planning process, we ask that your venue security team complete the attached questionnaire. The information you provide allows us to coordinate effectively with your staff, align on protocols, and build a comprehensive security brief prior to the event.`)
+    .replace(/\[Org\]/g, org)
+    .replace(/\[Venue\]/g, `<strong style="color:#e6edf3;">${event}</strong>`)
+    .replace(/\[Date\]/g, date ? `<strong style="color:#e6edf3;">${date}</strong>` : '');
+
+  const instructionsText = (settings.emailInstructions || 'Please fill out as much as you can — not every field will apply to your venue, and nothing is required. Once complete, click Submit and our team will be notified immediately.')
+    .replace(/\[Org\]/g, org)
+    .replace(/\[Venue\]/g, event)
+    .replace(/\[Date\]/g, date);
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0d1117;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#161b22;border-radius:12px;border:1px solid #30363d;overflow:hidden;">
+<tr><td style="background:#e63946;padding:24px 32px;">
+  <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.7);">${org}</p>
+  <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;color:#fff;">Venue Security Questionnaire</h1>
+</td></tr>
+<tr><td style="padding:32px;">
+  <p style="margin:0 0 16px;font-size:15px;font-weight:600;color:#e6edf3;">Hello,</p>
+  <p style="margin:0 0 24px;font-size:14px;line-height:1.8;color:#8b949e;white-space:pre-wrap;">${introText}</p>
+  <p style="margin:0 0 24px;font-size:14px;line-height:1.8;color:#8b949e;">${instructionsText}</p>
+  <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0 28px;">
+    <a href="${intakeUrl}" style="display:inline-block;background:#e63946;color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:15px;">Complete Questionnaire →</a>
+  </td></tr></table>
+  <p style="margin:0 0 8px;font-size:13px;color:#8b949e;">Or copy this link into your browser:</p>
+  <p style="margin:0 0 24px;font-size:12px;color:#58a6ff;word-break:break-all;">${intakeUrl}</p>
+  <table width="100%" cellpadding="12" cellspacing="0" style="background:#0d1117;border-radius:8px;border:1px solid #30363d;margin-bottom:24px;">
+    <tr><td style="font-size:12px;color:#8b949e;line-height:1.8;">
+      <strong style="color:#e6edf3;">Important:</strong> This link is valid until <strong style="color:#e6edf3;">${exp}</strong> and can only be used once. Once you submit, access to the questionnaire will close automatically.<br><br>
+      If you have any questions or need to reach our team directly, please reply to this email.
+    </td></tr>
+  </table>
+  <p style="margin:0 0 4px;font-size:13px;color:#e6edf3;font-weight:600;">Thank you for your cooperation.</p>
+  <p style="margin:0;font-size:12px;color:#484f58;">— ${org} Security Operations</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+function intakeNotificationEmailHtml(brief, token, briefUrl, data) {
+  const venue = brief?.venue?.name || token.venueName || 'Unknown Venue';
+  const date  = brief?.timeline?.showDate || '';
+  const rows  = Object.entries(data).map(([k, v]) => {
+    const label = k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+    return `<tr><td style="padding:6px 8px;font-size:12px;color:#8b949e;white-space:nowrap;border-bottom:1px solid #21262d;">${label}</td><td style="padding:6px 8px;font-size:12px;color:#e6edf3;border-bottom:1px solid #21262d;">${String(v||'').slice(0,200)}</td></tr>`;
+  }).join('');
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0d1117;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#161b22;border-radius:12px;border:1px solid #30363d;overflow:hidden;">
+<tr><td style="background:#238636;padding:20px 32px;">
+  <h1 style="margin:0;font-size:18px;font-weight:800;color:#fff;">Venue Intake Completed</h1>
+</td></tr>
+<tr><td style="padding:28px 32px;">
+  <p style="margin:0 0 4px;font-size:16px;font-weight:700;color:#e6edf3;">${venue}</p>
+  ${date ? `<p style="margin:0 0 20px;font-size:13px;color:#8b949e;">Show date: ${date}</p>` : '<p style="margin:0 0 20px;"></p>'}
+  <p style="margin:0 0 16px;font-size:14px;color:#8b949e;">The venue has submitted their questionnaire. Review the responses below, then open the brief to make your updates.</p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d1117;border-radius:8px;border:1px solid #30363d;margin-bottom:24px;">
+    <tr style="background:#161b22;"><th style="padding:8px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8b949e;text-align:left;border-bottom:1px solid #30363d;">Field</th><th style="padding:8px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8b949e;text-align:left;border-bottom:1px solid #30363d;">Response</th></tr>
+    ${rows}
+  </table>
+  <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:4px 0 8px;">
+    <a href="${briefUrl}" style="display:inline-block;background:#e63946;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:14px;">Open Brief & Apply Updates</a>
+  </td></tr></table>
+</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+// ── Test email route ──────────────────────────────────────────────────────────
+app.post('/api/settings/test-email', async (req, res) => {
+  const { to } = req.body;
+  if (!to) return res.status(400).json({ error: 'to is required' });
+  if (!settings.smtpHost || !settings.smtpUser || !settings.smtpPass) {
+    return res.status(400).json({ error: 'SMTP not configured' });
+  }
+  try {
+    await makeTransporter().sendMail({
+      from: fromAddress(),
+      to,
+      subject: `Test Email — ${settings.orgName || 'GenX Takeover Security'}`,
+      html: `<div style="font-family:sans-serif;padding:24px;background:#0d1117;color:#e6edf3;border-radius:8px;">
+        <h2 style="color:#3fb950;">✓ Email is working!</h2>
+        <p style="color:#8b949e;">Your SMTP configuration is set up correctly. Venue intake emails will send successfully.</p>
+        <p style="color:#484f58;font-size:12px;">— ${settings.orgName || 'GenX Takeover Security'}</p>
+      </div>`
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Venue Intake routes ───────────────────────────────────────────────────────
+
+// Send intake link to venue contact
+app.post('/api/briefs/:id/send-venue-intake', async (req, res) => {
+  const brief = briefs.get(req.params.id);
+  if (!brief) return res.status(404).json({ error: 'Brief not found' });
+
+  const { venueEmail } = req.body;
+  if (!venueEmail) return res.status(400).json({ error: 'venueEmail is required' });
+  if (!settings.smtpHost || !settings.smtpUser || !settings.smtpPass) {
+    return res.status(400).json({ error: 'Email not configured. Add SMTP settings in Settings.' });
+  }
+
+  // Cancel any active tokens for this brief
+  Object.values(intakeTokens).forEach(t => {
+    if (t.briefId === req.params.id && !t.used) t.cancelled = true;
+  });
+
+  const token     = uuidv4();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  intakeTokens[token] = { briefId: req.params.id, venueEmail, createdAt: new Date().toISOString(), expiresAt, used: false, cancelled: false };
+  saveTokens();
+
+  brief.venueIntake = { status: 'pending', sentAt: new Date().toISOString(), venueEmail };
+  briefs.set(req.params.id, brief);
+  saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+
+  const appUrl    = (settings.appUrl || `http://localhost:${PORT}`).replace(/\/$/, '');
+  const intakeUrl = `${appUrl}/intake/${token}`;
+
+  try {
+    await makeTransporter().sendMail({
+      from: fromAddress(),
+      to: venueEmail,
+      subject: (settings.emailSubject || 'Venue Security Questionnaire — [Event Name]')
+        .replace(/\[Event Name\]/g, brief.venue?.name || 'Security Brief')
+        .replace(/\[Venue\]/g, brief.venue?.name || 'Security Brief')
+        .replace(/\[Date\]/g, brief.timeline?.showDate || ''),
+      html: venueIntakeEmailHtml(intakeUrl, brief, expiresAt)
+    });
+    res.json({ ok: true, expiresAt, intakeUrl });
+  } catch (err) {
+    // Revert on email failure
+    delete intakeTokens[token];
+    saveTokens();
+    brief.venueIntake = null;
+    briefs.set(req.params.id, brief);
+    saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+    res.status(500).json({ error: 'Failed to send email: ' + err.message });
+  }
+});
+
+// Venue fetches intake form data
+app.get('/api/intake/:token', (req, res) => {
+  const t = intakeTokens[req.params.token];
+  if (!t || t.cancelled)                    return res.status(410).json({ error: 'This link is no longer valid.' });
+  if (t.used)                               return res.status(410).json({ error: 'This questionnaire has already been submitted. Thank you!' });
+  if (new Date(t.expiresAt) < new Date())   return res.status(410).json({ error: 'This link has expired. Please contact the security company.' });
+  const brief = briefs.get(t.briefId);
+  res.json({
+    venueName:  brief?.venue?.name   || '',
+    venueStreet:brief?.venue?.street || '',
+    venueCity:  brief?.venue?.city   || '',
+    venueState: brief?.venue?.state  || '',
+    venueZip:   brief?.venue?.zip    || '',
+    eventDate:  brief?.timeline?.showDate || '',
+    orgName:    settings.orgName || 'GenX Takeover Security',
+    expiresAt:  t.expiresAt
+  });
+});
+
+// Venue submits intake form
+app.post('/api/intake/:token', async (req, res) => {
+  const t = intakeTokens[req.params.token];
+  if (!t || t.cancelled)                    return res.status(410).json({ error: 'This link is no longer valid.' });
+  if (t.used)                               return res.status(410).json({ error: 'Already submitted.' });
+  if (new Date(t.expiresAt) < new Date())   return res.status(410).json({ error: 'Link expired.' });
+
+  t.used = true;
+  t.submittedAt = new Date().toISOString();
+  saveTokens();
+
+  const brief = briefs.get(t.briefId);
+  if (brief) {
+    brief.venueIntake = {
+      status: 'completed',
+      submittedAt: t.submittedAt,
+      venueEmail: t.venueEmail,
+      sentAt: brief.venueIntake?.sentAt,
+      data: req.body
+    };
+    briefs.set(t.briefId, brief);
+    saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+  }
+
+  // Notify Steve
+  const notifyTo = settings.notifyEmail || settings.orgEmail;
+  if (notifyTo && settings.smtpHost && settings.smtpUser && settings.smtpPass) {
+    const appUrl   = (settings.appUrl || `http://localhost:${PORT}`).replace(/\/$/, '');
+    const briefUrl = `${appUrl}/brief?id=${t.briefId}`;
+    try {
+      await makeTransporter().sendMail({
+        from: fromAddress(),
+        to: notifyTo,
+        subject: `Venue Intake Completed — ${brief?.venue?.name || t.venueEmail}`,
+        html: intakeNotificationEmailHtml(brief, t, briefUrl, req.body)
+      });
+    } catch (err) { console.error('Intake notification email failed:', err.message); }
+  }
+
+  res.json({ ok: true });
+});
+
 // ── Page routes ──────────────────────────────────────────────────────────────
 const pub = path.join(__dirname, 'public');
-app.get('/',         (_, res) => res.sendFile(path.join(pub, 'index.html')));
-app.get('/brief',    (_, res) => res.sendFile(path.join(pub, 'brief.html')));
-app.get('/view',     (_, res) => res.sendFile(path.join(pub, 'view.html')));
-app.get('/settings', (_, res) => res.sendFile(path.join(pub, 'settings.html')));
-app.get('/risk',     (_, res) => res.sendFile(path.join(pub, 'risk.html')));
-app.get('*',         (_, res) => res.sendFile(path.join(pub, 'index.html')));
+app.get('/',           (_, res) => res.sendFile(path.join(pub, 'index.html')));
+app.get('/brief',      (_, res) => res.sendFile(path.join(pub, 'brief.html')));
+app.get('/view',       (_, res) => res.sendFile(path.join(pub, 'view.html')));
+app.get('/settings',   (_, res) => res.sendFile(path.join(pub, 'settings.html')));
+app.get('/risk',       (_, res) => res.sendFile(path.join(pub, 'risk.html')));
+app.get('/intake/:token', (_, res) => res.sendFile(path.join(pub, 'intake.html')));
+app.get('/map-editor',   (_, res) => res.sendFile(path.join(pub, 'map-editor.html')));
+app.get('*',           (_, res) => res.sendFile(path.join(pub, 'index.html')));
 
 app.listen(PORT, () => console.log(`GenX Security running on http://localhost:${PORT}`));

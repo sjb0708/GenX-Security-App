@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Map Editor — GenX Security</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface-2: #1c2128; --border: #30363d;
+      --text: #e6edf3; --text-2: #8b949e; --text-3: #484f58;
+      --red: #e63946; --green: #3fb950; --blue: #58a6ff; --yellow: #d29922;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Toolbar */
+    .toolbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+    .toolbar-brand { font-size: 13px; font-weight: 800; color: var(--text); margin-right: 8px; white-space: nowrap; }
+    .toolbar-divider { width: 1px; height: 28px; background: var(--border); flex-shrink: 0; }
+    .tool-group { display: flex; align-items: center; gap: 4px; }
+    .tool-group-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); margin-right: 2px; }
+
+    .tool-btn {
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px;
+      color: var(--text-2); font-family: inherit; font-size: 11px; font-weight: 600;
+      padding: 6px 10px; cursor: pointer; white-space: nowrap; transition: all 0.12s;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .tool-btn:hover { border-color: var(--blue); color: var(--text); }
+    .tool-btn.active { background: rgba(88,166,255,0.12); border-color: var(--blue); color: var(--blue); }
+    .tool-btn.danger { color: var(--red); }
+    .tool-btn.danger:hover { border-color: var(--red); background: rgba(230,57,70,0.08); }
+    .tool-btn.success { background: var(--green); border-color: var(--green); color: #fff; }
+    .tool-btn.success:hover { opacity: 0.9; }
+
+    .icon-btn { width: 32px; height: 32px; padding: 0; justify-content: center; font-size: 15px; }
+
+    /* Color swatches */
+    .color-swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s, border-color 0.1s; flex-shrink: 0; }
+    .color-swatch:hover { transform: scale(1.2); }
+    .color-swatch.active { border-color: #fff; transform: scale(1.15); }
+
+    /* Size slider */
+    .size-input { width: 60px; height: 28px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 12px; padding: 0 8px; outline: none; }
+    .size-input:focus { border-color: var(--blue); }
+
+    /* Canvas area */
+    .canvas-area { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: flex-start; padding: 20px; background: #080c10; position: relative; }
+    #fabricCanvas { display: block; }
+
+    /* Status bar */
+    .statusbar { background: var(--surface); border-top: 1px solid var(--border); padding: 6px 16px; display: flex; align-items: center; gap: 16px; font-size: 11px; color: var(--text-3); flex-shrink: 0; }
+    .statusbar strong { color: var(--text-2); }
+
+    /* Icon picker popup */
+    .icon-picker { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; z-index: 1000; box-shadow: 0 8px 32px rgba(0,0,0,0.5); display: none; }
+    .icon-picker.open { display: grid; }
+    .icon-option { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 6px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; transition: all 0.12s; }
+    .icon-option:hover { background: var(--surface-2); border-color: var(--border); }
+    .icon-option .ico { font-size: 20px; }
+    .icon-option .lbl { font-size: 9px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; text-align: center; }
+
+    /* Undo count badge */
+    .undo-badge { background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; font-size: 10px; color: var(--text-3); padding: 1px 5px; }
+  </style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <span class="toolbar-brand">🗺️ Map Editor</span>
+  <div class="toolbar-divider"></div>
+
+  <!-- Select / Pan -->
+  <div class="tool-group">
+    <span class="tool-group-label">Mode</span>
+    <button class="tool-btn active" id="toolSelect" onclick="setTool('select')" title="Select & Move objects">
+      ↖ Select
+    </button>
+    <button class="tool-btn" id="toolDraw" onclick="setTool('freehand')" title="Freehand draw">
+      ✏️ Draw
+    </button>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <!-- Shapes -->
+  <div class="tool-group">
+    <span class="tool-group-label">Add</span>
+    <button class="tool-btn" onclick="addArrow()" title="Add arrow">➤ Arrow</button>
+    <button class="tool-btn" onclick="startTextMode()" id="toolText" title="Add text label">T Text</button>
+    <button class="tool-btn" onclick="addRect()" title="Add zone rectangle">▭ Zone</button>
+    <button class="tool-btn" onclick="addCircle()" title="Add circle marker">◯ Circle</button>
+    <button class="tool-btn" onclick="toggleIconPicker(event)" title="Add security icon">🛡 Icon ▾</button>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <!-- Color -->
+  <div class="tool-group">
+    <span class="tool-group-label">Color</span>
+    <div class="color-swatch active" style="background:#e63946;" data-color="#e63946" onclick="setColor(this)" title="Red"></div>
+    <div class="color-swatch" style="background:#f4a261;" data-color="#f4a261" onclick="setColor(this)" title="Orange"></div>
+    <div class="color-swatch" style="background:#ffd60a;" data-color="#ffd60a" onclick="setColor(this)" title="Yellow"></div>
+    <div class="color-swatch" style="background:#3fb950;" data-color="#3fb950" onclick="setColor(this)" title="Green"></div>
+    <div class="color-swatch" style="background:#58a6ff;" data-color="#58a6ff" onclick="setColor(this)" title="Blue"></div>
+    <div class="color-swatch" style="background:#ffffff;" data-color="#ffffff" onclick="setColor(this)" title="White"></div>
+    <div class="color-swatch" style="background:#000000;border-color:#555;" data-color="#000000" onclick="setColor(this)" title="Black"></div>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <!-- Size -->
+  <div class="tool-group">
+    <span class="tool-group-label">Size</span>
+    <input type="number" class="size-input" id="strokeSize" value="3" min="1" max="20" title="Stroke / font size">
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <!-- Actions -->
+  <div class="tool-group" style="margin-left:auto;">
+    <button class="tool-btn" onclick="undoAction()" title="Undo">↩ Undo</button>
+    <button class="tool-btn danger" onclick="deleteSelected()" title="Delete selected">✕ Delete</button>
+    <button class="tool-btn danger" onclick="clearAnnotations()" title="Clear all annotations">🗑 Clear All</button>
+    <button class="tool-btn success" onclick="saveMap()" id="saveBtn">💾 Save Map</button>
+    <button class="tool-btn" onclick="window.close()" style="margin-left:4px;">✕ Close</button>
+  </div>
+</div>
+
+<!-- Icon picker popup -->
+<div class="icon-picker" id="iconPicker">
+  <div class="icon-option" onclick="addIcon('🔒','Restricted')"><span class="ico">🔒</span><span class="lbl">Restricted</span></div>
+  <div class="icon-option" onclick="addIcon('🚪','Gate')"><span class="ico">🚪</span><span class="lbl">Gate</span></div>
+  <div class="icon-option" onclick="addIcon('👮','Security')"><span class="ico">👮</span><span class="lbl">Security</span></div>
+  <div class="icon-option" onclick="addIcon('⚕️','Medical')"><span class="ico">⚕️</span><span class="lbl">Medical</span></div>
+  <div class="icon-option" onclick="addIcon('🚨','Exit')"><span class="ico">🚨</span><span class="lbl">Exit</span></div>
+  <div class="icon-option" onclick="addIcon('📻','Command')"><span class="ico">📻</span><span class="lbl">Command</span></div>
+  <div class="icon-option" onclick="addIcon('🅿️','Parking')"><span class="ico">🅿️</span><span class="lbl">Parking</span></div>
+  <div class="icon-option" onclick="addIcon('🚌','Bus/Tour')"><span class="ico">🚌</span><span class="lbl">Bus/Tour</span></div>
+  <div class="icon-option" onclick="addIcon('🎭','Backstage')"><span class="ico">🎭</span><span class="lbl">Backstage</span></div>
+  <div class="icon-option" onclick="addIcon('🎤','Stage')"><span class="ico">🎤</span><span class="lbl">Stage</span></div>
+  <div class="icon-option" onclick="addIcon('🚒','Fire')"><span class="ico">🚒</span><span class="lbl">Fire</span></div>
+  <div class="icon-option" onclick="addIcon('⭐','VIP')"><span class="ico">⭐</span><span class="lbl">VIP</span></div>
+</div>
+
+<!-- Canvas -->
+<div class="canvas-area" id="canvasArea">
+  <canvas id="fabricCanvas"></canvas>
+</div>
+
+<!-- Status bar -->
+<div class="statusbar">
+  <span id="statusTool"><strong>Tool:</strong> Select</span>
+  <span id="statusColor"><strong>Color:</strong> Red</span>
+  <span id="statusObjects"><strong>Objects:</strong> 0</span>
+  <span style="margin-left:auto;"><strong>Tip:</strong> Click an object to select it, then drag to move or press Delete key to remove it</span>
+</div>
+
+<script>
+  // ── Params ────────────────────────────────────────────────────────────────────
+  const params   = new URLSearchParams(location.search);
+  const briefId  = params.get('briefId');
+  const mapIndex = parseInt(params.get('mapIndex') || '0');
+  const imageUrl = params.get('imageUrl') ? decodeURIComponent(params.get('imageUrl')) : null;
+
+  // ── State ─────────────────────────────────────────────────────────────────────
+  let canvas;
+  let bgImage;
+  let currentColor  = '#e63946';
+  let currentTool   = 'select';
+  let textMode      = false;
+  let history       = [];
+  let isDrawingArrow = false;
+  let arrowStart    = null;
+  let tempLine      = null;
+
+  // ── Init canvas ───────────────────────────────────────────────────────────────
+  function initCanvas(imgSrc) {
+    const area = document.getElementById('canvasArea');
+
+    // Load image to get natural size
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const maxW = Math.min(img.naturalWidth,  area.clientWidth  - 40);
+      const maxH = Math.min(img.naturalHeight, area.clientHeight - 40);
+      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
+      const W = Math.round(img.naturalWidth  * scale);
+      const H = Math.round(img.naturalHeight * scale);
+
+      document.getElementById('fabricCanvas').width  = W;
+      document.getElementById('fabricCanvas').height = H;
+
+      canvas = new fabric.Canvas('fabricCanvas', {
+        width: W, height: H,
+        selection: true,
+        preserveObjectStacking: true
+      });
+
+      fabric.Image.fromURL(imgSrc, fabImg => {
+        fabImg.scaleToWidth(W);
+        fabImg.set({ selectable: false, evented: false, hasControls: false });
+        canvas.setBackgroundImage(fabImg, canvas.renderAll.bind(canvas));
+        bgImage = fabImg;
+      }, { crossOrigin: 'anonymous' });
+
+      canvas.on('mouse:down',   onMouseDown);
+      canvas.on('mouse:move',   onMouseMove);
+      canvas.on('mouse:up',     onMouseUp);
+      canvas.on('object:added', updateStatus);
+      canvas.on('object:removed', updateStatus);
+      canvas.on('selection:created', updateStatus);
+      canvas.on('selection:cleared', updateStatus);
+
+      // Delete key
+      document.addEventListener('keydown', e => {
+        if ((e.key === 'Delete' || e.key === 'Backspace') && document.activeElement === document.body) {
+          deleteSelected();
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); undoAction(); }
+      });
+
+      updateStatus();
+    };
+    img.onerror = () => { alert('Could not load map image.'); };
+    img.src = imgSrc;
+  }
+
+  // ── Tool management ───────────────────────────────────────────────────────────
+  function setTool(tool) {
+    currentTool = tool;
+    textMode    = false;
+    document.getElementById('toolSelect').classList.toggle('active', tool === 'select');
+    document.getElementById('toolDraw').classList.toggle('active',   tool === 'freehand');
+    document.getElementById('toolText').classList.remove('active');
+
+    canvas.isDrawingMode = (tool === 'freehand');
+    canvas.defaultCursor = tool === 'select' ? 'default' : 'crosshair';
+    canvas.selection     = (tool === 'select');
+
+    if (tool === 'freehand') {
+      canvas.freeDrawingBrush.color = currentColor;
+      canvas.freeDrawingBrush.width = getSize();
+    }
+    document.getElementById('statusTool').innerHTML = `<strong>Tool:</strong> ${tool === 'select' ? 'Select / Move' : tool === 'freehand' ? 'Freehand Draw' : tool}`;
+  }
+
+  function startTextMode() {
+    textMode = true;
+    currentTool = 'text';
+    canvas.isDrawingMode = false;
+    canvas.defaultCursor = 'text';
+    document.getElementById('toolText').classList.add('active');
+    document.getElementById('toolSelect').classList.remove('active');
+    document.getElementById('toolDraw').classList.remove('active');
+    document.getElementById('statusTool').innerHTML = '<strong>Tool:</strong> Text — click on map to place';
+  }
+
+  function setColor(el) {
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    currentColor = el.dataset.color;
+    if (canvas?.isDrawingMode) canvas.freeDrawingBrush.color = currentColor;
+    const names = { '#e63946':'Red','#f4a261':'Orange','#ffd60a':'Yellow','#3fb950':'Green','#58a6ff':'Blue','#ffffff':'White','#000000':'Black' };
+    document.getElementById('statusColor').innerHTML = `<strong>Color:</strong> ${names[currentColor] || currentColor}`;
+  }
+
+  function getSize() { return parseInt(document.getElementById('strokeSize').value) || 3; }
+
+  // ── Mouse events ──────────────────────────────────────────────────────────────
+  function onMouseDown(opt) {
+    const p = opt.absolutePointer;
+    if (textMode) {
+      placeText(p.x, p.y);
+      return;
+    }
+    if (currentTool === 'arrow') {
+      isDrawingArrow = true;
+      arrowStart     = { x: p.x, y: p.y };
+    }
+  }
+
+  function onMouseMove(opt) {
+    if (!isDrawingArrow || !arrowStart) return;
+    const p = opt.absolutePointer;
+    if (tempLine) { canvas.remove(tempLine); tempLine = null; }
+    tempLine = new fabric.Line([arrowStart.x, arrowStart.y, p.x, p.y], {
+      stroke: currentColor, strokeWidth: getSize(),
+      selectable: false, evented: false, opacity: 0.7
+    });
+    canvas.add(tempLine);
+    canvas.renderAll();
+  }
+
+  function onMouseUp(opt) {
+    if (!isDrawingArrow || !arrowStart) return;
+    const p = opt.absolutePointer;
+    if (tempLine) { canvas.remove(tempLine); tempLine = null; }
+    finishArrow(arrowStart.x, arrowStart.y, p.x, p.y);
+    isDrawingArrow = false;
+    arrowStart     = null;
+    currentTool    = 'select';
+    document.getElementById('toolSelect').classList.add('active');
+    canvas.defaultCursor = 'default';
+    canvas.selection = true;
+    document.getElementById('statusTool').innerHTML = '<strong>Tool:</strong> Select / Move';
+  }
+
+  // ── Add objects ───────────────────────────────────────────────────────────────
+  function addArrow() {
+    currentTool = 'arrow';
+    canvas.isDrawingMode = false;
+    canvas.defaultCursor = 'crosshair';
+    canvas.selection     = false;
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('statusTool').innerHTML = '<strong>Tool:</strong> Arrow — click and drag on map';
+  }
+
+  function finishArrow(x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    if (len < 10) return;
+    const angle = Math.atan2(dy, dx);
+    const hw = getSize() * 3;
+    const hl = getSize() * 5;
+
+    const line = new fabric.Line([x1, y1, x2 - Math.cos(angle)*hl*0.5, y2 - Math.sin(angle)*hl*0.5], {
+      stroke: currentColor, strokeWidth: getSize(), strokeLineCap: 'round'
+    });
+
+    // Arrowhead triangle
+    const tip  = { x: x2, y: y2 };
+    const base1 = { x: x2 - Math.cos(angle-0.4)*hl, y: y2 - Math.sin(angle-0.4)*hl };
+    const base2 = { x: x2 - Math.cos(angle+0.4)*hl, y: y2 - Math.sin(angle+0.4)*hl };
+    const head = new fabric.Polygon([tip, base1, base2], { fill: currentColor, stroke: 'none', selectable: false });
+
+    const grp = new fabric.Group([line, head], { selectable: true, hasControls: true });
+    saveHistory();
+    canvas.add(grp);
+    canvas.setActiveObject(grp);
+    canvas.renderAll();
+  }
+
+  function addRect() {
+    saveHistory();
+    const sz = getSize();
+    const r = new fabric.Rect({
+      left: 80, top: 80, width: 150, height: 100,
+      fill: 'transparent', stroke: currentColor, strokeWidth: sz,
+      strokeDashArray: [8, 4], rx: 4, ry: 4,
+      transparentCorners: false
+    });
+    canvas.add(r);
+    canvas.setActiveObject(r);
+    setTool('select');
+  }
+
+  function addCircle() {
+    saveHistory();
+    const c = new fabric.Circle({
+      left: 80, top: 80, radius: 30,
+      fill: currentColor + '33', stroke: currentColor, strokeWidth: getSize(),
+      transparentCorners: false
+    });
+    canvas.add(c);
+    canvas.setActiveObject(c);
+    setTool('select');
+  }
+
+  function placeText(x, y) {
+    saveHistory();
+    const t = new fabric.IText('Label', {
+      left: x, top: y,
+      fontSize: Math.max(14, getSize() * 5),
+      fill: currentColor,
+      fontFamily: 'Montserrat, Arial, sans-serif',
+      fontWeight: '700',
+      shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.8)', blur: 4, offsetX: 1, offsetY: 1 }),
+      transparentCorners: false
+    });
+    canvas.add(t);
+    canvas.setActiveObject(t);
+    t.enterEditing();
+    t.selectAll();
+    setTool('select');
+    textMode = false;
+  }
+
+  function addIcon(emoji, label) {
+    closeIconPicker();
+    saveHistory();
+    const sz = Math.max(24, getSize() * 10);
+    const t = new fabric.Text(emoji, {
+      left: 80, top: 80,
+      fontSize: sz,
+      selectable: true,
+      transparentCorners: false
+    });
+    canvas.add(t);
+    canvas.setActiveObject(t);
+    setTool('select');
+  }
+
+  // ── Icon picker ───────────────────────────────────────────────────────────────
+  function toggleIconPicker(e) {
+    const picker = document.getElementById('iconPicker');
+    const rect   = e.currentTarget.getBoundingClientRect();
+    picker.style.left = rect.left + 'px';
+    picker.style.top  = (rect.bottom + 6) + 'px';
+    picker.classList.toggle('open');
+    e.stopPropagation();
+  }
+  function closeIconPicker() { document.getElementById('iconPicker').classList.remove('open'); }
+  document.addEventListener('click', closeIconPicker);
+
+  // ── Delete / Clear ────────────────────────────────────────────────────────────
+  function deleteSelected() {
+    const active = canvas.getActiveObjects();
+    if (!active.length) return;
+    saveHistory();
+    active.forEach(obj => canvas.remove(obj));
+    canvas.discardActiveObject();
+    canvas.renderAll();
+  }
+
+  function clearAnnotations() {
+    if (!confirm('Remove all annotations from this map?')) return;
+    saveHistory();
+    canvas.getObjects().forEach(obj => canvas.remove(obj));
+    canvas.renderAll();
+  }
+
+  // ── Undo ─────────────────────────────────────────────────────────────────────
+  function saveHistory() {
+    history.push(JSON.stringify(canvas));
+    if (history.length > 30) history.shift();
+  }
+
+  function undoAction() {
+    if (!history.length) return;
+    const state = history.pop();
+    canvas.loadFromJSON(state, () => {
+      canvas.setBackgroundImage(bgImage, canvas.renderAll.bind(canvas));
+      canvas.renderAll();
+      updateStatus();
+    });
+  }
+
+  // ── Status ────────────────────────────────────────────────────────────────────
+  function updateStatus() {
+    const n = canvas?.getObjects().length || 0;
+    document.getElementById('statusObjects').innerHTML = `<strong>Objects:</strong> ${n}`;
+  }
+
+  // ── Save ──────────────────────────────────────────────────────────────────────
+  async function saveMap() {
+    if (!canvas || !briefId) { alert('Cannot save — no brief ID.'); return; }
+    const btn = document.getElementById('saveBtn');
+    btn.textContent = '⏳ Saving…';
+    btn.disabled = true;
+
+    canvas.discardActiveObject();
+    canvas.renderAll();
+
+    // Export canvas to data URL
+    const dataUrl = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 1 });
+
+    try {
+      // Load current brief, update the map at mapIndex
+      const briefRes  = await fetch(`/api/briefs/${briefId}`);
+      const brief     = await briefRes.json();
+      const maps      = brief.maps || [];
+      if (maps[mapIndex]) maps[mapIndex].image = dataUrl;
+
+      const saveRes = await fetch(`/api/briefs/${briefId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maps })
+      });
+      if (!saveRes.ok) throw new Error('Save failed');
+
+      btn.textContent = '✓ Saved!';
+      btn.style.background = 'var(--green)';
+      setTimeout(() => {
+        btn.textContent = '💾 Save Map';
+        btn.style.background = '';
+        btn.disabled = false;
+      }, 2000);
+    } catch (err) {
+      alert('Save failed: ' + err.message);
+      btn.textContent = '💾 Save Map';
+      btn.disabled = false;
+    }
+  }
+
+  // ── Boot ──────────────────────────────────────────────────────────────────────
+  if (imageUrl) {
+    initCanvas(imageUrl);
+  } else if (briefId) {
+    fetch(`/api/briefs/${briefId}`)
+      .then(r => r.json())
+      .then(b => {
+        const map = (b.maps || [])[mapIndex];
+        if (map?.image) initCanvas(map.image);
+        else alert('No image found for this map slot.');
+      });
+  } else {
+    alert('No map specified.');
+  }
+</script>
+</body>
+</html>
