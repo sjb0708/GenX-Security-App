@@ -619,7 +619,19 @@ Crime Index Score: ${crimeData.crimeIndexScore ?? 'N/A'} (100 = national average
 ${crimeData.census ? `Median Household Income: $${crimeData.census.medianHouseholdIncome?.toLocaleString() || 'N/A'} | Poverty Rate: ${crimeData.census.povertyRate ?? 'N/A'}%` : ''}
 Data source: ${crimeData.dataSource === 'city' ? (crimeContext.agencyName || 'City PD') : 'State estimates'}` : '';
 
-    const prompt = `You are a professional event security consultant. Analyze this security brief and produce a detailed risk assessment. Return ONLY valid JSON with no markdown or extra text.
+    const prompt = `You are a professional event security consultant. Analyze this security brief and produce a detailed risk assessment grounded in industry standards. Return ONLY valid JSON with no markdown or extra text.
+
+INDUSTRY STANDARDS FRAMEWORK:
+Base all findings and recommendations on these authoritative sources (cite the most relevant one per finding):
+- ASIS International Event Security Guidelines (ASIS ESP-2012): crowd management, staffing ratios, access control, threat assessment
+- ASIS/ANSI Physical Asset Protection Standard (PAP-2012): perimeter security, credential systems, access control protocols
+- ASIS General Security Risk Assessment Guideline (GSRA-2003): risk scoring methodology, vulnerability assessment
+- NFPA 101 Life Safety Code: evacuation routes, occupant capacity, exit requirements
+- NFPA 3000 (Standard for Active Shooter/Hostile Event Response): lockdown protocols, emergency communications
+- DHS Best Practices for Crowd Management: ingress screening, crowd density, behavioral detection
+- AHA/ARC AED Placement Guidelines: 1 AED per 1,000 attendees, maximum 3-minute response time
+- OSHA 1910.151 Medical Services & First Aid: minimum first responder requirements for crowd events
+- NIMS/ICS Emergency Management Framework: command structure, communications protocols
 
 BRIEF DATA:
 ${JSON.stringify(briefSummary, null, 2)}
@@ -639,13 +651,13 @@ Return this exact JSON structure:
     "ingress": <0-100>
   },
   "criticalFindings": [
-    { "title": "", "detail": "", "recommendation": "" }
+    { "title": "", "detail": "", "recommendation": "", "standard": "<e.g., ASIS ESP-2012 §4.3 — Staffing Ratios>" }
   ],
   "mediumFindings": [
-    { "title": "", "detail": "", "recommendation": "" }
+    { "title": "", "detail": "", "recommendation": "", "standard": "<e.g., NFPA 101 §7.2 — Means of Egress>" }
   ],
   "lowFindings": [
-    { "title": "", "detail": "" }
+    { "title": "", "detail": "", "standard": "<e.g., DHS Crowd Management Best Practices>" }
   ],
   "passingChecks": ["<string>"],
   "priorityActions": [
