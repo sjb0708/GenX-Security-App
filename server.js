@@ -24,8 +24,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // ── Persistence helpers ───────────────────────────────────────────────────────
-const SETTINGS_FILE = path.join(__dirname, '.settings.json');
-const BRIEFS_FILE   = path.join(__dirname, '.briefs.json');
+const DATA_DIR      = process.env.VERCEL ? '/tmp' : __dirname;
+const SETTINGS_FILE = path.join(DATA_DIR, '.settings.json');
+const BRIEFS_FILE   = path.join(DATA_DIR, '.briefs.json');
 
 function loadJSON(file, fallback) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (_) { return fallback; }
@@ -35,7 +36,7 @@ function saveJSON(file, data) {
 }
 
 // ── Photo library store ───────────────────────────────────────────────────────
-const PHOTOS_FILE = path.join(__dirname, '.photos.json');
+const PHOTOS_FILE = path.join(DATA_DIR, '.photos.json');
 let photoLibrary = loadJSON(PHOTOS_FILE, []);
 
 // ── Settings store ────────────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ const settings = Object.assign({
 }, loadJSON(SETTINGS_FILE, {}));
 
 // ── Venue intake token store ───────────────────────────────────────────────────
-const TOKENS_FILE = path.join(__dirname, '.tokens.json');
+const TOKENS_FILE = path.join(DATA_DIR, '.tokens.json');
 let intakeTokens = loadJSON(TOKENS_FILE, {});
 function saveTokens() { saveJSON(TOKENS_FILE, intakeTokens); }
 
@@ -702,7 +703,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 });
 
 // ── Photo Library ─────────────────────────────────────────────────────────────
-const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
+const UPLOADS_DIR = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // Migrate any existing base64 photos to files on startup
@@ -985,4 +986,8 @@ app.get('/intake/:token', (_, res) => res.sendFile(path.join(pub, 'intake.html')
 app.get('/map-editor',   (_, res) => res.sendFile(path.join(pub, 'map-editor.html')));
 app.get('*',           (_, res) => res.sendFile(path.join(pub, 'index.html')));
 
-app.listen(PORT, () => console.log(`GenX Security running on http://localhost:${PORT}`));
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => console.log(`GenX Security running on http://localhost:${PORT}`));
+}
+
+module.exports = app;
