@@ -141,6 +141,233 @@
         </div>
       </div>
 
+      <!-- Email / SMTP -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <div class="settings-section-icon">📧</div>
+          <div>
+            <div class="settings-section-title">Email — Venue Intake</div>
+            <div class="settings-section-desc">SMTP settings for sending venue questionnaires and receiving completion alerts</div>
+          </div>
+        </div>
+        <div class="settings-section-body">
+          <div class="info-box">
+            <p>
+              Used to send the venue their questionnaire link and notify you when they submit.
+              Works with Gmail (use an <a href="https://support.google.com/accounts/answer/185833" target="_blank">App Password</a>),
+              Outlook/Office 365, or any SMTP provider (SendGrid, Mailgun, etc.).<br><br>
+              <strong style="color:var(--text);">Gmail:</strong> Host <code style="background:var(--surface-3);padding:1px 5px;border-radius:4px;font-size:11px;">smtp.gmail.com</code> · Port <code style="background:var(--surface-3);padding:1px 5px;border-radius:4px;font-size:11px;">587</code>
+            </p>
+          </div>
+
+          <div class="key-status" id="smtpStatus" style="margin-bottom:20px;">
+            <div class="key-status-dot inactive" id="smtpDot"></div>
+            <span id="smtpStatusText" style="color:var(--text-3);">Email not configured</span>
+          </div>
+
+          <div class="grid-2">
+            <div class="field-group">
+              <label class="field-label">SMTP Host</label>
+              <input type="text" id="smtpHost" class="field-input" placeholder="smtp.gmail.com">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Port</label>
+              <input type="number" id="smtpPort" class="field-input" placeholder="587">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Username / Email</label>
+              <input type="email" id="smtpUser" class="field-input" placeholder="you@gmail.com" autocomplete="off">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Password / App Password</label>
+              <div class="key-input-wrap">
+                <input type="password" id="smtpPass" class="field-input" placeholder="••••••••••••••••" autocomplete="new-password">
+                <button class="key-toggle-btn" onclick="toggleSmtpPass()">Show</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">From Name</label>
+              <input type="text" id="smtpFromName" class="field-input" placeholder="GenX Takeover Security">
+            </div>
+            <div class="field-group">
+              <label class="field-label">From Email (if different from username)</label>
+              <input type="email" id="smtpFrom" class="field-input" placeholder="noreply@genxsecurity.com">
+            </div>
+          </div>
+
+          <div class="field-group" style="margin-top:8px;">
+            <label class="field-label">Notify Me At (completion alert email)</label>
+            <input type="email" id="notifyEmail" class="field-input" placeholder="your@email.com — defaults to Organization email">
+          </div>
+
+          <div class="field-group" style="margin-top:8px;">
+            <label class="field-label">App Base URL</label>
+            <input type="url" id="appUrl" class="field-input" placeholder="http://localhost:3000 or https://your-domain.com">
+            <small style="font-size:11px;color:var(--text-3);margin-top:4px;display:block;">Used to build the venue intake link. Leave blank to use localhost.</small>
+          </div>
+
+          <div class="save-bar">
+            <span class="save-indicator" id="smtpSaveIndicator">✓ Saved</span>
+            <button class="btn btn-ghost btn-sm" onclick="testSmtp()" id="testSmtpBtn" style="margin-right:auto;">Send Test Email</button>
+            <button class="btn btn-primary" onclick="saveSmtpSettings()">Save Email Settings</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Template -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <div class="settings-section-icon">✉️</div>
+          <div>
+            <div class="settings-section-title">Venue Email Template</div>
+            <div class="settings-section-desc">Customize the message sent to venues with their questionnaire link</div>
+          </div>
+        </div>
+        <div class="settings-section-body">
+          <div class="field-group">
+            <label class="field-label">Email Subject Line</label>
+            <input type="text" id="emailSubject" class="field-input" placeholder="Venue Security Questionnaire — [Event Name]">
+            <small style="font-size:11px;color:var(--text-3);margin-top:4px;display:block;">[Event Name] is automatically replaced with the venue/show name.</small>
+          </div>
+
+          <div class="field-group" style="margin-top:16px;">
+            <label class="field-label">Opening Message</label>
+            <textarea id="emailIntro" class="field-input" rows="5" style="resize:vertical;" placeholder="You are receiving this email from the GenX Takeover Security team..."></textarea>
+            <small style="font-size:11px;color:var(--text-3);margin-top:4px;display:block;">Shown at the top of the email, before the questionnaire button. [Org], [Venue], and [Date] are auto-filled.</small>
+          </div>
+
+          <div class="field-group" style="margin-top:16px;">
+            <label class="field-label">Instructions / Closing Note</label>
+            <textarea id="emailInstructions" class="field-input" rows="3" style="resize:vertical;" placeholder="Please fill out as much as you can — not every field will apply..."></textarea>
+          </div>
+
+          <div style="margin-top:16px;padding:14px 16px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:10px;">Email Preview</div>
+            <div id="emailPreviewBox" style="background:#161b22;border-radius:8px;border:1px solid #30363d;overflow:hidden;font-family:'Helvetica Neue',Arial,sans-serif;">
+              <div style="background:#e63946;padding:16px 20px;">
+                <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.7);" id="previewOrg">GenX Takeover Security</div>
+                <div style="font-size:17px;font-weight:800;color:#fff;margin-top:4px;">Venue Security Questionnaire</div>
+              </div>
+              <div style="padding:20px;">
+                <div style="font-size:13px;font-weight:600;color:#e6edf3;margin-bottom:10px;">Hello,</div>
+                <div id="previewIntro" style="font-size:13px;line-height:1.7;color:#8b949e;margin-bottom:12px;white-space:pre-wrap;"></div>
+                <div style="text-align:center;padding:12px 0;">
+                  <span style="display:inline-block;background:#e63946;color:#fff;padding:10px 28px;border-radius:7px;font-weight:700;font-size:13px;">Complete Questionnaire →</span>
+                </div>
+                <div id="previewInstructions" style="font-size:12px;line-height:1.7;color:#8b949e;margin-top:12px;white-space:pre-wrap;"></div>
+                <div style="margin-top:14px;padding:10px 12px;background:#0d1117;border-radius:6px;border:1px solid #30363d;font-size:11px;color:#8b949e;">
+                  <strong style="color:#e6edf3;">Important:</strong> This link expires in 7 days and can only be used once. Reply to this email with any questions.
+                </div>
+                <div style="margin-top:12px;font-size:11px;color:#484f58;">— <span id="previewOrgFooter">GenX Takeover Security</span> Security Operations</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="save-bar">
+            <span class="save-indicator" id="emailTplSaveIndicator">✓ Saved</span>
+            <button class="btn btn-primary" onclick="saveEmailTemplate()">Save Template</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Travel Distribution List -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <div class="settings-section-icon">✈️</div>
+          <div>
+            <div class="settings-section-title">Travel Distribution List</div>
+            <div class="settings-section-desc">Cast & crew who receive the travel questionnaire — add or remove based on who's traveling</div>
+          </div>
+        </div>
+        <div class="settings-section-body">
+          <div class="info-box">
+            <p>These contacts appear as the default selection when you click "Send Travel Questionnaire" on any brief. You can check/uncheck individuals per-venue before sending.</p>
+          </div>
+
+          <div id="travelContactsList" style="margin-bottom:16px;"></div>
+
+          <!-- Add contact row -->
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">Add Contact</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 140px auto;gap:10px;align-items:flex-end;">
+              <div>
+                <label class="field-label">Full Name</label>
+                <input class="field-input" id="tcName" placeholder="Sherri Dindal">
+              </div>
+              <div>
+                <label class="field-label">Email</label>
+                <input class="field-input" id="tcEmail" type="email" placeholder="sherri@genxtakeover.com">
+              </div>
+              <div>
+                <label class="field-label">Role</label>
+                <select class="field-input" id="tcRole">
+                  <option value="Talent">Talent</option>
+                  <option value="Crew">Crew</option>
+                  <option value="Tour Manager">Tour Manager</option>
+                  <option value="GenX Staff">GenX Staff</option>
+                  <option value="Promoter">Promoter</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="addTravelContact()" style="height:40px;">Add</button>
+            </div>
+          </div>
+
+          <div class="save-bar">
+            <span class="save-indicator" id="travelContactsSaveIndicator">✓ Saved</span>
+            <button class="btn btn-primary" onclick="saveTravelContacts()">Save Distribution List</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team Portal Users -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <div class="settings-section-icon">👥</div>
+          <div>
+            <div class="settings-section-title">Team Portal Access</div>
+            <div class="settings-section-desc">Manage login credentials for talent, crew, and GenX security staff</div>
+          </div>
+        </div>
+        <div class="settings-section-body">
+          <div id="usersList" style="margin-bottom:20px;"></div>
+
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:20px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:16px;text-transform:uppercase;letter-spacing:0.5px;">Add Team Member</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label class="field-label">Full Name</label>
+                <input class="field-input" id="newUserName" placeholder="Jane Smith" style="width:100%;">
+              </div>
+              <div>
+                <label class="field-label">Email</label>
+                <input class="field-input" id="newUserEmail" type="email" placeholder="jane@example.com" style="width:100%;">
+              </div>
+              <div>
+                <label class="field-label">Password</label>
+                <input class="field-input" id="newUserPassword" type="password" placeholder="Set a password" style="width:100%;">
+              </div>
+              <div>
+                <label class="field-label">Role</label>
+                <select class="field-input" id="newUserRole" style="width:100%;">
+                  <option value="talent">Talent / Cast</option>
+                  <option value="crew">Crew</option>
+                  <option value="security">GenX Security</option>
+                </select>
+              </div>
+              <div style="grid-column:1/-1;">
+                <label class="field-label">Assign to Brief (optional — leave blank for all briefs)</label>
+                <select class="field-input" id="newUserBrief" style="width:100%;">
+                  <option value="">All Briefs</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="addUser()">Add Team Member</button>
+            <span id="userAddMsg" style="font-size:12px;margin-left:12px;"></span>
+          </div>
+        </div>
+      </div>
+
       <!-- Photo Library -->
       <div class="settings-section">
         <div class="settings-section-header">
@@ -197,7 +424,7 @@
       const keyStatusText = document.getElementById('keyStatusText');
 
       if (data.hasKey) {
-        keyInput.placeholder = data.anthropicKey; // show masked version
+        keyInput.placeholder = data.anthropicKey;
         keyDot.className = 'key-status-dot active';
         keyStatusText.textContent = 'API key configured — AI features enabled';
         keyStatusText.style.color = 'var(--green)';
@@ -208,10 +435,80 @@
       }
 
       // Org
-      document.getElementById('orgName').value = data.orgName || '';
+      document.getElementById('orgName').value    = data.orgName    || '';
       document.getElementById('orgContact').value = data.orgContact || '';
-      document.getElementById('orgEmail').value = data.orgEmail || '';
-      document.getElementById('orgPhone').value = data.orgPhone || '';
+      document.getElementById('orgEmail').value   = data.orgEmail   || '';
+      document.getElementById('orgPhone').value   = data.orgPhone   || '';
+
+      // SMTP
+      document.getElementById('smtpHost').value     = data.smtpHost     || '';
+      document.getElementById('smtpPort').value     = data.smtpPort     || 587;
+      document.getElementById('smtpUser').value     = data.smtpUser     || '';
+      document.getElementById('smtpPass').placeholder = data.smtpPass   || '••••••••';
+      document.getElementById('smtpFromName').value = data.smtpFromName || '';
+      document.getElementById('smtpFrom').value     = data.smtpFrom     || '';
+      document.getElementById('notifyEmail').value  = data.notifyEmail  || '';
+      document.getElementById('appUrl').value       = data.appUrl       || '';
+
+      // Email template
+      document.getElementById('emailSubject').value      = data.emailSubject      || '';
+      document.getElementById('emailIntro').value        = data.emailIntro        || '';
+      document.getElementById('emailInstructions').value = data.emailInstructions || '';
+      updateEmailPreview();
+
+      // SMTP status
+      if (data.hasSmtp) {
+        document.getElementById('smtpDot').className = 'key-status-dot active';
+        document.getElementById('smtpStatusText').textContent = `Email configured — ${data.smtpUser}`;
+        document.getElementById('smtpStatusText').style.color = 'var(--green)';
+      }
+
+      // Travel contacts
+      renderTravelContacts(data.travelContacts || []);
+    }
+
+    let travelContacts = [];
+
+    function renderTravelContacts(contacts) {
+      travelContacts = contacts;
+      const list = document.getElementById('travelContactsList');
+      if (!contacts.length) {
+        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-3);font-size:13px;">No contacts yet — add cast & crew below.</div>';
+        return;
+      }
+      list.innerHTML = contacts.map((c, i) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
+          <div style="width:32px;height:32px;background:rgba(88,166,255,0.12);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#58a6ff;flex-shrink:0;">${(c.name||'?').charAt(0).toUpperCase()}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:var(--text);">${c.name || '—'}</div>
+            <div style="font-size:11px;color:var(--text-3);">${c.email} · ${c.role || 'Unknown'}</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:rgba(230,57,70,0.3);flex-shrink:0;" onclick="removeTravelContact(${i})">Remove</button>
+        </div>
+      `).join('');
+    }
+
+    function addTravelContact() {
+      const name  = document.getElementById('tcName').value.trim();
+      const email = document.getElementById('tcEmail').value.trim();
+      const role  = document.getElementById('tcRole').value;
+      if (!name || !email) { toast('Name and email are required', 'error'); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Invalid email address', 'error'); return; }
+      travelContacts = [...travelContacts, { name, email, role }];
+      renderTravelContacts(travelContacts);
+      document.getElementById('tcName').value  = '';
+      document.getElementById('tcEmail').value = '';
+    }
+
+    function removeTravelContact(i) {
+      travelContacts = travelContacts.filter((_, idx) => idx !== i);
+      renderTravelContacts(travelContacts);
+    }
+
+    async function saveTravelContacts() {
+      const res  = await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ travelContacts }) });
+      const data = await res.json();
+      if (data.ok) { showSaveIndicator('travelContactsSaveIndicator'); toast('Distribution list saved', 'success'); }
     }
 
     async function saveAISettings() {
@@ -250,6 +547,53 @@
       });
       const data = await res.json();
       if (data.ok) { showSaveIndicator('orgSaveIndicator'); toast('Organization saved', 'success'); }
+    }
+
+    async function saveSmtpSettings() {
+      const body = {
+        smtpHost:     document.getElementById('smtpHost').value.trim(),
+        smtpPort:     parseInt(document.getElementById('smtpPort').value) || 587,
+        smtpUser:     document.getElementById('smtpUser').value.trim(),
+        smtpPass:     document.getElementById('smtpPass').value,
+        smtpFromName: document.getElementById('smtpFromName').value.trim(),
+        smtpFrom:     document.getElementById('smtpFrom').value.trim(),
+        notifyEmail:  document.getElementById('notifyEmail').value.trim(),
+        appUrl:       document.getElementById('appUrl').value.trim()
+      };
+      const res  = await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (data.ok) {
+        document.getElementById('smtpPass').value = '';
+        document.getElementById('smtpPass').placeholder = '••••••••';
+        showSaveIndicator('smtpSaveIndicator');
+        toast('Email settings saved', 'success');
+        if (data.hasSmtp) {
+          document.getElementById('smtpDot').className = 'key-status-dot active';
+          document.getElementById('smtpStatusText').textContent = `Email configured — ${body.smtpUser}`;
+          document.getElementById('smtpStatusText').style.color = 'var(--green)';
+        }
+      }
+    }
+
+    async function testSmtp() {
+      const btn = document.getElementById('testSmtpBtn');
+      const to  = document.getElementById('notifyEmail').value.trim() || document.getElementById('orgEmail').value.trim();
+      if (!to) { toast('Set a notification email first', 'error'); return; }
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const res  = await fetch('/api/settings/test-email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to }) });
+        const data = await res.json();
+        if (data.ok) toast(`Test email sent to ${to}`, 'success');
+        else toast(data.error || 'Send failed', 'error');
+      } catch (_) { toast('Request failed', 'error'); }
+      btn.disabled = false; btn.textContent = 'Send Test Email';
+    }
+
+    function toggleSmtpPass() {
+      const input = document.getElementById('smtpPass');
+      const btn   = input.parentElement.querySelector('.key-toggle-btn');
+      input.type  = input.type === 'password' ? 'text' : 'password';
+      btn.textContent = input.type === 'password' ? 'Show' : 'Hide';
     }
 
     function toggleKeyVisibility() {
@@ -403,8 +747,114 @@
       return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    async function saveEmailTemplate() {
+      const body = {
+        emailSubject:      document.getElementById('emailSubject').value.trim(),
+        emailIntro:        document.getElementById('emailIntro').value.trim(),
+        emailInstructions: document.getElementById('emailInstructions').value.trim()
+      };
+      const res  = await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (data.ok) { showSaveIndicator('emailTplSaveIndicator'); toast('Email template saved', 'success'); }
+    }
+
+    function updateEmailPreview() {
+      const orgName = document.getElementById('orgName').value.trim() || 'GenX Takeover Security';
+      const intro   = document.getElementById('emailIntro').value.trim() ||
+        `You are receiving this email from the ${orgName} security team. We have been contracted to provide security services for the upcoming event at [Venue] on [Date].`;
+      const instructions = document.getElementById('emailInstructions').value.trim() ||
+        'Please fill out as much as you can — not every field will apply to your venue, and nothing is required. Once complete, click Submit and our team will be notified immediately.';
+      document.getElementById('previewOrg').textContent       = orgName;
+      document.getElementById('previewOrgFooter').textContent = orgName;
+      document.getElementById('previewIntro').textContent     = intro;
+      document.getElementById('previewInstructions').textContent = instructions;
+    }
+
+    ['emailIntro','emailInstructions','orgName'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', updateEmailPreview);
+    });
+
     loadSettings();
     loadPhotoLibrary();
+
+    // Load briefs for user assignment dropdown
+    async function loadBriefOptions() {
+      try {
+        const res = await fetch('/api/briefs');
+        const briefs = await res.json();
+        const sel = document.getElementById('newUserBrief');
+        if (!sel) return;
+        briefs.forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = b.id;
+          opt.textContent = `${b.venueName} — ${b.showDate || 'No date'}`;
+          sel.appendChild(opt);
+        });
+      } catch (_) {}
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/admin/users');
+        const users = await res.json();
+        const el = document.getElementById('usersList');
+        if (!el) return;
+        if (!users.length) {
+          el.innerHTML = '<div style="font-size:12px;color:var(--text-3);padding:12px 0;">No team members yet. Add one below.</div>';
+          return;
+        }
+        el.innerHTML = users.map(u => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);">${u.name}</div>
+              <div style="font-size:11px;color:var(--text-2);">${u.email} · <span style="color:var(--red);text-transform:capitalize;">${u.role}</span></div>
+            </div>
+            <button onclick="deleteUser('${u.id}')" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">Remove</button>
+          </div>
+        `).join('');
+      } catch (_) {}
+    }
+
+    async function addUser() {
+      const name = document.getElementById('newUserName')?.value.trim();
+      const email = document.getElementById('newUserEmail')?.value.trim();
+      const password = document.getElementById('newUserPassword')?.value;
+      const role = document.getElementById('newUserRole')?.value;
+      const briefId = document.getElementById('newUserBrief')?.value || null;
+      const msg = document.getElementById('userAddMsg');
+
+      if (!name || !email || !password || !role) {
+        if (msg) { msg.style.color='var(--red)'; msg.textContent = 'All fields except brief are required.'; }
+        return;
+      }
+      try {
+        const res = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, role, briefId })
+        });
+        const data = await res.json();
+        if (!res.ok) { if (msg) { msg.style.color='var(--red)'; msg.textContent = data.error; } return; }
+        if (msg) { msg.style.color='var(--green)'; msg.textContent = '✓ Added'; setTimeout(() => msg.textContent = '', 3000); }
+        document.getElementById('newUserName').value = '';
+        document.getElementById('newUserEmail').value = '';
+        document.getElementById('newUserPassword').value = '';
+        loadUsers();
+      } catch (e) {
+        if (msg) { msg.style.color='var(--red)'; msg.textContent = 'Error adding user'; }
+      }
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Remove this team member?')) return;
+      await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      loadUsers();
+    }
+
+    // Initialize
+    loadBriefOptions();
+    loadUsers();
   </script>
 </body>
 </html>

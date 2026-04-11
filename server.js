@@ -7,6 +7,8 @@ const path       = require('path');
 const fs         = require('fs');
 const Anthropic  = require('@anthropic-ai/sdk');
 const nodemailer = require('nodemailer');
+const crypto = require('crypto');
+const cookieParser = require('cookie-parser');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +24,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
     }
   }
 }));
+app.use(cookieParser());
 
 // ── Persistence helpers ───────────────────────────────────────────────────────
 const DATA_DIR      = process.env.VERCEL ? '/tmp' : __dirname;
@@ -47,19 +50,75 @@ const settings = Object.assign({
   smtpHost: '', smtpPort: 587, smtpUser: '', smtpPass: '',
   smtpFrom: '', smtpFromName: 'GenX Takeover Security',
   notifyEmail: '', appUrl: process.env.APP_URL || '',
-  emailSubject: '', emailIntro: '', emailInstructions: ''
+  emailSubject: '', emailIntro: '', emailInstructions: '',
+  travelContacts: []
 }, loadJSON(SETTINGS_FILE, {}));
+
+// ── Travel token store ────────────────────────────────────────────────────────
+const TRAVEL_TOKENS_FILE = path.join(DATA_DIR, '.travel-tokens.json');
+let travelTokens = loadJSON(TRAVEL_TOKENS_FILE, {});
+function saveTravelTokens() { saveJSON(TRAVEL_TOKENS_FILE, travelTokens); }
 
 // ── Venue intake token store ───────────────────────────────────────────────────
 const TOKENS_FILE = path.join(DATA_DIR, '.tokens.json');
 let intakeTokens = loadJSON(TOKENS_FILE, {});
 function saveTokens() { saveJSON(TOKENS_FILE, intakeTokens); }
 
+// ── Portal Users Store ────────────────────────────────────────────────────────
+const USERS_FILE = path.join(DATA_DIR, '.users.json');
+let demoUsers = {};
+try { demoUsers = require('./demo-users.json'); } catch (_) { demoUsers = loadJSON(path.join(__dirname, 'demo-users.json'), {}); }
+let portalUsers = Object.assign({}, demoUsers, loadJSON(USERS_FILE, {}));
+function saveUsers() { saveJSON(USERS_FILE, Object.fromEntries(Object.entries(portalUsers).filter(([id]) => !demoUsers[id]))); }
+
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+const SESSION_SECRET = process.env.SESSION_SECRET || 'genx-security-portal-2025';
+
+function hashPassword(password, salt) {
+  if (!salt) salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.createHmac('sha256', salt).update(password).digest('hex');
+  return { hash, salt };
+}
+function checkPassword(password, hash, salt) {
+  return crypto.createHmac('sha256', salt).update(password).digest('hex') === hash;
+}
+function createToken(userId) {
+  const payload = Buffer.from(JSON.stringify({ userId, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 })).toString('base64');
+  const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+  return `${payload}.${sig}`;
+}
+function verifyToken(token) {
+  if (!token) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot < 0) return null;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+  if (sig !== expected) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64').toString());
+    if (data.exp < Date.now()) return null;
+    return data;
+  } catch (_) { return null; }
+}
+function requirePortalAuth(req, res, next) {
+  const token = req.cookies?.gxs || req.headers['x-gxs-token'];
+  const data = verifyToken(token);
+  if (!data) return res.status(401).json({ error: 'Not authenticated' });
+  const user = portalUsers[data.userId];
+  if (!user) return res.status(401).json({ error: 'User not found' });
+  req.portalUser = user;
+  next();
+}
+
 // ── In-memory store ──────────────────────────────────────────────────────────
 const briefs = new Map();
 
 // ── Demo data (loaded from demo-data.json) ────────────────────────────────────
-const demoBriefs = loadJSON(path.join(__dirname, 'demo-data.json'), {});
+let demoBriefs = {};
+try { demoBriefs = require('./demo-data.json'); } catch (_) {
+  demoBriefs = loadJSON(path.join(__dirname, 'demo-data.json'), {});
+}
 Object.entries(demoBriefs).forEach(([id, b]) => briefs.set(id, b));
 
 // Legacy inline demo placeholder (kept for reference, overridden by demo-data.json)
@@ -483,7 +542,127 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 
 
 // ── API ──────────────────────────────────────────────────────────────────────
 
+app.get('/api/debug', (req, res) => {
+  let reqResult, reqError;
+  try { reqResult = Object.keys(require('./demo-data.json')); } catch(e) { reqError = e.message; }
+
+  let fsContent, fsError;
+  try { fsContent = fs.readFileSync('/var/task/demo-data.json','utf8').slice(0,80); } catch(e) { fsError = e.message; }
+
+  let briefsFileContent, briefsFileError;
+  try { briefsFileContent = fs.readFileSync('/var/task/.briefs.json','utf8').slice(0,80); } catch(e) { briefsFileError = e.message; }
+
+  res.json({
+    briefCount: briefs.size, briefIds: [...briefs.keys()],
+    VERCEL_ENV: process.env.VERCEL,
+    DATA_DIR: process.env.VERCEL ? '/tmp' : __dirname,
+    BRIEFS_FILE: path.join(process.env.VERCEL ? '/tmp' : __dirname, '.briefs.json'),
+    requireKeys: reqResult, requireError: reqError,
+    demoFilePreview: fsContent, demoFileError: fsError,
+    briefsFilePreview: briefsFileContent, briefsFileError
+  });
+});
+
+// ── Auth routes ───────────────────────────────────────────────────────────────
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body || {};
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+  const user = Object.values(portalUsers).find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+  if (!user || !checkPassword(password, user.passwordHash, user.passwordSalt)) {
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+  const token = createToken(user.id);
+  res.cookie('gxs', token, { httpOnly: true, secure: process.env.VERCEL ? true : false, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+  res.json({ ok: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('gxs');
+  res.json({ ok: true });
+});
+
+app.get('/api/auth/me', requirePortalAuth, (req, res) => {
+  const u = req.portalUser;
+  res.json({ id: u.id, name: u.name, email: u.email, role: u.role, briefId: u.briefId });
+});
+
+// ── Portal routes (for logged-in team members) ────────────────────────────────
+app.get('/api/portal/brief', requirePortalAuth, (req, res) => {
+  const user = req.portalUser;
+  let brief = null;
+  if (user.briefId) {
+    brief = briefs.get(user.briefId);
+  } else {
+    brief = [...briefs.values()].find(b => b.status === 'finalized') || [...briefs.values()][0];
+  }
+  if (!brief) return res.status(404).json({ error: 'No brief available' });
+
+  const role = user.role;
+
+  if (role === 'security') return res.json(brief);
+
+  // talent & crew: full brief minus risk assessment
+  const { riskAssessment, ...briefWithoutRisk } = brief;
+  res.json(briefWithoutRisk);
+});
+
+app.get('/api/portal/briefs', requirePortalAuth, (req, res) => {
+  const user = req.portalUser;
+  let list = [];
+  if (user.briefId) {
+    const b = briefs.get(user.briefId);
+    if (b) list = [b];
+  } else {
+    list = [...briefs.values()];
+  }
+  res.json(list.map(b => ({ id: b.id, venueName: b.venue?.name, city: b.venue?.city, state: b.venue?.state, showDate: b.timeline?.showDate, status: b.status })));
+});
+
+// ── Admin: User management ────────────────────────────────────────────────────
+app.get('/api/admin/users', (req, res) => {
+  const list = Object.values(portalUsers).map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, briefId: u.briefId, createdAt: u.createdAt }));
+  res.json(list);
+});
+
+app.post('/api/admin/users', (req, res) => {
+  const { name, email, password, role, briefId } = req.body || {};
+  if (!name || !email || !password || !role) return res.status(400).json({ error: 'name, email, password, role required' });
+  if (Object.values(portalUsers).find(u => u.email.toLowerCase() === email.toLowerCase())) return res.status(409).json({ error: 'Email already exists' });
+  const id = uuidv4();
+  const { hash, salt } = hashPassword(password);
+  portalUsers[id] = { id, name, email, role, briefId: briefId || null, passwordHash: hash, passwordSalt: salt, createdAt: new Date().toISOString() };
+  saveUsers();
+  res.status(201).json({ id, name, email, role });
+});
+
+app.patch('/api/admin/users/:id', (req, res) => {
+  const user = portalUsers[req.params.id];
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  const { name, email, role, briefId, password } = req.body || {};
+  if (name) user.name = name;
+  if (email) user.email = email;
+  if (role) user.role = role;
+  if (briefId !== undefined) user.briefId = briefId || null;
+  if (password) { const { hash, salt } = hashPassword(password); user.passwordHash = hash; user.passwordSalt = salt; }
+  saveUsers();
+  res.json({ ok: true });
+});
+
+app.delete('/api/admin/users/:id', (req, res) => {
+  if (!portalUsers[req.params.id]) return res.status(404).json({ error: 'Not found' });
+  delete portalUsers[req.params.id];
+  saveUsers();
+  res.json({ ok: true });
+});
+
+// Reload any persisted briefs from disk that aren't in memory yet (handles Vercel cold starts)
+function syncBriefsFromDisk() {
+  const saved = loadJSON(BRIEFS_FILE, {});
+  Object.entries(saved).forEach(([id, b]) => { if (!briefs.has(id)) briefs.set(id, b); });
+}
+
 app.get('/api/briefs', (req, res) => {
+  syncBriefsFromDisk();
   const list = [...briefs.values()].map(b => ({
     id:        b.id,
     venueName: b.venue?.name || 'Untitled Brief',
@@ -516,14 +695,15 @@ app.post('/api/briefs', (req, res) => {
 });
 
 app.get('/api/briefs/:id', (req, res) => {
+  syncBriefsFromDisk();
   const b = briefs.get(req.params.id);
   if (!b) return res.status(404).json({ error: 'Not found' });
   res.json(b);
 });
 
 app.put('/api/briefs/:id', (req, res) => {
-  const existing = briefs.get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Not found' });
+  syncBriefsFromDisk();
+  const existing = briefs.get(req.params.id) || { id: req.params.id, createdAt: new Date().toISOString() };
   const updated = { ...existing, ...req.body, id: req.params.id, updatedAt: new Date().toISOString() };
   briefs.set(req.params.id, updated);
   saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
@@ -531,6 +711,7 @@ app.put('/api/briefs/:id', (req, res) => {
 });
 
 app.delete('/api/briefs/:id', (req, res) => {
+  syncBriefsFromDisk();
   if (!briefs.has(req.params.id)) return res.status(404).json({ error: 'Not found' });
   briefs.delete(req.params.id);
   saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
@@ -571,6 +752,7 @@ app.put('/api/settings', (req, res) => {
   if (emailSubject       !== undefined) settings.emailSubject       = emailSubject;
   if (emailIntro         !== undefined) settings.emailIntro         = emailIntro;
   if (emailInstructions  !== undefined) settings.emailInstructions  = emailInstructions;
+  if (Array.isArray(req.body.travelContacts)) settings.travelContacts = req.body.travelContacts;
   saveJSON(SETTINGS_FILE, settings);
   res.json({ ok: true, hasKey: !!settings.anthropicKey, hasSmtp: !!(settings.smtpHost && settings.smtpUser && settings.smtpPass) });
 });
@@ -988,6 +1170,200 @@ app.post('/api/intake/:token', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Travel Questionnaire routes ───────────────────────────────────────────────
+
+// Send travel questionnaire to selected contacts
+app.post('/api/briefs/:id/send-travel-questionnaire', async (req, res) => {
+  const brief = briefs.get(req.params.id);
+  if (!brief) return res.status(404).json({ error: 'Brief not found' });
+  if (!settings.smtpHost || !settings.smtpUser || !settings.smtpPass)
+    return res.status(400).json({ error: 'Email not configured. Add SMTP settings in Settings.' });
+
+  const { contacts } = req.body; // array of { name, email, role }
+  if (!Array.isArray(contacts) || contacts.length === 0)
+    return res.status(400).json({ error: 'No contacts provided.' });
+
+  const appUrl   = (settings.appUrl || `http://localhost:${PORT}`).replace(/\/$/, '');
+  const venueName = brief.venue?.name || 'the upcoming show';
+  const showDate  = brief.timeline?.showDate || '';
+  const org       = settings.orgName || 'GenX Takeover Security';
+  const sent = [];
+  const failed = [];
+
+  for (const contact of contacts) {
+    if (!contact.email) continue;
+    // Cancel any un-submitted tokens for this person+brief
+    Object.values(travelTokens).forEach(t => {
+      if (t.briefId === req.params.id && t.email === contact.email && !t.submitted) t.cancelled = true;
+    });
+    const token = uuidv4();
+    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    travelTokens[token] = {
+      briefId: req.params.id, name: contact.name, email: contact.email, role: contact.role || '',
+      createdAt: new Date().toISOString(), expiresAt, submitted: false, cancelled: false
+    };
+    saveTravelTokens();
+    const formUrl = `${appUrl}/travel/${token}`;
+    const dateStr = showDate ? new Date(showDate + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }) : '';
+    const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0d1117;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#161b22;border-radius:12px;border:1px solid #30363d;overflow:hidden;">
+<tr><td style="background:#58a6ff;padding:24px 32px;">
+  <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.8);">${org}</p>
+  <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;color:#fff;">Travel Info Request ✈️</h1>
+</td></tr>
+<tr><td style="padding:32px;">
+  <p style="margin:0 0 16px;font-size:15px;font-weight:600;color:#e6edf3;">Hi ${contact.name || 'there'},</p>
+  <p style="margin:0 0 20px;font-size:14px;line-height:1.8;color:#8b949e;">We're coordinating travel for <strong style="color:#e6edf3;">${venueName}</strong>${dateStr ? ` on <strong style="color:#e6edf3;">${dateStr}</strong>` : ''}. Please fill out your flight details so we can build the travel brief and coordinate pickups.</p>
+  <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0 28px;">
+    <a href="${formUrl}" style="display:inline-block;background:#58a6ff;color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:15px;">Enter My Travel Info →</a>
+  </td></tr></table>
+  <p style="margin:0 0 8px;font-size:13px;color:#8b949e;">Or copy this link:</p>
+  <p style="margin:0 0 24px;font-size:12px;color:#58a6ff;word-break:break-all;">${formUrl}</p>
+  <p style="margin:0;font-size:12px;color:#484f58;">— ${org} Travel Coordination</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+
+    try {
+      await makeTransporter().sendMail({
+        from: fromAddress(), to: contact.email,
+        subject: `Travel Info Needed — ${venueName}${dateStr ? ' · ' + dateStr : ''}`,
+        html
+      });
+      sent.push(contact.email);
+    } catch (err) {
+      delete travelTokens[token];
+      failed.push({ email: contact.email, error: err.message });
+    }
+  }
+
+  saveTravelTokens();
+
+  // Store send record on brief
+  if (!brief.travel) brief.travel = {};
+  if (!brief.travel.questionnaires) brief.travel.questionnaires = [];
+  brief.travel.questionnaires.push({ sentAt: new Date().toISOString(), contacts: contacts.map(c => c.email), sent, failed });
+  briefs.set(req.params.id, brief);
+  saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+
+  res.json({ ok: true, sent, failed });
+});
+
+// Traveler fetches their form context
+app.get('/api/travel/:token', (req, res) => {
+  const t = travelTokens[req.params.token];
+  if (!t || t.cancelled) return res.status(410).json({ error: 'This link is no longer valid.' });
+  if (t.submitted)       return res.status(410).json({ error: 'You already submitted your travel info. Thank you!' });
+  if (new Date(t.expiresAt) < new Date()) return res.status(410).json({ error: 'This link has expired. Please contact the team.' });
+  const brief = briefs.get(t.briefId);
+  res.json({
+    name: t.name || '', role: t.role || '',
+    venueName: brief?.venue?.name || '', venueCity: brief?.venue?.city || '', venueState: brief?.venue?.state || '',
+    showDate: brief?.timeline?.showDate || '', hotelName: brief?.hotel?.name || '',
+    checkin: brief?.hotel?.checkin || '', checkout: brief?.hotel?.checkout || '',
+    orgName: settings.orgName || 'GenX Takeover Security',
+    expiresAt: t.expiresAt
+  });
+});
+
+// Traveler submits their travel info
+app.post('/api/travel/:token', async (req, res) => {
+  const t = travelTokens[req.params.token];
+  if (!t || t.cancelled) return res.status(410).json({ error: 'This link is no longer valid.' });
+  if (t.submitted)       return res.status(410).json({ error: 'Already submitted.' });
+  if (new Date(t.expiresAt) < new Date()) return res.status(410).json({ error: 'Link expired.' });
+
+  t.submitted = true;
+  t.submittedAt = new Date().toISOString();
+  saveTravelTokens();
+
+  const brief = briefs.get(t.briefId);
+  if (brief) {
+    if (!brief.travel) brief.travel = {};
+    if (!brief.travel.responses) brief.travel.responses = [];
+    // Replace if already responded (edge case)
+    const existing = brief.travel.responses.findIndex(r => r.email === t.email);
+    const record = { name: t.name, email: t.email, role: t.role, submittedAt: t.submittedAt, token: req.params.token, ...req.body };
+    if (existing >= 0) brief.travel.responses[existing] = record;
+    else brief.travel.responses.push(record);
+    briefs.set(t.briefId, brief);
+    saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+  }
+
+  // Notify admin
+  const notifyTo = settings.notifyEmail || settings.orgEmail;
+  if (notifyTo && settings.smtpHost && settings.smtpUser && settings.smtpPass) {
+    try {
+      await makeTransporter().sendMail({
+        from: fromAddress(), to: notifyTo,
+        subject: `Travel Response — ${t.name || t.email} · ${brief?.venue?.name || 'Unknown Venue'}`,
+        html: `<div style="font-family:sans-serif;padding:24px;background:#0d1117;color:#e6edf3;border-radius:8px;">
+          <h2 style="color:#58a6ff;">✈️ Travel Info Submitted</h2>
+          <p style="color:#8b949e;"><strong style="color:#e6edf3;">${t.name || t.email}</strong> (${t.role || 'Unknown role'}) submitted their travel info for <strong style="color:#e6edf3;">${brief?.venue?.name || 'Unknown Venue'}</strong>.</p>
+          <table style="border-collapse:collapse;width:100%;margin-top:16px;">${
+            Object.entries(req.body).map(([k,v]) => `<tr><td style="padding:6px 8px;color:#8b949e;font-size:12px;border-bottom:1px solid #21262d;">${k.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase())}</td><td style="padding:6px 8px;color:#e6edf3;font-size:12px;border-bottom:1px solid #21262d;">${String(v||'')}</td></tr>`).join('')
+          }</table>
+        </div>`
+      });
+    } catch (_) {}
+  }
+
+  res.json({ ok: true });
+});
+
+// Get travel responses for a brief
+app.get('/api/briefs/:id/travel', (req, res) => {
+  const brief = briefs.get(req.params.id);
+  if (!brief) return res.status(404).json({ error: 'Brief not found' });
+  // Attach pending tokens too so dashboard shows who hasn't responded yet
+  const pending = Object.entries(travelTokens)
+    .filter(([, t]) => t.briefId === req.params.id && !t.submitted && !t.cancelled && new Date(t.expiresAt) >= new Date())
+    .map(([, t]) => ({ name: t.name, email: t.email, role: t.role, status: 'pending', sentAt: t.createdAt }));
+  res.json({ responses: brief.travel?.responses || [], pending, questionnaires: brief.travel?.questionnaires || [] });
+});
+
+// AI-generate travel brief
+app.post('/api/briefs/:id/generate-travel-brief', async (req, res) => {
+  const brief = briefs.get(req.params.id);
+  if (!brief) return res.status(404).json({ error: 'Brief not found' });
+  if (!settings.anthropicKey) return res.status(400).json({ error: 'No API key configured.' });
+  const responses = brief.travel?.responses || [];
+  if (responses.length === 0) return res.status(400).json({ error: 'No travel responses yet.' });
+
+  const venueName = brief.venue?.name || 'the venue';
+  const showDate  = brief.timeline?.showDate || '';
+  const hotelName = brief.hotel?.name || '';
+
+  const prompt = `You are a professional tour/event travel coordinator. Based on the following traveler submissions, generate a clean, organized travel brief.
+
+EVENT: ${venueName}${showDate ? ' — Show Date: ' + showDate : ''}${hotelName ? '\nHOTEL: ' + hotelName : ''}
+
+TRAVELER SUBMISSIONS:
+${responses.map((r, i) => `${i+1}. ${r.name} (${r.role || 'Unknown'})
+${Object.entries(r).filter(([k]) => !['name','email','role','submittedAt','token'].includes(k)).map(([k,v]) => `   ${k}: ${v}`).join('\n')}`).join('\n\n')}
+
+Generate a travel brief with these sections:
+1. ARRIVALS — grouped by date, sorted by time, include: traveler name, role, airline/flight, arrival time, origin airport, pickup needs
+2. DEPARTURES — same format
+3. GROUND TRANSPORTATION SUMMARY — who needs pickup, when, from where
+4. SPECIAL NOTES — any dietary, accessibility, or other special requests
+
+Format clearly with headers. Be concise and practical. Use 24-hour time where possible.`;
+
+  try {
+    const client = new Anthropic({ apiKey: settings.anthropicKey });
+    const msg = await client.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 2048, messages: [{ role:'user', content: prompt }] });
+    const text = msg.content?.[0]?.text || '';
+    if (!brief.travel) brief.travel = {};
+    brief.travel.generatedBrief = { text, generatedAt: new Date().toISOString() };
+    briefs.set(req.params.id, brief);
+    saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+    res.json({ ok: true, brief: text });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Page routes ──────────────────────────────────────────────────────────────
 const pub = path.join(__dirname, 'public');
 app.get('/',           (_, res) => res.sendFile(path.join(pub, 'index.html')));
@@ -996,7 +1372,10 @@ app.get('/view',       (_, res) => res.sendFile(path.join(pub, 'view.html')));
 app.get('/settings',   (_, res) => res.sendFile(path.join(pub, 'settings.html')));
 app.get('/risk',       (_, res) => res.sendFile(path.join(pub, 'risk.html')));
 app.get('/intake/:token', (_, res) => res.sendFile(path.join(pub, 'intake.html')));
+app.get('/travel/:token', (_, res) => res.sendFile(path.join(pub, 'travel-form.html')));
 app.get('/map-editor',   (_, res) => res.sendFile(path.join(pub, 'map-editor.html')));
+app.get('/login',  (_, res) => res.sendFile(path.join(pub, 'login.html')));
+app.get('/portal', (_, res) => res.sendFile(path.join(pub, 'portal.html')));
 app.get('*',           (_, res) => res.sendFile(path.join(pub, 'index.html')));
 
 if (!process.env.VERCEL) {

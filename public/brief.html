@@ -43,7 +43,6 @@
       <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l12-6-6 12V9L2 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
       Send to Venue
     </button>
-    <div class="nav-avatar">GX</div>
   </div>
 </nav>
 
@@ -151,6 +150,44 @@
       <button class="btn btn-primary btn-sm" id="sendVenueIntakeConfirm" onclick="sendVenueIntake()">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l12-6-6 12V9L2 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
         Send Email
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Travel Questionnaire Modal -->
+<div id="travelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:520px;overflow:hidden;max-height:90vh;display:flex;flex-direction:column;">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div style="font-size:14px;font-weight:800;color:var(--text);">Send Travel Questionnaire</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:2px;">Select who receives the travel form for this venue</div>
+      </div>
+      <button onclick="closeTravelModal()" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer;line-height:1;padding:4px;">×</button>
+    </div>
+    <div style="padding:24px;overflow-y:auto;flex:1;">
+      <div id="travelModalContactsList"></div>
+      <!-- Add one-off -->
+      <div style="margin-top:14px;padding:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:10px;">Add a one-time recipient</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:flex-end;">
+          <div>
+            <label class="field-label">Name</label>
+            <input class="field-input" id="tmOneName" placeholder="Full name" style="width:100%;">
+          </div>
+          <div>
+            <label class="field-label">Email</label>
+            <input class="field-input" id="tmOneEmail" type="email" placeholder="email@example.com" style="width:100%;">
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="addModalOneOff()" style="height:40px;">+ Add</button>
+        </div>
+      </div>
+      <div id="travelModalError" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:8px;font-size:12px;color:var(--red);"></div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
+      <button class="btn btn-ghost btn-sm" onclick="closeTravelModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="sendTravelConfirm" onclick="sendTravelQuestionnaire()" style="background:#58a6ff;">
+        ✈️ Send Questionnaire
       </button>
     </div>
   </div>
@@ -1058,8 +1095,27 @@
         <h2 style="margin:0;">Travel Tracking</h2>
         <div style="font-size:11px;color:var(--text-3);margin-top:2px;font-weight:600;">INTERNAL — Not included in the security brief or printed assessment</div>
       </div>
+      <button class="btn btn-ghost btn-sm" onclick="openTravelQuestionnaireModal()" style="flex-shrink:0;border-color:rgba(88,166,255,0.4);color:#58a6ff;">✈️ Send Travel Questionnaire</button>
     </div>
     <div class="panel-body">
+
+      <!-- Travel Questionnaire Response Tracker -->
+      <div id="travelQTrackerWrap" style="margin-bottom:20px;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">Questionnaire Responses</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" id="genTravelBriefBtn" onclick="generateTravelBrief()" style="border-color:rgba(88,166,255,0.4);color:#58a6ff;">Generate Travel Brief</button>
+          </div>
+        </div>
+        <div id="travelResponsesTable" style="overflow-x:auto;"></div>
+        <div id="travelGeneratedBrief" style="display:none;margin-top:16px;background:var(--surface-2);border:1px solid rgba(88,166,255,0.2);border-radius:10px;padding:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#58a6ff;">AI Travel Brief</div>
+            <button class="btn btn-ghost btn-sm" onclick="copyTravelBrief()">Copy</button>
+          </div>
+          <pre id="travelBriefText" style="white-space:pre-wrap;font-family:'Montserrat',sans-serif;font-size:12px;color:var(--text-2);line-height:1.8;margin:0;"></pre>
+        </div>
+      </div>
 
       <!-- Add Traveler Form -->
       <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:20px;">
@@ -1429,8 +1485,10 @@ function renderTravelers(travelers) {
 }
 
 function initTravelSection(brief) {
-  window._travelersData = brief.travel || [];
-  renderTravelers(window._travelersData);
+  window._travelersData = brief.travel?.travelers || brief.travel || [];
+  renderTravelers(Array.isArray(window._travelersData) ? window._travelersData : []);
+  const briefId = new URLSearchParams(location.search).get('id');
+  if (briefId) loadTravelResponses(briefId);
 }
 
 // ── Venue Intake ──────────────────────────────────────────────────────────────
@@ -1438,11 +1496,15 @@ function initTravelSection(brief) {
 function openVenueIntakeModal() {
   const modal = document.getElementById('venueIntakeModal');
   modal.style.display = 'flex';
-  const savedEmail = document.getElementById('venueContactEmail')?.value?.trim();
   const emailField = document.getElementById('venueIntakeEmail');
-  if (savedEmail && !emailField.value) emailField.value = savedEmail;
+  emailField.value = document.getElementById('venueContactEmail')?.value?.trim() || '';
+  emailField.removeAttribute('readonly');
+  emailField.removeAttribute('disabled');
   emailField.focus();
   document.getElementById('venueIntakeError').style.display = 'none';
+  const btn = document.getElementById('sendVenueIntakeConfirm');
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l12-6-6 12V9L2 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg> Send Email';
 }
 
 function closeVenueIntakeModal() {
@@ -1613,6 +1675,178 @@ function initVenueIntakeUI(brief) {
     showIntakeBanner('completed', intake.venueEmail, intake.submittedAt);
     renderIntakeResponses(intake.data);
   }
+}
+
+// ── Travel Questionnaire ──────────────────────────────────────────────────────
+
+let _travelModalContacts = []; // contacts currently shown in modal (with checked state)
+
+async function openTravelQuestionnaireModal() {
+  // Load travel contacts from settings
+  const settingsRes = await fetch('/api/settings');
+  const settings = await settingsRes.json();
+  const baseContacts = (settings.travelContacts || []).map(c => ({ ...c, checked: true }));
+  _travelModalContacts = baseContacts;
+  renderTravelModalContacts();
+  const modal = document.getElementById('travelModal');
+  modal.style.display = 'flex';
+  document.getElementById('travelModalError').style.display = 'none';
+}
+
+function renderTravelModalContacts() {
+  const list = document.getElementById('travelModalContactsList');
+  if (!_travelModalContacts.length) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px;">No contacts in distribution list. <a href="/settings" style="color:#58a6ff;">Go to Settings</a> to add cast & crew, or add a one-time recipient below.</div>';
+    return;
+  }
+  list.innerHTML = `
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:10px;">Distribution List — check who's traveling to this venue</div>
+    ${_travelModalContacts.map((c, i) => `
+      <label style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;">
+        <input type="checkbox" ${c.checked ? 'checked' : ''} onchange="_travelModalContacts[${i}].checked=this.checked">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${c.name}</div>
+          <div style="font-size:11px;color:var(--text-3);">${c.email} · ${c.role || ''}</div>
+        </div>
+      </label>
+    `).join('')}
+  `;
+}
+
+function addModalOneOff() {
+  const name  = document.getElementById('tmOneName').value.trim();
+  const email = document.getElementById('tmOneEmail').value.trim();
+  if (!name || !email) { document.getElementById('travelModalError').textContent = 'Name and email required'; document.getElementById('travelModalError').style.display = ''; return; }
+  _travelModalContacts.push({ name, email, role: 'Guest', checked: true });
+  document.getElementById('tmOneName').value = '';
+  document.getElementById('tmOneEmail').value = '';
+  document.getElementById('travelModalError').style.display = 'none';
+  renderTravelModalContacts();
+}
+
+function closeTravelModal() {
+  document.getElementById('travelModal').style.display = 'none';
+}
+
+document.getElementById('travelModal').addEventListener('click', function(e) {
+  if (e.target === this) closeTravelModal();
+});
+
+async function sendTravelQuestionnaire() {
+  const briefId = new URLSearchParams(location.search).get('id');
+  if (!briefId) return;
+  const selected = _travelModalContacts.filter(c => c.checked);
+  if (!selected.length) {
+    document.getElementById('travelModalError').textContent = 'Select at least one person to send to.';
+    document.getElementById('travelModalError').style.display = '';
+    return;
+  }
+  const btn = document.getElementById('sendTravelConfirm');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  document.getElementById('travelModalError').style.display = 'none';
+
+  try {
+    const res  = await fetch(`/api/briefs/${briefId}/send-travel-questionnaire`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contacts: selected })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      document.getElementById('travelModalError').textContent = data.error || 'Send failed.';
+      document.getElementById('travelModalError').style.display = '';
+      btn.disabled = false; btn.textContent = '✈️ Send Questionnaire';
+      return;
+    }
+    closeTravelModal();
+    const sentCount = data.sent?.length || 0;
+    const failCount = data.failed?.length || 0;
+    toast(`Questionnaire sent to ${sentCount} ${sentCount === 1 ? 'person' : 'people'}${failCount ? ` (${failCount} failed)` : ''}`, sentCount ? 'success' : 'error');
+    loadTravelResponses(briefId);
+  } catch (e) {
+    document.getElementById('travelModalError').textContent = 'Request failed — check connection.';
+    document.getElementById('travelModalError').style.display = '';
+    btn.disabled = false; btn.textContent = '✈️ Send Questionnaire';
+  }
+}
+
+async function loadTravelResponses(briefId) {
+  if (!briefId) return;
+  try {
+    const res  = await fetch(`/api/briefs/${briefId}/travel`);
+    const data = await res.json();
+    const responses = data.responses || [];
+    const pending   = data.pending   || [];
+    const all = [
+      ...responses.map(r => ({ ...r, status: 'submitted' })),
+      ...pending
+    ];
+    if (!all.length) return;
+
+    document.getElementById('travelQTrackerWrap').style.display = '';
+    const table = document.getElementById('travelResponsesTable');
+    table.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Name</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Role</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Arrival Flight</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Arrival</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Pickup</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${all.map(r => {
+            const isSubmitted = r.status === 'submitted';
+            const statusBadge = isSubmitted
+              ? `<span style="background:rgba(63,185,80,0.12);color:#3fb950;border:1px solid rgba(63,185,80,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">Submitted</span>`
+              : `<span style="background:rgba(210,153,34,0.1);color:#d2993c;border:1px solid rgba(210,153,34,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">Pending</span>`;
+            const flight = r.arrFlight ? `${r.arrFlight}${r.arrAirline && r.arrAirline !== 'other' ? '' : ''}` : (r.travelMode === 'driving' ? '🚗 Driving' : r.travelMode === 'local' ? '📍 Local' : '—');
+            const arrInfo = r.arrDate ? `${r.arrDate}${r.arrTime ? ' ' + r.arrTime : ''}` : '—';
+            const pickup  = r.needsPickup === 'true' || r.needsPickup === true ? (r.pickupType || 'Yes') : '—';
+            return `<tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px 8px;color:var(--text);font-weight:600;">${r.name || r.travelerName || '—'}</td>
+              <td style="padding:10px 8px;color:var(--text-2);">${r.role || r.travelerRole || '—'}</td>
+              <td style="padding:10px 8px;color:var(--text-2);font-family:monospace;">${flight}</td>
+              <td style="padding:10px 8px;color:var(--text-2);">${arrInfo}</td>
+              <td style="padding:10px 8px;color:var(--text-2);">${pickup}</td>
+              <td style="padding:10px 8px;">${statusBadge}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+
+    // Show generated brief if it exists
+    if (data.responses?.length > 0) {
+      document.getElementById('genTravelBriefBtn').style.display = '';
+    }
+  } catch (e) { console.error('Failed to load travel responses', e); }
+}
+
+async function generateTravelBrief() {
+  const briefId = new URLSearchParams(location.search).get('id');
+  const btn = document.getElementById('genTravelBriefBtn');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  try {
+    const res  = await fetch(`/api/briefs/${briefId}/generate-travel-brief`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'Generation failed', 'error'); btn.disabled = false; btn.textContent = 'Generate Travel Brief'; return; }
+    document.getElementById('travelGeneratedBrief').style.display = '';
+    document.getElementById('travelBriefText').textContent = data.brief;
+    btn.textContent = 'Regenerate';
+    btn.disabled = false;
+  } catch (e) {
+    toast('Failed to generate brief', 'error');
+    btn.disabled = false; btn.textContent = 'Generate Travel Brief';
+  }
+}
+
+function copyTravelBrief() {
+  const text = document.getElementById('travelBriefText').textContent;
+  navigator.clipboard.writeText(text).then(() => toast('Brief copied to clipboard', 'success'));
 }
 </script>
 </body>

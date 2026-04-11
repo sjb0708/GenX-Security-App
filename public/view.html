@@ -30,9 +30,6 @@
       <span class="current" id="viewNavTitle">Security Brief</span>
     </div>
   </div>
-  <div class="nav-right">
-    <div class="nav-avatar">GX</div>
-  </div>
 </nav>
 
 <!-- View Topbar -->
@@ -69,6 +66,38 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('briefDocument').innerHTML =
       '<div style="text-align:center;padding:80px;color:var(--text-2);">No brief ID specified.</div>';
   }
+  // Hide admin controls for talent/crew portal users
+  fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(user => {
+    if (user && user.role === 'talent') {
+      // Hide edit and print buttons
+      const editBtn = document.getElementById('editBtn');
+      if (editBtn) editBtn.style.display = 'none';
+      const printBtn = document.querySelector('.btn-primary');
+      if (printBtn) printBtn.style.display = 'none';
+      // Hide the breadcrumb entirely
+      const breadcrumb = document.querySelector('.nav-breadcrumb');
+      if (breadcrumb) breadcrumb.style.display = 'none';
+      // Replace avatar with user name + sign out
+      const navRight = document.querySelector('.nav-right');
+      if (navRight) {
+        navRight.innerHTML = `
+          <span style="font-size:12px;font-weight:600;color:var(--text-2);">${user.name || ''}</span>
+          <button onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>window.location.href='/login')" style="font-size:11px;font-weight:600;color:var(--text-2);background:transparent;border:1px solid var(--border);padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit;transition:all 0.15s;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-2)'" onmouseout="this.style.color='var(--text-2)';this.style.borderColor='var(--border)'">Sign Out</button>
+        `;
+      }
+      // Replace edit btn in topbar with "All Briefs" back link
+      fetch('/api/portal/briefs').then(r => r.ok ? r.json() : []).then(briefs => {
+        if (briefs.length > 1) {
+          const topbarEdit = document.getElementById('editBtn');
+          if (topbarEdit) {
+            topbarEdit.textContent = '← All Briefs';
+            topbarEdit.href = '/portal';
+            topbarEdit.style.display = '';
+          }
+        }
+      }).catch(() => {});
+    }
+  }).catch(() => {});
 });
 </script>
 </body>
