@@ -1064,7 +1064,6 @@ function addPersonCard(p = {}, type) {
     ${isTalent ? `<input class="person-stage-input" value="${esc(p.stageName || '')}" placeholder="Stage Name" oninput="scheduleSave()">` : ''}
     <input class="person-role-input" value="${esc(isTalent ? (p.role || '') : (p.function || ''))}" placeholder="${isTalent ? 'Role' : 'Function'}" oninput="scheduleSave()">
     ${!isTalent ? `<input class="person-role-input" style="color:var(--text-2);font-size:11px;" value="${esc(p.phone || '')}" placeholder="Phone" oninput="scheduleSave()">` : ''}
-    <input class="person-email-input" type="email" value="${esc(p.email || '')}" placeholder="Email (for travel questionnaire)" oninput="scheduleSave()" style="font-size:11px;color:var(--text-2);">
     <textarea class="person-notes-input" placeholder="Notes…" oninput="scheduleSave()">${esc(p.notes || '')}</textarea>`;
 
   grid.appendChild(div);
@@ -1175,14 +1174,13 @@ function collectPersonGrid(gridId) {
     const nameInput  = card.querySelector('.person-name-input');
     const stageInput = card.querySelector('.person-stage-input');
     const roleInputs = [...card.querySelectorAll('.person-role-input')];
-    const emailInput = card.querySelector('.person-email-input');
     const textarea   = card.querySelector('textarea');
     const img        = card.querySelector('.person-photo img');
     const type       = card.dataset.type;
     if (type === 'talent') {
-      return { name: nameInput?.value || '', stageName: stageInput?.value || '', role: roleInputs[0]?.value || '', email: emailInput?.value || '', notes: textarea?.value || '', photo: img?.getAttribute('src') || '' };
+      return { name: nameInput?.value || '', stageName: stageInput?.value || '', role: roleInputs[0]?.value || '', notes: textarea?.value || '', photo: img?.getAttribute('src') || '' };
     } else {
-      return { name: nameInput?.value || '', function: roleInputs[0]?.value || '', phone: roleInputs[1]?.value || '', email: emailInput?.value || '', notes: textarea?.value || '', photo: img?.getAttribute('src') || '' };
+      return { name: nameInput?.value || '', function: roleInputs[0]?.value || '', phone: roleInputs[1]?.value || '', notes: textarea?.value || '', photo: img?.getAttribute('src') || '' };
     }
   });
 }

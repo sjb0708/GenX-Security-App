@@ -182,27 +182,27 @@
     <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <div>
         <div style="font-size:14px;font-weight:800;color:var(--text);">Send Travel Questionnaire</div>
-        <div style="font-size:12px;color:var(--text-2);margin-top:2px;">Select who receives the travel form for this venue</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:2px;">Add names from your roster, then hit send</div>
       </div>
       <button onclick="closeTravelModal()" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer;line-height:1;padding:4px;">×</button>
     </div>
-    <div style="padding:24px;overflow-y:auto;flex:1;">
-      <div id="travelModalContactsList"></div>
-      <!-- Add one-off -->
-      <div style="margin-top:14px;padding:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:10px;">Add a one-time recipient</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:flex-end;">
-          <div>
-            <label class="field-label">Name</label>
-            <input class="field-input" id="tmOneName" placeholder="Full name" style="width:100%;">
-          </div>
-          <div>
-            <label class="field-label">Email</label>
-            <input class="field-input" id="tmOneEmail" type="email" placeholder="email@example.com" style="width:100%;">
-          </div>
-          <button class="btn btn-ghost btn-sm" onclick="addModalOneOff()" style="height:40px;">+ Add</button>
-        </div>
+    <div style="padding:20px 24px;overflow-y:auto;flex:1;">
+
+      <!-- Name autocomplete search -->
+      <div style="position:relative;margin-bottom:16px;">
+        <input id="tmSearch" placeholder="Type a name to search roster…" autocomplete="off"
+          oninput="tmSearchRoster(this.value)"
+          onkeydown="tmSearchKeydown(event)"
+          style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:10px 14px;outline:none;transition:border-color 0.15s;"
+          onfocus="this.style.borderColor='var(--red)'" onblur="setTimeout(()=>{document.getElementById('tmDropdown').style.display='none'},150);this.style.borderColor='var(--border)'">
+        <div id="tmDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;z-index:10;box-shadow:0 8px 24px rgba(0,0,0,0.4);margin-top:4px;"></div>
       </div>
+
+      <!-- Send list -->
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:10px;">Will Receive Questionnaire</div>
+      <div id="travelModalContactsList"></div>
+      <div id="tmEmpty" style="padding:20px;text-align:center;color:var(--text-3);font-size:13px;">No one added yet — search a name above.</div>
+
       <div id="travelModalError" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:8px;font-size:12px;color:var(--red);"></div>
     </div>
     <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
@@ -1798,63 +1798,94 @@ function addFromRoster() {
 
 // ── Travel Questionnaire ──────────────────────────────────────────────────────
 
-let _travelModalContacts = []; // contacts currently shown in modal (with checked state)
+let _travelModalContacts = []; // send list (confirmed selections)
+let _rosterForTravel = [];    // full roster cache
 
 async function openTravelQuestionnaireModal() {
-  // Pull talent & crew from the current brief who have emails
-  const talentPeople = collectPersonGrid('talentGrid');
-  const crewPeople   = collectPersonGrid('crewGrid');
-  const fromBrief = [...talentPeople, ...crewPeople]
-    .filter(p => p.email && p.name)
-    .map(p => ({ name: p.name, email: p.email, role: p.role || p.function || '', checked: true, source: 'brief' }));
-
-  // Also pull from roster (anyone with an email not already in brief)
-  let settingsContacts = [];
+  _travelModalContacts = [];
+  // Load roster
   try {
-    const rosterRes = await fetch('/api/roster');
-    const rosterPeople = rosterRes.ok ? await rosterRes.json() : [];
-    settingsContacts = rosterPeople
-      .filter(p => p.email && p.name && !fromBrief.some(b => b.email.toLowerCase() === p.email.toLowerCase()))
-      .map(p => ({ name: p.name, email: p.email, role: p.role || '', checked: false, source: 'roster' }));
-  } catch (_) {}
+    const res = await fetch('/api/roster');
+    _rosterForTravel = res.ok ? await res.json() : [];
+  } catch (_) { _rosterForTravel = []; }
 
-  _travelModalContacts = [...fromBrief, ...settingsContacts];
-  renderTravelModalContacts();
-  const modal = document.getElementById('travelModal');
-  modal.style.display = 'flex';
+  document.getElementById('tmSearch').value = '';
+  document.getElementById('tmDropdown').style.display = 'none';
   document.getElementById('travelModalError').style.display = 'none';
+  renderTravelSendList();
+  document.getElementById('travelModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('tmSearch').focus(), 100);
 }
 
-function renderTravelModalContacts() {
-  const list = document.getElementById('travelModalContactsList');
-  if (!_travelModalContacts.length) {
-    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px;">No talent or crew have emails on file. Add emails to Talent/Crew cards, or add a one-time recipient below.</div>';
+function tmSearchRoster(q) {
+  const dd = document.getElementById('tmDropdown');
+  if (!q.trim()) { dd.style.display = 'none'; return; }
+  const matches = _rosterForTravel.filter(p =>
+    p.name && p.email &&
+    (p.name.toLowerCase().includes(q.toLowerCase()) || (p.role||'').toLowerCase().includes(q.toLowerCase())) &&
+    !_travelModalContacts.some(c => c.email.toLowerCase() === p.email.toLowerCase())
+  ).slice(0, 6);
+
+  if (!matches.length) {
+    dd.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:var(--text-3);">No roster matches — <a href="/roster" target="_blank" style="color:#58a6ff;">add to roster</a></div>';
+    dd.style.display = '';
     return;
   }
-  list.innerHTML = `
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:10px;">Select who's traveling to this venue</div>
-    ${_travelModalContacts.map((c, i) => `
-      <label style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;">
-        <input type="checkbox" ${c.checked ? 'checked' : ''} onchange="_travelModalContacts[${i}].checked=this.checked">
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:600;color:var(--text);">${c.name}</div>
-          <div style="font-size:11px;color:var(--text-3);">${c.email}${c.role ? ' · ' + c.role : ''}</div>
-        </div>
-        ${c.source === 'roster' ? '<span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-3);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 6px;">Roster</span>' : ''}
-      </label>
-    `).join('')}
-  `;
+  dd.innerHTML = matches.map(p => `
+    <div onclick="tmSelectPerson('${p.id}')"
+      style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);transition:background 0.1s;"
+      onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${p.name}</div>
+        <div style="font-size:11px;color:var(--text-3);">${p.role || p.category || ''}</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="#3fb950" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  `).join('');
+  dd.style.display = '';
 }
 
-function addModalOneOff() {
-  const name  = document.getElementById('tmOneName').value.trim();
-  const email = document.getElementById('tmOneEmail').value.trim();
-  if (!name || !email) { document.getElementById('travelModalError').textContent = 'Name and email required'; document.getElementById('travelModalError').style.display = ''; return; }
-  _travelModalContacts.push({ name, email, role: 'Guest', checked: true });
-  document.getElementById('tmOneName').value = '';
-  document.getElementById('tmOneEmail').value = '';
+function tmSearchKeydown(e) {
+  if (e.key === 'Escape') { document.getElementById('tmDropdown').style.display = 'none'; }
+}
+
+function tmSelectPerson(id) {
+  const p = _rosterForTravel.find(r => r.id === id);
+  if (!p) return;
+  _travelModalContacts.push({ name: p.name, email: p.email, role: p.role || '' });
+  document.getElementById('tmSearch').value = '';
+  document.getElementById('tmDropdown').style.display = 'none';
   document.getElementById('travelModalError').style.display = 'none';
-  renderTravelModalContacts();
+  renderTravelSendList();
+  document.getElementById('tmSearch').focus();
+}
+
+function tmRemovePerson(i) {
+  _travelModalContacts.splice(i, 1);
+  renderTravelSendList();
+}
+
+function renderTravelSendList() {
+  const list   = document.getElementById('travelModalContactsList');
+  const empty  = document.getElementById('tmEmpty');
+  if (!_travelModalContacts.length) {
+    list.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = _travelModalContacts.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--text-2);flex-shrink:0;">
+        ${(c.name||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('')}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${c.name}</div>
+        ${c.role ? `<div style="font-size:11px;color:var(--text-3);">${c.role}</div>` : ''}
+      </div>
+      <button onclick="tmRemovePerson(${i})" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:color 0.1s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'">×</button>
+    </div>
+  `).join('');
 }
 
 function closeTravelModal() {
@@ -1868,9 +1899,9 @@ document.getElementById('travelModal').addEventListener('click', function(e) {
 async function sendTravelQuestionnaire() {
   const briefId = new URLSearchParams(location.search).get('id');
   if (!briefId) return;
-  const selected = _travelModalContacts.filter(c => c.checked);
+  const selected = _travelModalContacts;
   if (!selected.length) {
-    document.getElementById('travelModalError').textContent = 'Select at least one person to send to.';
+    document.getElementById('travelModalError').textContent = 'Add at least one person before sending.';
     document.getElementById('travelModalError').style.display = '';
     return;
   }
