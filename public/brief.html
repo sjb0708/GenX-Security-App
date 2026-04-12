@@ -1682,11 +1682,24 @@ function initVenueIntakeUI(brief) {
 let _travelModalContacts = []; // contacts currently shown in modal (with checked state)
 
 async function openTravelQuestionnaireModal() {
-  // Load travel contacts from settings
-  const settingsRes = await fetch('/api/settings');
-  const settings = await settingsRes.json();
-  const baseContacts = (settings.travelContacts || []).map(c => ({ ...c, checked: true }));
-  _travelModalContacts = baseContacts;
+  // Pull talent & crew from the current brief who have emails
+  const talentPeople = collectPersonGrid('talentGrid');
+  const crewPeople   = collectPersonGrid('crewGrid');
+  const fromBrief = [...talentPeople, ...crewPeople]
+    .filter(p => p.email && p.name)
+    .map(p => ({ name: p.name, email: p.email, role: p.role || p.function || '', checked: true, source: 'brief' }));
+
+  // Also load the global settings distribution list
+  let settingsContacts = [];
+  try {
+    const settingsRes = await fetch('/api/settings');
+    const settings = await settingsRes.json();
+    settingsContacts = (settings.travelContacts || [])
+      .filter(c => !fromBrief.some(b => b.email.toLowerCase() === c.email?.toLowerCase()))
+      .map(c => ({ ...c, checked: true, source: 'settings' }));
+  } catch (_) {}
+
+  _travelModalContacts = [...fromBrief, ...settingsContacts];
   renderTravelModalContacts();
   const modal = document.getElementById('travelModal');
   modal.style.display = 'flex';
@@ -1696,18 +1709,19 @@ async function openTravelQuestionnaireModal() {
 function renderTravelModalContacts() {
   const list = document.getElementById('travelModalContactsList');
   if (!_travelModalContacts.length) {
-    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px;">No contacts in distribution list. <a href="/settings" style="color:#58a6ff;">Go to Settings</a> to add cast & crew, or add a one-time recipient below.</div>';
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px;">No talent or crew have emails on file. Add emails to Talent/Crew cards, or add a one-time recipient below.</div>';
     return;
   }
   list.innerHTML = `
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:10px;">Distribution List — check who's traveling to this venue</div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:10px;">Select who's traveling to this venue</div>
     ${_travelModalContacts.map((c, i) => `
       <label style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;">
         <input type="checkbox" ${c.checked ? 'checked' : ''} onchange="_travelModalContacts[${i}].checked=this.checked">
         <div style="flex:1;">
           <div style="font-size:13px;font-weight:600;color:var(--text);">${c.name}</div>
-          <div style="font-size:11px;color:var(--text-3);">${c.email} · ${c.role || ''}</div>
+          <div style="font-size:11px;color:var(--text-3);">${c.email}${c.role ? ' · ' + c.role : ''}</div>
         </div>
+        ${c.source === 'settings' ? '<span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-3);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 6px;">Global</span>' : ''}
       </label>
     `).join('')}
   `;
