@@ -1785,15 +1785,24 @@ async function loadTravelResponses(briefId) {
 
     document.getElementById('travelQTrackerWrap').style.display = '';
     const table = document.getElementById('travelResponsesTable');
+    const transportLabel = v => ({
+      uber: 'Uber/Lyft', rental: 'Rental Car', personal: 'Personal Car',
+      tourbus: 'Tour Bus', tbd: 'TBD'
+    }[v] || v || '—');
+
     table.innerHTML = `
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <thead>
           <tr style="border-bottom:1px solid var(--border);">
             <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Name</th>
             <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Role</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Mode</th>
             <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Arrival Flight</th>
-            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Arrival</th>
-            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Pickup</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Arr. Date</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Airport→Hotel</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Departure Flight</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Dep. Date</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Hotel→Airport</th>
             <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Status</th>
           </tr>
         </thead>
@@ -1803,15 +1812,24 @@ async function loadTravelResponses(briefId) {
             const statusBadge = isSubmitted
               ? `<span style="background:rgba(63,185,80,0.12);color:#3fb950;border:1px solid rgba(63,185,80,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">Submitted</span>`
               : `<span style="background:rgba(210,153,34,0.1);color:#d2993c;border:1px solid rgba(210,153,34,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">Pending</span>`;
-            const flight = r.arrFlight ? `${r.arrFlight}${r.arrAirline && r.arrAirline !== 'other' ? '' : ''}` : (r.travelMode === 'driving' ? '🚗 Driving' : r.travelMode === 'local' ? '📍 Local' : '—');
-            const arrInfo = r.arrDate ? `${r.arrDate}${r.arrTime ? ' ' + r.arrTime : ''}` : '—';
-            const pickup  = r.needsPickup === 'true' || r.needsPickup === true ? (r.pickupType || 'Yes') : '—';
+            const modeIcon = r.travelMode === 'driving' ? '🚗' : r.travelMode === 'local' ? '📍' : '✈️';
+            const modeLabel = r.travelMode === 'driving' ? 'Driving' : r.travelMode === 'local' ? 'Local' : 'Flying';
+            const arrFlight = r.arrFlight || (r.travelMode === 'driving' ? `From ${r.driveFrom || '?'}` : '—');
+            const arrDate   = r.arrDate || (r.travelMode === 'driving' ? r.driveArrDate || '—' : '—');
+            const arrXport  = r.travelMode === 'flying' ? `${transportLabel(r.arrTransport)}${r.arrRentalSeats ? ` (${r.arrRentalSeats} seats)` : ''}` : '—';
+            const depFlight = r.depFlight || '—';
+            const depDate   = r.depDate || '—';
+            const depXport  = r.travelMode === 'flying' && r.depFlight ? `${transportLabel(r.depTransport)}${r.depRentalSeats ? ` (${r.depRentalSeats} seats)` : ''}` : '—';
             return `<tr style="border-bottom:1px solid var(--border);">
               <td style="padding:10px 8px;color:var(--text);font-weight:600;">${r.name || r.travelerName || '—'}</td>
               <td style="padding:10px 8px;color:var(--text-2);">${r.role || r.travelerRole || '—'}</td>
-              <td style="padding:10px 8px;color:var(--text-2);font-family:monospace;">${flight}</td>
-              <td style="padding:10px 8px;color:var(--text-2);">${arrInfo}</td>
-              <td style="padding:10px 8px;color:var(--text-2);">${pickup}</td>
+              <td style="padding:10px 8px;color:var(--text-2);">${modeIcon} ${modeLabel}</td>
+              <td style="padding:10px 8px;color:var(--text-2);font-family:monospace;">${arrFlight}</td>
+              <td style="padding:10px 8px;color:var(--text-2);">${arrDate}</td>
+              <td style="padding:10px 8px;color:var(--text-2);">${arrXport}</td>
+              <td style="padding:10px 8px;color:var(--text-2);font-family:monospace;">${depFlight}</td>
+              <td style="padding:10px 8px;color:var(--text-2);">${depDate}</td>
+              <td style="padding:10px 8px;color:var(--text-2);">${depXport}</td>
               <td style="padding:10px 8px;">${statusBadge}</td>
             </tr>`;
           }).join('')}
