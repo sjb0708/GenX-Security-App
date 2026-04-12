@@ -1047,6 +1047,8 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 
 /* ── Print ────────────────────────────────────────────────────────────────── */
 @media print {
+  @page { margin: 0.6in 0.5in; }
+
   .topnav, .sidebar, .status-bar, .view-topbar,
   .no-print, .toast-container { display: none !important; }
   .main-content { margin: 0 !important; padding: 0 !important; }
@@ -1054,13 +1056,26 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   body { background: white !important; color: black !important; font-size: 11px !important; }
   .panel, .view-panel, .brief-header-block { background: white !important; border-color: #ccc !important; }
   .panel-header, .view-panel-header { background: #f5f5f5 !important; }
+
+  /* Most panels stay together — but allow large ones to flow across pages */
   .brief-card { break-inside: avoid; }
   .panel { break-inside: avoid; }
+
+  /* Run of Show — allow the panel to break across pages */
+  .ros-panel { break-inside: auto !important; }
+  .ros-panel .view-panel-body { overflow: visible !important; }
+
+  /* ROS table — header repeats on each page, rows never split */
+  .ros-table { width: 100%; border-collapse: collapse; }
+  .ros-table thead { display: table-header-group; }
+  .ros-table tr { break-inside: avoid; page-break-inside: avoid; }
+  .ros-table td, .ros-table th { padding: 6px 8px; border: 1px solid #ddd; font-size: 10.5px; }
+  .ros-table th { background: #f0f0f0 !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
 
   /* Force background colors to print (credentials, tags, badges) */
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-  /* Credential color tags — show as colored text with border if background strips */
+  /* Credential color tags */
   .tag { border: 1px solid currentColor !important; }
   .tag-red   { color: #e63946 !important; background: rgba(230,57,70,0.15) !important; }
   .tag-gray  { color: #555 !important; background: #eee !important; }
