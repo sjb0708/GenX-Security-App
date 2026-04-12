@@ -557,7 +557,20 @@
       </div>
     </div>
 
-    <!-- 11. MAPS -->
+    <!-- 11. EMERGENCY CONTACTS -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon">🆘</div>
+        <div class="panel-title">Emergency Contacts</div>
+      </div>
+      <div class="panel-body">
+        <p style="font-size:12px;color:var(--text-2);">Add any key contacts the security team should have on file — venue managers, local PD liaisons, medical coordinators, etc.</p>
+        <div id="ecList" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <button type="button" onclick="addEcRow()" style="margin-top:4px;background:transparent;border:1px dashed var(--border-2);border-radius:8px;color:var(--text-2);font-family:inherit;font-size:12px;font-weight:600;padding:9px 16px;cursor:pointer;width:100%;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border-2)';this.style.color='var(--text-2)'">+ Add Contact</button>
+      </div>
+    </div>
+
+    <!-- 12. MAPS -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-icon">🗺️</div>
@@ -652,6 +665,41 @@
     document.getElementById('stateErrorMsg').textContent  = msg;
   }
 
+  // ── Emergency contacts ────────────────────────────────────────────────────────
+  let ecCount = 0;
+  function addEcRow(data = {}) {
+    const id = ++ecCount;
+    const row = document.createElement('div');
+    row.id = `ecRow${id}`;
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end;';
+    row.innerHTML = `
+      <div class="f"><label>Role / Title</label><input type="text" name="ecRole_${id}" placeholder="Venue Manager" value="${data.role||''}"></div>
+      <div class="f"><label>Name</label><input type="text" name="ecName_${id}" placeholder="Jane Smith" value="${data.name||''}"></div>
+      <div class="f"><label>Phone</label><input type="tel" name="ecPhone_${id}" placeholder="(555) 000-0000" value="${data.phone||''}"></div>
+      <div class="f"><label>Email</label><input type="email" name="ecEmail_${id}" placeholder="jane@venue.com" value="${data.email||''}"></div>
+      <button type="button" onclick="removeEcRow(${id})" style="background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-2);font-size:18px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Remove">×</button>
+    `;
+    document.getElementById('ecList').appendChild(row);
+    // Responsive on small screens
+    if (window.innerWidth < 540) row.style.gridTemplateColumns = '1fr 1fr';
+  }
+  function removeEcRow(id) {
+    const el = document.getElementById(`ecRow${id}`);
+    if (el) el.remove();
+  }
+  function collectEcRows() {
+    const contacts = [];
+    document.querySelectorAll('[id^="ecRow"]').forEach(row => {
+      const id = row.id.replace('ecRow','');
+      const role  = row.querySelector(`[name="ecRole_${id}"]`)?.value?.trim() || '';
+      const name  = row.querySelector(`[name="ecName_${id}"]`)?.value?.trim() || '';
+      const phone = row.querySelector(`[name="ecPhone_${id}"]`)?.value?.trim() || '';
+      const email = row.querySelector(`[name="ecEmail_${id}"]`)?.value?.trim() || '';
+      if (role || name || phone || email) contacts.push({ role, name, phone, email });
+    });
+    return contacts;
+  }
+
   // ── Uniform description toggle ───────────────────────────────────────────────
   function toggleUniformDesc(cb) {
     document.getElementById('uniformDescWrap').style.display = cb.checked ? '' : 'none';
@@ -714,6 +762,9 @@
       const el = form.elements[name];
       body[name] = el ? el.checked : false;
     });
+
+    // Emergency contacts
+    body.emergencyContacts = collectEcRows();
 
     // Map uploads — convert to base64
     btn.textContent = 'Uploading maps…';

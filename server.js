@@ -1148,6 +1148,21 @@ app.post('/api/intake/:token', async (req, res) => {
       sentAt: brief.venueIntake?.sentAt,
       data: req.body
     };
+
+    // Merge submitted emergency contacts into brief.emergency
+    const submitted = (req.body.emergencyContacts || []).filter(c => c.name || c.phone);
+    if (submitted.length) {
+      if (!Array.isArray(brief.emergency)) brief.emergency = [];
+      // Append only contacts not already present (match by name + phone)
+      for (const c of submitted) {
+        const dupe = brief.emergency.some(e =>
+          (e.name && c.name && e.name.toLowerCase() === c.name.toLowerCase()) ||
+          (e.phone && c.phone && e.phone === c.phone)
+        );
+        if (!dupe) brief.emergency.push({ role: c.role || '', name: c.name || '', phone: c.phone || '', email: c.email || '' });
+      }
+    }
+
     briefs.set(t.briefId, brief);
     saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
   }
