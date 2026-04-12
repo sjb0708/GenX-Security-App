@@ -1385,9 +1385,9 @@ Format clearly with headers. Be concise and practical. Use 24-hour time where po
 });
 
 // ── Roster routes ─────────────────────────────────────────────────────────────
-app.get('/api/roster', requireAuth, (req, res) => res.json(roster));
+app.get('/api/roster', (req, res) => res.json(roster));
 
-app.post('/api/roster', requireAuth, (req, res) => {
+app.post('/api/roster', (req, res) => {
   const { name, email, role, phone, category, photo } = req.body;
   if (!name) return res.status(400).json({ error: 'Name is required' });
   const person = { id: uuidv4(), name, email: email || '', role: role || '', phone: phone || '', category: category || 'crew', photo: photo || '', createdAt: new Date().toISOString() };
@@ -1396,7 +1396,7 @@ app.post('/api/roster', requireAuth, (req, res) => {
   res.json(person);
 });
 
-app.put('/api/roster/:id', requireAuth, (req, res) => {
+app.put('/api/roster/:id', (req, res) => {
   const idx = roster.findIndex(p => p.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
   roster[idx] = { ...roster[idx], ...req.body, id: roster[idx].id, createdAt: roster[idx].createdAt };
@@ -1404,7 +1404,7 @@ app.put('/api/roster/:id', requireAuth, (req, res) => {
   res.json(roster[idx]);
 });
 
-app.delete('/api/roster/:id', requireAuth, (req, res) => {
+app.delete('/api/roster/:id', (req, res) => {
   const idx = roster.findIndex(p => p.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
   roster.splice(idx, 1);
