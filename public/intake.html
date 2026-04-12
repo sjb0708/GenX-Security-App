@@ -195,10 +195,6 @@
             <label>Total Capacity</label>
             <input type="number" name="venueCapacity" placeholder="1900" min="0">
           </div>
-          <div class="f">
-            <label>Ticketed Attendance</label>
-            <input type="number" name="venueTotalTicketed" placeholder="1750" min="0">
-          </div>
         </div>
       </div>
     </div>
@@ -210,7 +206,7 @@
         <div class="panel-title">Security Contacts</div>
       </div>
       <div class="panel-body">
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Venue Security Chief</p>
+        <p style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Primary Contact</p>
         <div class="g2">
           <div class="f">
             <label>Name</label>
@@ -230,7 +226,7 @@
           </div>
         </div>
         <hr class="divider" style="margin-top:4px;">
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Building / Facilities Manager</p>
+        <p style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Secondary Contact</p>
         <div class="g2">
           <div class="f">
             <label>Name</label>
@@ -244,11 +240,6 @@
             <label>Email</label>
             <input type="email" name="facilityEmail" placeholder="facilities@venue.com">
           </div>
-        </div>
-        <hr class="divider" style="margin-top:4px;">
-        <div class="f">
-          <label>Local PD Non-Emergency Number</label>
-          <input type="tel" name="localPdPhone" placeholder="(480) 644-2211">
         </div>
       </div>
     </div>
@@ -293,10 +284,6 @@
           </div>
         </div>
         <div class="f">
-          <label>Prohibited Items (one per line or comma separated)</label>
-          <textarea name="prohibitedItems" placeholder="Weapons&#10;Outside food/beverages&#10;Professional cameras&#10;Laser pointers"></textarea>
-        </div>
-        <div class="f">
           <label>Notes</label>
           <textarea name="ingressNotes" placeholder="VIP entry procedures, gate assignments, special instructions…"></textarea>
         </div>
@@ -325,7 +312,7 @@
             <input type="number" name="leoCount" placeholder="4" min="0">
           </div>
           <div class="f">
-            <label>Backstage</label>
+            <label>Security Backstage</label>
             <input type="number" name="backstageSecurity" placeholder="6" min="0">
           </div>
         </div>
@@ -383,20 +370,6 @@
           <label>Emergency Protocol</label>
           <textarea name="emergencyProtocol" placeholder="Response procedures, code words, radio channels…"></textarea>
         </div>
-        <div class="g3">
-          <div class="f">
-            <label>Nearest Hospital</label>
-            <input type="text" name="hospitalName" placeholder="Banner Desert Medical Center">
-          </div>
-          <div class="f">
-            <label>Hospital Address</label>
-            <input type="text" name="hospitalAddress" placeholder="1400 S Dobson Rd, Mesa AZ">
-          </div>
-          <div class="f">
-            <label>Hospital Phone</label>
-            <input type="tel" name="hospitalPhone" placeholder="(480) 412-3000">
-          </div>
-        </div>
       </div>
     </div>
 
@@ -453,36 +426,6 @@
         <div class="panel-title">Meet &amp; Greet / Gift Policy</div>
       </div>
       <div class="panel-body">
-        <div class="toggle-row" style="border-top:none;padding-top:0;">
-          <div>
-            <div class="toggle-label">Meet &amp; Greet Scheduled</div>
-            <div class="toggle-desc">Fan meet and greet session included in this event</div>
-          </div>
-          <label class="toggle"><input type="checkbox" name="mgScheduled"><span class="toggle-track"></span></label>
-        </div>
-        <div class="g4">
-          <div class="f">
-            <label>Time</label>
-            <input type="time" name="mgTime">
-          </div>
-          <div class="f">
-            <label>Duration (min)</label>
-            <input type="number" name="mgDuration" placeholder="45" min="0">
-          </div>
-          <div class="f">
-            <label>Location</label>
-            <input type="text" name="mgLocation" placeholder="VIP Lounge">
-          </div>
-          <div class="f">
-            <label>Total VIPs</label>
-            <input type="number" name="mgTotalVips" placeholder="30" min="0">
-          </div>
-        </div>
-        <div class="f" style="max-width:220px;">
-          <label>Security Staff Assigned</label>
-          <input type="number" name="mgStaff" placeholder="3" min="0">
-          <span class="hint">Venue / event security — GenX staff handled internally</span>
-        </div>
         <div class="f">
           <label>M&amp;G Protocol</label>
           <textarea name="mgProtocol" placeholder="Escort procedures, interaction rules, fan flow…"></textarea>
