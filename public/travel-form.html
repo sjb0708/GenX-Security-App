@@ -125,11 +125,31 @@
               <div id="connectingLegs"></div>
               <button type="button" onclick="addConnecting()" style="background:none;border:1px dashed var(--border);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;color:var(--text-3);cursor:pointer;width:100%;margin-bottom:14px;font-family:'Montserrat',sans-serif;" onmouseover="this.style.borderColor='#58a6ff';this.style.color='#58a6ff'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">+ Add Connecting Flight</button>
 
-              <div class="field-group" style="margin-top:0;">
-                <label class="toggle-row">
-                  <input type="checkbox" id="needsPickup" name="needsPickup" value="yes">
-                  <span class="toggle-label">I need a pickup from the airport</span>
-                </label>
+              <!-- Airport arrival transport -->
+              <div style="border-top:1px solid var(--border);padding-top:14px;">
+                <div class="field-label" style="margin-bottom:10px;">Airport → Hotel Transportation</div>
+                <div class="grid-2">
+                  <div class="field-group" style="margin:0;">
+                    <label class="field-label">Getting from airport to hotel</label>
+                    <select class="field-input" id="arrTransport" name="arrTransport" onchange="handleArrTransport(this.value)">
+                      <option value="">Select…</option>
+                      <option value="uber">Uber / Lyft / Taxi</option>
+                      <option value="rental">Rental Car</option>
+                      <option value="personal">Personal Vehicle / Being Picked Up</option>
+                      <option value="tour_bus">Tour Bus / Van</option>
+                      <option value="tbd">Not sure yet</option>
+                    </select>
+                  </div>
+                  <div class="field-group" style="margin:0;" id="arrRentalSeatsWrap" style="display:none;">
+                    <label class="field-label">Rental — Seats Available</label>
+                    <select class="field-input" id="arrRentalSeats" name="arrRentalSeats">
+                      <option value="">Select…</option>
+                      <option>1 — Just me</option>
+                      <option>2</option><option>3</option><option>4</option>
+                      <option>5</option><option>6</option><option>7</option><option>8+</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -146,14 +166,40 @@
                 <label class="toggle-label" for="hasReturn">I have a return flight to enter</label>
               </div>
               <div id="returnFields" style="display:none;">
-                <div class="grid-2">
-                  <div class="field-group">
+                <div class="grid-2" style="margin-bottom:14px;">
+                  <div class="field-group" style="margin:0;">
                     <label class="field-label">Flight Number</label>
                     <input class="field-input flight-input" id="depFlight" name="depFlight" placeholder="AA 5678">
                   </div>
-                  <div class="field-group">
+                  <div class="field-group" style="margin:0;">
                     <label class="field-label">Date of Departure</label>
                     <input class="field-input" id="depDate" name="depDate" type="date">
+                  </div>
+                </div>
+                <!-- Hotel to airport transport -->
+                <div style="border-top:1px solid var(--border);padding-top:14px;">
+                  <div class="field-label" style="margin-bottom:10px;">Hotel → Airport Transportation</div>
+                  <div class="grid-2">
+                    <div class="field-group" style="margin:0;">
+                      <label class="field-label">Getting from hotel to airport</label>
+                      <select class="field-input" id="depTransport" name="depTransport" onchange="handleDepTransport(this.value)">
+                        <option value="">Select…</option>
+                        <option value="uber">Uber / Lyft / Taxi</option>
+                        <option value="rental">Rental Car</option>
+                        <option value="personal">Personal Vehicle / Being Dropped Off</option>
+                        <option value="tour_bus">Tour Bus / Van</option>
+                        <option value="tbd">Not sure yet</option>
+                      </select>
+                    </div>
+                    <div class="field-group" style="margin:0;" id="depRentalSeatsWrap" style="display:none;">
+                      <label class="field-label">Rental — Seats Available</label>
+                      <select class="field-input" id="depRentalSeats" name="depRentalSeats">
+                        <option value="">Select…</option>
+                        <option>1 — Just me</option>
+                        <option>2</option><option>3</option><option>4</option>
+                        <option>5</option><option>6</option><option>7</option><option>8+</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -245,6 +291,13 @@
         document.getElementById('formWrap').style.display = 'none';
         document.getElementById('errorScreen').style.display = '';
       }
+    }
+
+    function handleArrTransport(val) {
+      document.getElementById('arrRentalSeatsWrap').style.display = val === 'rental' ? '' : 'none';
+    }
+    function handleDepTransport(val) {
+      document.getElementById('depRentalSeatsWrap').style.display = val === 'rental' ? '' : 'none';
     }
 
     let connectingCount = 0;
