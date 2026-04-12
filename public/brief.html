@@ -155,6 +155,27 @@
   </div>
 </div>
 
+<!-- Roster Picker Modal -->
+<div id="rosterPickerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:500px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);">Add from Roster</div>
+        <div style="font-size:11px;color:var(--text-2);margin-top:2px;" id="rosterPickerSub">Select people to add</div>
+      </div>
+      <button onclick="closeRosterPicker()" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer;padding:4px;">×</button>
+    </div>
+    <div style="padding:14px 22px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <input id="rosterPickerSearch" placeholder="Search name, role…" oninput="renderRosterPicker()" style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 12px;outline:none;">
+    </div>
+    <div id="rosterPickerList" style="overflow-y:auto;flex:1;padding:14px 22px;display:flex;flex-direction:column;gap:8px;"></div>
+    <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
+      <button class="btn btn-ghost btn-sm" onclick="closeRosterPicker()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="addFromRoster()">Add Selected</button>
+    </div>
+  </div>
+</div>
+
 <!-- Travel Questionnaire Modal -->
 <div id="travelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:520px;overflow:hidden;max-height:90vh;display:flex;flex-direction:column;">
@@ -1020,7 +1041,10 @@
     </div>
     <div class="panel-body">
       <div class="person-grid" id="talentGrid"></div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:16px;" onclick="addPersonCard({},\'talent\')">+ Add Talent</button>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="addPersonCard({},\'talent\')">+ Add Manually</button>
+        <button class="btn btn-ghost btn-sm" style="border-color:rgba(88,166,255,0.4);color:#58a6ff;" onclick="openRosterPicker(\'talent\')">👤 Add from Roster</button>
+      </div>
     </div>
   </section>
 
@@ -1032,7 +1056,10 @@
     </div>
     <div class="panel-body">
       <div class="person-grid" id="crewGrid"></div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:16px;" onclick="addPersonCard({},\'crew\')">+ Add Crew Member</button>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="addPersonCard({},\'crew\')">+ Add Manually</button>
+        <button class="btn btn-ghost btn-sm" style="border-color:rgba(88,166,255,0.4);color:#58a6ff;" onclick="openRosterPicker(\'crew\')">👤 Add from Roster</button>
+      </div>
     </div>
   </section>
 
@@ -1677,6 +1704,98 @@ function initVenueIntakeUI(brief) {
   }
 }
 
+// ── Roster Picker ─────────────────────────────────────────────────────────────
+
+let _rosterPickerType = 'crew'; // 'talent' or 'crew'
+let _rosterAll = [];
+let _rosterSelected = new Set();
+
+async function openRosterPicker(type) {
+  _rosterPickerType = type;
+  _rosterSelected = new Set();
+  document.getElementById('rosterPickerSearch').value = '';
+  document.getElementById('rosterPickerSub').textContent = `Adding to ${type === 'talent' ? 'Talent' : 'Crew & Production'}`;
+
+  // Load roster
+  try {
+    const res = await fetch('/api/roster');
+    _rosterAll = res.ok ? await res.json() : [];
+  } catch (_) { _rosterAll = []; }
+
+  // Filter to relevant category (but allow all if nothing matches)
+  renderRosterPicker();
+  document.getElementById('rosterPickerModal').style.display = 'flex';
+}
+
+function closeRosterPicker() {
+  document.getElementById('rosterPickerModal').style.display = 'none';
+}
+
+function renderRosterPicker() {
+  const q = document.getElementById('rosterPickerSearch').value.toLowerCase();
+  const list = document.getElementById('rosterPickerList');
+
+  // Show matching category first, others below
+  let filtered = _rosterAll.filter(p => {
+    return !q || [p.name, p.role, p.email].some(v => (v||'').toLowerCase().includes(q));
+  });
+
+  // Sort: matching category first
+  filtered.sort((a, b) => {
+    const aMatch = a.category === _rosterPickerType ? 0 : 1;
+    const bMatch = b.category === _rosterPickerType ? 0 : 1;
+    return aMatch - bMatch || a.name.localeCompare(b.name);
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-3);font-size:13px;">No people match. <a href="/roster" target="_blank" style="color:#58a6ff;">Add to Roster →</a></div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(p => {
+    const initials = (p.name||'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+    const checked = _rosterSelected.has(p.id);
+    const catColor = p.category === 'talent' ? '#58a6ff' : p.category === 'staff' ? 'var(--red)' : '#3fb950';
+    return `<label style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface-2);border:1px solid ${checked ? 'rgba(88,166,255,0.4)' : 'var(--border)'};border-radius:8px;cursor:pointer;transition:border-color 0.15s;" id="rp_${p.id}">
+      <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleRosterPick('${p.id}',this.checked)" style="width:15px;height:15px;accent-color:var(--red);flex-shrink:0;">
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text-2);flex-shrink:0;">${initials||'?'}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${p.name}</div>
+        <div style="font-size:11px;color:var(--text-3);">${p.role||''}${p.email ? (p.role ? ' · ' : '') + p.email : ''}</div>
+      </div>
+      <span style="font-size:9px;font-weight:700;color:${catColor};text-transform:uppercase;letter-spacing:0.4px;">${p.category}</span>
+    </label>`;
+  }).join('');
+}
+
+function toggleRosterPick(id, checked) {
+  if (checked) _rosterSelected.add(id);
+  else _rosterSelected.delete(id);
+  // Update border color
+  const el = document.getElementById(`rp_${id}`);
+  if (el) el.style.borderColor = checked ? 'rgba(88,166,255,0.4)' : 'var(--border)';
+}
+
+function addFromRoster() {
+  if (!_rosterSelected.size) { closeRosterPicker(); return; }
+  const people = _rosterAll.filter(p => _rosterSelected.has(p.id));
+  people.forEach(p => {
+    // Map roster fields to person card fields
+    const cardData = {
+      name:      p.name,
+      email:     p.email,
+      photo:     p.photo || '',
+      role:      _rosterPickerType === 'talent' ? (p.role || '') : '',
+      function:  _rosterPickerType === 'crew'   ? (p.role || '') : '',
+      phone:     p.phone || ''
+    };
+    addPersonCard(cardData, _rosterPickerType);
+  });
+  scheduleSave();
+  closeRosterPicker();
+  toast(`${people.length} ${people.length === 1 ? 'person' : 'people'} added`, 'success');
+}
+
 // ── Travel Questionnaire ──────────────────────────────────────────────────────
 
 let _travelModalContacts = []; // contacts currently shown in modal (with checked state)
@@ -1689,14 +1808,14 @@ async function openTravelQuestionnaireModal() {
     .filter(p => p.email && p.name)
     .map(p => ({ name: p.name, email: p.email, role: p.role || p.function || '', checked: true, source: 'brief' }));
 
-  // Also load the global settings distribution list
+  // Also pull from roster (anyone with an email not already in brief)
   let settingsContacts = [];
   try {
-    const settingsRes = await fetch('/api/settings');
-    const settings = await settingsRes.json();
-    settingsContacts = (settings.travelContacts || [])
-      .filter(c => !fromBrief.some(b => b.email.toLowerCase() === c.email?.toLowerCase()))
-      .map(c => ({ ...c, checked: true, source: 'settings' }));
+    const rosterRes = await fetch('/api/roster');
+    const rosterPeople = rosterRes.ok ? await rosterRes.json() : [];
+    settingsContacts = rosterPeople
+      .filter(p => p.email && p.name && !fromBrief.some(b => b.email.toLowerCase() === p.email.toLowerCase()))
+      .map(p => ({ name: p.name, email: p.email, role: p.role || '', checked: false, source: 'roster' }));
   } catch (_) {}
 
   _travelModalContacts = [...fromBrief, ...settingsContacts];
@@ -1721,7 +1840,7 @@ function renderTravelModalContacts() {
           <div style="font-size:13px;font-weight:600;color:var(--text);">${c.name}</div>
           <div style="font-size:11px;color:var(--text-3);">${c.email}${c.role ? ' · ' + c.role : ''}</div>
         </div>
-        ${c.source === 'settings' ? '<span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-3);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 6px;">Global</span>' : ''}
+        ${c.source === 'roster' ? '<span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-3);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 6px;">Roster</span>' : ''}
       </label>
     `).join('')}
   `;

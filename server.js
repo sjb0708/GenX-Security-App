@@ -54,6 +54,11 @@ const settings = Object.assign({
   travelContacts: []
 }, loadJSON(SETTINGS_FILE, {}));
 
+// ── Roster store ─────────────────────────────────────────────────────────────
+const ROSTER_FILE = path.join(DATA_DIR, '.roster.json');
+let roster = loadJSON(ROSTER_FILE, []);
+function saveRoster() { saveJSON(ROSTER_FILE, roster); }
+
 // ── Travel token store ────────────────────────────────────────────────────────
 const TRAVEL_TOKENS_FILE = path.join(DATA_DIR, '.travel-tokens.json');
 let travelTokens = loadJSON(TRAVEL_TOKENS_FILE, {});
@@ -1379,6 +1384,34 @@ Format clearly with headers. Be concise and practical. Use 24-hour time where po
   }
 });
 
+// ── Roster routes ─────────────────────────────────────────────────────────────
+app.get('/api/roster', requireAuth, (req, res) => res.json(roster));
+
+app.post('/api/roster', requireAuth, (req, res) => {
+  const { name, email, role, phone, category, photo } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+  const person = { id: uuidv4(), name, email: email || '', role: role || '', phone: phone || '', category: category || 'crew', photo: photo || '', createdAt: new Date().toISOString() };
+  roster.push(person);
+  saveRoster();
+  res.json(person);
+});
+
+app.put('/api/roster/:id', requireAuth, (req, res) => {
+  const idx = roster.findIndex(p => p.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  roster[idx] = { ...roster[idx], ...req.body, id: roster[idx].id, createdAt: roster[idx].createdAt };
+  saveRoster();
+  res.json(roster[idx]);
+});
+
+app.delete('/api/roster/:id', requireAuth, (req, res) => {
+  const idx = roster.findIndex(p => p.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  roster.splice(idx, 1);
+  saveRoster();
+  res.json({ ok: true });
+});
+
 // ── Page routes ──────────────────────────────────────────────────────────────
 const pub = path.join(__dirname, 'public');
 app.get('/',           (_, res) => res.sendFile(path.join(pub, 'index.html')));
@@ -1389,6 +1422,7 @@ app.get('/risk',       (_, res) => res.sendFile(path.join(pub, 'risk.html')));
 app.get('/intake/:token', (_, res) => res.sendFile(path.join(pub, 'intake.html')));
 app.get('/travel/:token', (_, res) => res.sendFile(path.join(pub, 'travel-form.html')));
 app.get('/map-editor',   (_, res) => res.sendFile(path.join(pub, 'map-editor.html')));
+app.get('/roster', (_, res) => res.sendFile(path.join(pub, 'roster.html')));
 app.get('/login',  (_, res) => res.sendFile(path.join(pub, 'login.html')));
 app.get('/portal', (_, res) => res.sendFile(path.join(pub, 'portal.html')));
 app.get('*',           (_, res) => res.sendFile(path.join(pub, 'index.html')));
