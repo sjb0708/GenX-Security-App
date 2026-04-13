@@ -1153,13 +1153,12 @@
 
         <!-- Name / Role / Conf -->
         <div style="display:grid;grid-template-columns:1fr 160px 140px;gap:12px;margin-bottom:12px;">
-          <div class="field-group" style="margin:0;position:relative;">
+          <div class="field-group" style="margin:0;">
             <label class="field-label">Name</label>
-            <input class="field-input" id="travelName" placeholder="Type name or search roster…" autocomplete="off"
-              oninput="travelNameSearch(this.value)"
-              onkeydown="if(event.key==='Escape')document.getElementById('travelNameDrop').style.display='none'"
-              onblur="setTimeout(()=>{document.getElementById('travelNameDrop').style.display='none'},160)">
-            <div id="travelNameDrop" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,0.4);margin-top:4px;max-height:200px;overflow-y:auto;"></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input class="field-input" id="travelName" placeholder="Full name" style="flex:1;">
+              <button type="button" onclick="openRosterPickerForTravel()" style="flex-shrink:0;background:var(--surface-2);border:1px solid rgba(88,166,255,0.4);color:#58a6ff;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;padding:0 12px;height:38px;cursor:pointer;white-space:nowrap;transition:all 0.15s;" onmouseover="this.style.background='rgba(88,166,255,0.1)'" onmouseout="this.style.background='var(--surface-2)'">👤 Roster</button>
+            </div>
           </div>
           <div class="field-group" style="margin:0;">
             <label class="field-label">Role</label>
@@ -1352,6 +1351,24 @@ document.addEventListener('DOMContentLoaded', () => {
 let currentTravelMode = 'flying';
 let travelLegs = []; // pending legs for current form
 let _travelRosterCache = null;
+
+async function openRosterPickerForTravel() {
+  _rosterPickerType = 'travel';
+  _rosterSelected = new Set();
+  document.getElementById('rosterPickerSearch').value = '';
+  document.getElementById('rosterPickerSub').textContent = 'Select traveler';
+
+  document.getElementById('rosterPickerList').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Loading roster…</div>';
+  document.getElementById('rosterPickerModal').style.display = 'flex';
+
+  try {
+    const res = await fetch('/api/roster');
+    _rosterAll = res.ok ? await res.json() : [];
+    _travelRosterCache = _rosterAll;
+  } catch (_) { _rosterAll = []; }
+
+  renderRosterPicker();
+}
 
 async function travelNameSearch(q) {
   const drop = document.getElementById('travelNameDrop');
@@ -1839,6 +1856,22 @@ function toggleRosterPick(id, checked) {
 function addFromRoster() {
   if (!_rosterSelected.size) { closeRosterPicker(); return; }
   const people = _rosterAll.filter(p => _rosterSelected.has(p.id));
+
+  if (_rosterPickerType === 'travel') {
+    // Fill the Add Traveler form with the first selected person
+    const p = people[0];
+    document.getElementById('travelName').value = p.name || '';
+    const roleMap = { talent: 'Talent', crew: 'Crew', staff: 'GenX Staff' };
+    const autoRole = roleMap[p.category] || p.role || '';
+    const roleSelect = document.getElementById('travelRole');
+    const opt = [...roleSelect.options].find(o => o.value === autoRole || o.text === autoRole);
+    if (opt) roleSelect.value = opt.value;
+    closeRosterPicker();
+    // Scroll to travel form
+    document.getElementById('travelConf')?.focus();
+    return;
+  }
+
   people.forEach(p => {
     if (_rosterPickerType === 'staff') {
       addGenxStaffCard({ name: p.name, role: p.role || '', phone: p.phone || '', email: p.email || '', photo: p.photo || '', certs: [] });
