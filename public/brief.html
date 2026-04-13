@@ -1556,31 +1556,74 @@ function renderTravelers(travelers) {
   empty.style.display = 'none';
 
   list.innerHTML = travelers.map(t => {
-    let detail = '';
+    // Summary line shown when collapsed
+    let summary = '';
     if (t.mode === 'flying') {
-      const legs = (t.legs || []).map(l => `<span style="font-size:11px;font-weight:700;color:#58a6ff;background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.2);border-radius:5px;padding:2px 7px;">${l.flight}</span>`).join(' ');
-      const pickup = t.needsPickup ? `<span style="font-size:11px;color:var(--text-3);margin-left:8px;">🚗 ${pickupTypeLabels[t.pickupType]||'Pickup needed'}${t.pickupDetail ? ' · ' + t.pickupDetail : ''}</span>` : '';
-      detail = `<div style="margin-top:6px;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">${legs}${pickup}</div>`;
-    } else if (t.mode === 'driving' || t.mode === 'rental') {
-      const parts = [t.vehicle, t.plate, t.rentalCo, t.rentalConf, t.eta ? 'ETA ' + t.eta : '', t.parking].filter(Boolean);
-      detail = `<div style="margin-top:4px;font-size:12px;color:var(--text-3);">${parts.join(' · ')}</div>`;
-    } else if (t.mode === 'local') {
-      detail = `<div style="margin-top:4px;font-size:12px;color:var(--text-3);">${t.eta ? 'Arrival ' + t.eta : ''}${t.notes ? (t.eta ? ' · ' : '') + t.notes : ''}</div>`;
-    }
+      const flights = (t.legs || []).map(l => l.flight).filter(Boolean).join(', ');
+      summary = flights ? `✈️ ${flights}` : '✈️ Flying — no flights entered';
+    } else if (t.mode === 'driving') summary = `🚗 Driving Personal`;
+    else if (t.mode === 'rental')  summary = `🚙 Driving Rental`;
+    else if (t.mode === 'local')   summary = `📍 Already Local`;
 
-    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;">
-      <div style="font-size:18px;flex-shrink:0;margin-top:1px;">${modeIcons[t.mode]||'✈️'}</div>
-      <div style="flex:1;">
-        <div style="display:flex;align-items:center;gap:8px;">
+    // Expanded detail rows
+    let expandRows = '';
+    if (t.mode === 'flying') {
+      (t.legs || []).forEach((l, i) => {
+        expandRows += `<div style="display:flex;gap:24px;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:2px;">Leg ${i+1} Flight</div><div style="font-size:13px;font-weight:700;color:#58a6ff;font-family:monospace;">${esc(l.flight||'—')}</div></div>
+          <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:2px;">Airline</div><div style="font-size:13px;color:var(--text-2);">${esc(l.airlineName||l.airline||'—')}</div></div>
+        </div>`;
+      });
+      if (t.needsPickup) {
+        expandRows += `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:2px;">Airport Pickup</div>
+          <div style="font-size:13px;color:var(--text-2);">${pickupTypeLabels[t.pickupType]||'Needed'}${t.pickupDetail ? ' — ' + esc(t.pickupDetail) : ''}</div>
+          ${t.pickupNotes ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px;">${esc(t.pickupNotes)}</div>` : ''}
+        </div>`;
+      }
+    } else if (t.mode === 'driving' || t.mode === 'rental') {
+      const fields = [
+        t.rentalCo    ? ['Rental Co',  t.rentalCo]    : null,
+        t.rentalConf  ? ['Conf #',     t.rentalConf]  : null,
+        t.vehicle||t.rentalVeh ? ['Vehicle', t.vehicle||t.rentalVeh] : null,
+        t.plate       ? ['Plate',      t.plate]       : null,
+        t.eta         ? ['ETA',        t.eta]         : null,
+        t.parking     ? ['Parking',    t.parking]     : null,
+      ].filter(Boolean);
+      expandRows = fields.map(([label, val]) => `
+        <div style="display:inline-flex;flex-direction:column;gap:2px;margin-right:24px;margin-bottom:8px;">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);">${label}</div>
+          <div style="font-size:13px;color:var(--text-2);">${esc(val)}</div>
+        </div>`).join('');
+      if (expandRows) expandRows = `<div style="padding:8px 0;display:flex;flex-wrap:wrap;">${expandRows}</div>`;
+    } else if (t.mode === 'local') {
+      expandRows = `<div style="padding:8px 0;color:var(--text-2);font-size:13px;">${t.eta ? 'Arrival: ' + t.eta : ''}${t.notes ? (t.eta?' — ':'')+esc(t.notes) : ''}</div>`;
+    }
+    if (t.conf) expandRows += `<div style="padding:6px 0;font-size:11px;color:var(--text-3);">Conf: <span style="font-family:monospace;letter-spacing:1px;">${esc(t.conf)}</span></div>`;
+
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;">
+      <div onclick="toggleTravelerExpand(this)" style="padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+        <div style="flex:1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <span style="font-size:14px;font-weight:700;color:var(--text);">${esc(t.name)}</span>
           ${t.role ? `<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-3);">${esc(t.role)}</span>` : ''}
-          ${t.conf ? `<span style="font-size:11px;font-family:monospace;color:var(--text-3);letter-spacing:1px;">${esc(t.conf)}</span>` : ''}
+          <span style="font-size:12px;color:var(--text-3);">${summary}</span>
         </div>
-        ${detail}
+        <span style="font-size:11px;color:var(--text-3);flex-shrink:0;">▼</span>
+        <button type="button" onclick="event.stopPropagation();removeTraveler(${t.id})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;flex-shrink:0;" title="Remove">✕</button>
       </div>
-      <button type="button" onclick="removeTraveler(${t.id})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;flex-shrink:0;" title="Remove">✕</button>
+      <div class="traveler-expand" style="display:none;padding:0 16px 14px;border-top:1px solid var(--border);">
+        ${expandRows || '<div style="padding:8px 0;font-size:12px;color:var(--text-3);">No travel details entered.</div>'}
+      </div>
     </div>`;
   }).join('');
+}
+
+function toggleTravelerExpand(header) {
+  const expand = header.nextElementSibling;
+  const arrow  = header.querySelector('span');
+  const open   = expand.style.display === '';
+  expand.style.display = open ? 'none' : '';
+  if (arrow) arrow.textContent = open ? '▼' : '▲';
 }
 
 function initTravelSection(brief) {
