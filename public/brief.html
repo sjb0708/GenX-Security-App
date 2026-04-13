@@ -1153,9 +1153,13 @@
 
         <!-- Name / Role / Conf -->
         <div style="display:grid;grid-template-columns:1fr 160px 140px;gap:12px;margin-bottom:12px;">
-          <div class="field-group" style="margin:0;">
+          <div class="field-group" style="margin:0;position:relative;">
             <label class="field-label">Name</label>
-            <input class="field-input" id="travelName" placeholder="Full name">
+            <input class="field-input" id="travelName" placeholder="Type name or search roster…" autocomplete="off"
+              oninput="travelNameSearch(this.value)"
+              onkeydown="if(event.key==='Escape')document.getElementById('travelNameDrop').style.display='none'"
+              onblur="setTimeout(()=>{document.getElementById('travelNameDrop').style.display='none'},160)">
+            <div id="travelNameDrop" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,0.4);margin-top:4px;max-height:200px;overflow-y:auto;"></div>
           </div>
           <div class="field-group" style="margin:0;">
             <label class="field-label">Role</label>
@@ -1347,6 +1351,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let currentTravelMode = 'flying';
 let travelLegs = []; // pending legs for current form
+let _travelRosterCache = null;
+
+async function travelNameSearch(q) {
+  const drop = document.getElementById('travelNameDrop');
+  if (!q.trim()) { drop.style.display = 'none'; return; }
+
+  // Load roster once and cache
+  if (!_travelRosterCache) {
+    try {
+      const res = await fetch('/api/roster');
+      _travelRosterCache = res.ok ? await res.json() : [];
+    } catch (_) { _travelRosterCache = []; }
+  }
+
+  const matches = _travelRosterCache.filter(p =>
+    p.name && p.name.toLowerCase().includes(q.toLowerCase())
+  ).slice(0, 8);
+
+  if (!matches.length) { drop.style.display = 'none'; return; }
+
+  drop.innerHTML = matches.map(p => {
+    const catLabel = { talent: 'Talent', crew: 'Crew', staff: 'Staff' }[p.category] || '';
+    return `<div onclick="travelNamePick('${p.id}')"
+      style="padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);transition:background 0.1s;"
+      onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${p.name}</div>
+        ${p.role ? `<div style="font-size:11px;color:var(--text-3);">${p.role}</div>` : ''}
+      </div>
+      <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);">${catLabel}</span>
+    </div>`;
+  }).join('');
+  drop.style.display = '';
+}
+
+function travelNamePick(id) {
+  const p = _travelRosterCache?.find(r => r.id === id);
+  if (!p) return;
+  document.getElementById('travelName').value = p.name;
+  document.getElementById('travelNameDrop').style.display = 'none';
+  // Auto-select role if it matches an option
+  const roleMap = { talent: 'Talent', crew: 'Crew', staff: 'GenX Staff' };
+  const roleSelect = document.getElementById('travelRole');
+  const autoRole = roleMap[p.category] || p.role || '';
+  const opt = [...roleSelect.options].find(o => o.value === autoRole || o.text === autoRole);
+  if (opt) roleSelect.value = opt.value;
+  document.getElementById('travelConf').focus();
+}
 
 function setTravelMode(mode, btn) {
   currentTravelMode = mode;
