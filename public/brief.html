@@ -1071,7 +1071,10 @@
     </div>
     <div class="panel-body">
       <div class="person-grid" id="genxStaffGrid"></div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:16px;" onclick="addGenxStaffCard({});scheduleSave()">+ Add Staff Member</button>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="addGenxStaffCard({});scheduleSave()">+ Add Manually</button>
+        <button class="btn btn-ghost btn-sm" style="border-color:rgba(88,166,255,0.4);color:#58a6ff;" onclick="openRosterPicker(\'staff\')">👤 Add from Roster</button>
+      </div>
     </div>
   </section>
 
@@ -1714,7 +1717,12 @@ async function openRosterPicker(type) {
   _rosterPickerType = type;
   _rosterSelected = new Set();
   document.getElementById('rosterPickerSearch').value = '';
-  document.getElementById('rosterPickerSub').textContent = `Adding to ${type === 'talent' ? 'Talent' : 'Crew & Production'}`;
+  const labels = { talent: 'Talent', crew: 'Crew & Production', staff: 'GenX Security Staff' };
+  document.getElementById('rosterPickerSub').textContent = `Adding to ${labels[type] || type}`;
+
+  // Show loading state
+  document.getElementById('rosterPickerList').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;">Loading roster…</div>';
+  document.getElementById('rosterPickerModal').style.display = 'flex';
 
   // Load roster
   try {
@@ -1722,9 +1730,7 @@ async function openRosterPicker(type) {
     _rosterAll = res.ok ? await res.json() : [];
   } catch (_) { _rosterAll = []; }
 
-  // Filter to relevant category (but allow all if nothing matches)
   renderRosterPicker();
-  document.getElementById('rosterPickerModal').style.display = 'flex';
 }
 
 function closeRosterPicker() {
@@ -1748,7 +1754,9 @@ function renderRosterPicker() {
   });
 
   if (!filtered.length) {
-    list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-3);font-size:13px;">No people match. <a href="/roster" target="_blank" style="color:#58a6ff;">Add to Roster →</a></div>';
+    list.innerHTML = _rosterAll.length === 0
+      ? '<div style="text-align:center;padding:32px;color:var(--text-3);font-size:13px;">Your roster is empty.<br><a href="/roster" target="_blank" style="color:#58a6ff;">Go to Roster to add people →</a></div>'
+      : '<div style="text-align:center;padding:32px;color:var(--text-3);font-size:13px;">No people match that search.</div>';
     return;
   }
 
@@ -1780,16 +1788,17 @@ function addFromRoster() {
   if (!_rosterSelected.size) { closeRosterPicker(); return; }
   const people = _rosterAll.filter(p => _rosterSelected.has(p.id));
   people.forEach(p => {
-    // Map roster fields to person card fields
-    const cardData = {
-      name:      p.name,
-      email:     p.email,
-      photo:     p.photo || '',
-      role:      _rosterPickerType === 'talent' ? (p.role || '') : '',
-      function:  _rosterPickerType === 'crew'   ? (p.role || '') : '',
-      phone:     p.phone || ''
-    };
-    addPersonCard(cardData, _rosterPickerType);
+    if (_rosterPickerType === 'staff') {
+      addGenxStaffCard({ name: p.name, role: p.role || '', phone: p.phone || '', email: p.email || '', photo: p.photo || '', certs: [] });
+    } else {
+      addPersonCard({
+        name:     p.name,
+        photo:    p.photo || '',
+        role:     _rosterPickerType === 'talent' ? (p.role || '') : '',
+        function: _rosterPickerType === 'crew'   ? (p.role || '') : '',
+        phone:    p.phone || ''
+      }, _rosterPickerType);
+    }
   });
   scheduleSave();
   closeRosterPicker();
