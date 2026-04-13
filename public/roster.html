@@ -113,7 +113,10 @@
       <h1 style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:4px;">People Roster</h1>
       <p style="font-size:13px;color:var(--text-2);">Master list of talent & crew. Add them to any brief with one click — no re-entering info.</p>
     </div>
-    <button class="btn btn-primary" onclick="showAddForm()">+ Add Person</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" id="importBtn" onclick="importFromBriefs()" style="border-color:rgba(88,166,255,0.4);color:#58a6ff;">⬇ Import from Briefs</button>
+      <button class="btn btn-primary" onclick="showAddForm()">+ Add Person</button>
+    </div>
   </div>
 
   <!-- Filter bar -->
@@ -341,6 +344,24 @@ function toast(msg, type = 'success') {
   c.appendChild(t);
   setTimeout(() => t.classList.add('show'), 10);
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+async function importFromBriefs() {
+  const btn = document.getElementById('importBtn');
+  btn.disabled = true; btn.textContent = 'Importing…';
+  try {
+    const res  = await fetch('/api/roster/import-from-briefs', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Import failed');
+    // Reload roster
+    const r2 = await fetch('/api/roster');
+    _roster = r2.ok ? await r2.json() : _roster;
+    renderRoster();
+    toast(data.added > 0 ? `Imported ${data.added} ${data.added === 1 ? 'person' : 'people'} from your briefs` : 'Everyone is already on the roster', data.added > 0 ? 'success' : 'success');
+  } catch (e) {
+    toast('Import failed', 'error');
+  }
+  btn.disabled = false; btn.textContent = '⬇ Import from Briefs';
 }
 
 load();

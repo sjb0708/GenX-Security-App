@@ -1412,6 +1412,32 @@ app.delete('/api/roster/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Import people from all existing briefs into roster
+app.post('/api/roster/import-from-briefs', (req, res) => {
+  const candidates = [];
+  for (const [, brief] of briefs) {
+    for (const p of (brief.talent || [])) {
+      if (p.name) candidates.push({ name: p.name, role: p.role || '', phone: '', email: '', photo: p.photo || '', category: 'talent' });
+    }
+    for (const p of (brief.crew || [])) {
+      if (p.name) candidates.push({ name: p.name, role: p.function || p.role || '', phone: p.phone || '', email: '', photo: p.photo || '', category: 'crew' });
+    }
+    for (const p of (brief.genxstaff || [])) {
+      if (p.name) candidates.push({ name: p.name, role: p.role || '', phone: p.phone || '', email: p.email || '', photo: p.photo || '', category: 'staff' });
+    }
+  }
+  let added = 0;
+  for (const c of candidates) {
+    const exists = roster.some(r => r.name.toLowerCase() === c.name.toLowerCase() && r.category === c.category);
+    if (!exists) {
+      roster.push({ id: uuidv4(), ...c, createdAt: new Date().toISOString() });
+      added++;
+    }
+  }
+  if (added) saveRoster();
+  res.json({ added, total: roster.length });
+});
+
 // ── Page routes ──────────────────────────────────────────────────────────────
 const pub = path.join(__dirname, 'public');
 app.get('/',           (_, res) => res.sendFile(path.join(pub, 'index.html')));
