@@ -82,6 +82,7 @@
 
     .empty-state { text-align: center; padding: 60px 20px; color: var(--text-3); font-size: 13px; }
     .empty-state .big { font-size: 32px; margin-bottom: 12px; }
+    #fPhotoPreview:hover #fPhotoOverlay { opacity: 1 !important; }
   </style>
 </head>
 <body>
@@ -131,35 +132,50 @@
   <!-- Roster grid -->
   <div class="roster-grid" id="rosterGrid"></div>
 
-  <!-- Add form -->
+  <!-- Add / Edit form -->
   <div class="add-form" id="addForm" style="display:none;">
     <div class="add-form-title" id="addFormTitle">Add Person to Roster</div>
-    <div class="add-form-grid">
-      <div class="f">
-        <label>Full Name <span style="color:var(--red);">*</span></label>
-        <input id="fName" placeholder="Lisa Harrison">
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+
+      <!-- Photo -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;">
+        <div id="fPhotoPreview" onclick="document.getElementById('fPhotoFile').click()" style="width:80px;height:80px;border-radius:50%;background:var(--surface-2);border:2px dashed var(--border-2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color 0.15s;position:relative;" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border-2)'">
+          <span id="fPhotoInitials" style="font-size:22px;font-weight:800;color:var(--text-3);">?</span>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);opacity:0;transition:opacity 0.15s;" id="fPhotoOverlay">📷</div>
+        </div>
+        <input type="file" id="fPhotoFile" accept="image/*" style="display:none;" onchange="previewRosterPhoto(this)">
+        <button type="button" onclick="document.getElementById('fPhotoFile').click()" style="font-size:11px;font-weight:600;color:var(--text-3);background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:inherit;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-3)'">Change Photo</button>
       </div>
-      <div class="f">
-        <label>Category</label>
-        <select id="fCategory">
-          <option value="talent">Talent</option>
-          <option value="crew" selected>Crew</option>
-          <option value="staff">Staff</option>
-        </select>
-      </div>
-      <div class="f">
-        <label>Role / Function</label>
-        <input id="fRole" placeholder="Tour Manager">
-      </div>
-      <div class="f">
-        <label>Phone</label>
-        <input id="fPhone" type="tel" placeholder="(555) 000-0000">
-      </div>
-      <div class="f full">
-        <label>Email</label>
-        <input id="fEmail" type="email" placeholder="lisa@example.com">
+
+      <!-- Fields -->
+      <div class="add-form-grid" style="flex:1;min-width:240px;">
+        <div class="f">
+          <label>Full Name <span style="color:var(--red);">*</span></label>
+          <input id="fName" placeholder="Lisa Harrison" oninput="updateFormInitials()">
+        </div>
+        <div class="f">
+          <label>Category</label>
+          <select id="fCategory">
+            <option value="talent">Talent</option>
+            <option value="crew" selected>Crew</option>
+            <option value="staff">Staff</option>
+          </select>
+        </div>
+        <div class="f">
+          <label>Role / Function</label>
+          <input id="fRole" placeholder="Tour Manager">
+        </div>
+        <div class="f">
+          <label>Phone</label>
+          <input id="fPhone" type="tel" placeholder="(555) 000-0000">
+        </div>
+        <div class="f full">
+          <label>Email</label>
+          <input id="fEmail" type="email" placeholder="lisa@example.com">
+        </div>
       </div>
     </div>
+
     <div id="addFormError" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:8px;font-size:12px;color:var(--red);"></div>
     <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
       <button class="btn btn-ghost btn-sm" onclick="hideAddForm()">Cancel</button>
@@ -251,8 +267,8 @@ function showAddForm() {
   document.getElementById('addFormSaveBtn').textContent = 'Save to Roster';
   clearForm();
   document.getElementById('addForm').style.display = '';
-  document.getElementById('fName').focus();
   document.getElementById('addForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  document.getElementById('fName').focus();
 }
 
 function hideAddForm() {
@@ -261,10 +277,51 @@ function hideAddForm() {
   clearForm();
 }
 
+let _fPhotoData = ''; // base64 or URL of selected photo
+
 function clearForm() {
   ['fName','fRole','fPhone','fEmail'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('fCategory').value = 'crew';
   document.getElementById('addFormError').style.display = 'none';
+  document.getElementById('fPhotoFile').value = '';
+  _fPhotoData = '';
+  setFormPhoto('', '');
+}
+
+function setFormPhoto(url, name) {
+  const preview = document.getElementById('fPhotoPreview');
+  const initials = document.getElementById('fPhotoInitials');
+  const overlay  = document.getElementById('fPhotoOverlay');
+  if (url) {
+    preview.style.backgroundImage = `url(${url})`;
+    preview.style.backgroundSize = 'cover';
+    preview.style.backgroundPosition = 'center';
+    initials.style.display = 'none';
+    overlay.style.display = 'flex';
+  } else {
+    preview.style.backgroundImage = '';
+    initials.style.display = '';
+    initials.textContent = name ? name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('') : '?';
+    overlay.style.display = 'flex';
+  }
+}
+
+function updateFormInitials() {
+  if (!_fPhotoData) {
+    const name = document.getElementById('fName').value;
+    document.getElementById('fPhotoInitials').textContent = name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('') || '?';
+  }
+}
+
+function previewRosterPhoto(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _fPhotoData = e.target.result;
+    setFormPhoto(_fPhotoData, '');
+  };
+  reader.readAsDataURL(file);
 }
 
 function editPerson(id) {
@@ -276,9 +333,12 @@ function editPerson(id) {
   document.getElementById('fPhone').value    = p.phone || '';
   document.getElementById('fEmail').value    = p.email || '';
   document.getElementById('fCategory').value = p.category || 'crew';
+  document.getElementById('addFormError').style.display = 'none';
+  document.getElementById('fPhotoFile').value = '';
+  _fPhotoData = p.photo || '';
+  setFormPhoto(p.photo || '', p.name || '');
   document.getElementById('addFormTitle').textContent = 'Edit Person';
   document.getElementById('addFormSaveBtn').textContent = 'Save Changes';
-  document.getElementById('addFormError').style.display = 'none';
   document.getElementById('addForm').style.display = '';
   document.getElementById('addForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   document.getElementById('fName').focus();
@@ -303,7 +363,7 @@ async function savePerson() {
   try {
     const url    = _editId ? `/api/roster/${_editId}` : '/api/roster';
     const method = _editId ? 'PUT' : 'POST';
-    const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, role, phone, email, category }) });
+    const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, role, phone, email, category, photo: _fPhotoData }) });
     const data   = await res.json();
     if (!res.ok) throw new Error(data.error || 'Save failed');
 
