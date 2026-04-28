@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Travel Section — Mockup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body { background: var(--bg); font-family: 'Montserrat', sans-serif; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    .mockup-label {
+      display: inline-block;
+      background: rgba(230,57,70,0.15);
+      border: 1px solid rgba(230,57,70,0.4);
+      color: var(--red);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .section-sub {
+      font-size: 13px;
+      color: var(--text-3);
+      margin-bottom: 32px;
+    }
+
+    /* ── Add Traveler Card ── */
+    .add-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    .add-card-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .add-card-icon {
+      width: 32px; height: 32px;
+      background: var(--red-dim);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .add-card-title { font-size: 13px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; }
+    .add-card-body { padding: 20px 24px; }
+
+    .flight-lookup-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 16px;
+    }
+    @media(max-width:700px) { .flight-lookup-row { grid-template-columns: 1fr 1fr; } }
+
+    .lookup-btn {
+      background: var(--red);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0 18px;
+      height: 40px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .lookup-btn:hover { background: #c1121f; }
+    .lookup-btn.loading { opacity: 0.7; cursor: default; }
+
+    /* Flight result pill */
+    .flight-result {
+      background: rgba(46,213,115,0.08);
+      border: 1px solid rgba(46,213,115,0.25);
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .flight-result-route {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .airport-code { font-size: 22px; font-weight: 800; color: var(--text); }
+    .airport-city { font-size: 10px; color: var(--text-3); margin-top: 1px; }
+    .route-arrow { color: var(--text-3); font-size: 16px; }
+    .flight-result-detail { font-size: 12px; color: var(--text-2); line-height: 1.7; }
+    .flight-result-detail strong { color: var(--text); }
+    .flight-num-badge {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      margin-left: auto;
+    }
+
+    /* ── Travel Board ── */
+    .board-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .board-title { font-size: 14px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; }
+    .board-date-tabs { display: flex; gap: 8px; }
+    .date-tab {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      color: var(--text-3);
+      background: transparent;
+      font-family: inherit;
+    }
+    .date-tab.active { background: var(--red); border-color: var(--red); color: #fff; }
+
+    /* Traveler row */
+    .traveler-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .traveler-row-main {
+      display: grid;
+      grid-template-columns: 220px 1fr auto;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 18px;
+    }
+    .traveler-name { font-size: 14px; font-weight: 700; color: var(--text); }
+    .traveler-role { font-size: 11px; color: var(--text-3); margin-top: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+    .traveler-conf { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+    .traveler-conf span { color: var(--text-2); font-weight: 600; font-family: monospace; }
+
+    .legs-list { display: flex; flex-direction: column; gap: 6px; }
+    .leg {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      background: var(--surface-2);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .leg-flight { font-size: 12px; font-weight: 700; color: var(--text); min-width: 55px; }
+    .leg-route { font-size: 13px; font-weight: 700; color: var(--text); }
+    .leg-route span { color: var(--text-3); font-weight: 400; margin: 0 4px; }
+    .leg-time { font-size: 12px; color: var(--text-2); }
+    .leg-status { margin-left: auto; }
+
+    /* Status badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-ontime { background: rgba(46,213,115,0.12); color: #2ed573; border: 1px solid rgba(46,213,115,0.25); }
+    .badge-delayed { background: rgba(255,165,0,0.12); color: #ffa500; border: 1px solid rgba(255,165,0,0.3); }
+    .badge-landed { background: rgba(88,166,255,0.12); color: #58a6ff; border: 1px solid rgba(88,166,255,0.25); }
+    .badge-upcoming { background: var(--surface-2); color: var(--text-3); border: 1px solid var(--border); }
+    .badge-boarding { background: rgba(230,57,70,0.12); color: var(--red); border: 1px solid rgba(230,57,70,0.3); }
+
+    .traveler-actions { display: flex; gap: 6px; }
+    .icon-btn {
+      width: 30px; height: 30px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-3);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .icon-btn:hover { background: var(--surface-2); color: var(--text); }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0;
+    }
+
+    /* Summary strip */
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .summary-stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .summary-num { font-size: 24px; font-weight: 800; color: var(--text); }
+    .summary-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); margin-top: 2px; }
+
+    /* Pickup needed alert */
+    .pickup-alert {
+      background: rgba(230,57,70,0.06);
+      border: 1px solid rgba(230,57,70,0.25);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .pickup-alert-icon { font-size: 20px; flex-shrink: 0; }
+    .pickup-alert-text { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+    .pickup-alert-text strong { color: var(--text); }
+
+    /* Timeline view */
+    .timeline-strip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+    .timeline-strip-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); margin-bottom: 14px; }
+    .timeline-events { display: flex; flex-direction: column; gap: 2px; }
+    .timeline-event {
+      display: grid;
+      grid-template-columns: 70px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .timeline-event:last-child { border-bottom: none; }
+    .te-time { font-size: 12px; font-weight: 700; color: var(--red); font-variant-numeric: tabular-nums; }
+    .te-info { font-size: 13px; color: var(--text); }
+    .te-info small { color: var(--text-3); font-size: 11px; display: block; }
+    .te-badge {}
+
+    /* Mode buttons */
+    .mode-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .mode-btn:hover { border-color: var(--red); color: var(--text); }
+    .mode-btn.mode-active { background: rgba(230,57,70,0.12); border-color: var(--red); color: var(--red); }
+
+    /* Animated pulse for live */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #2ed573;
+      display: inline-block;
+      margin-right: 4px;
+      animation: pulse 1.5s infinite;
+    }
+  </style>
+</head>
+<body>
+<div style="margin-top:20px;">
+<div class="wrap">
+
+  <div class="mockup-label">Mockup Preview — Not Live Data</div>
+  <h1 class="section-title">Travel Tracking</h1>
+  <p class="section-sub">How flight tracking would work inside a security brief</p>
+
+  <!-- ── PART 1: ADD TRAVELER ── -->
+  <div class="add-card">
+    <div class="add-card-header">
+      <div class="add-card-icon">✈️</div>
+      <div>
+        <div class="add-card-title">Add Traveler</div>
+      </div>
+    </div>
+    <div class="add-card-body">
+
+      <!-- Step 1: Basic info + flight number -->
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:10px;">Step 1 — Who is traveling?</div>
+      <div class="flight-lookup-row">
+        <div class="field-group" style="margin:0;">
+          <label class="field-label">Name</label>
+          <input class="field-input" value="Marcus Webb" readonly>
+        </div>
+        <div class="field-group" style="margin:0;">
+          <label class="field-label">Role</label>
+          <select class="field-input" disabled>
+            <option>GenX Staff</option>
+          </select>
+        </div>
+        <div class="field-group" style="margin:0;">
+          <label class="field-label">Confirmation Code</label>
+          <input class="field-input" value="SWWIVS" readonly style="font-family:monospace;letter-spacing:1px;">
+        </div>
+        <div class="field-group" style="margin:0;">
+          <label class="field-label">Airline</label>
+          <select class="field-input" disabled>
+            <option>American Airlines</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Step 2: Travel Mode -->
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:10px;margin-top:4px;">Step 2 — How are they traveling?</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+        <button onclick="setMode('flying',this)" class="mode-btn mode-active">✈️ Flying</button>
+        <button onclick="setMode('driving',this)" class="mode-btn">🚗 Driving Personal</button>
+        <button onclick="setMode('rental',this)" class="mode-btn">🚙 Driving Rental</button>
+        <button onclick="setMode('local',this)" class="mode-btn">📍 Already Local</button>
+      </div>
+
+      <!-- Driving Personal -->
+      <div id="modeDriving" style="display:none;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="field-group" style="margin:0;">
+            <label class="field-label">Vehicle Make/Model</label>
+            <input class="field-input" placeholder="Ford F-150, Tesla Model 3…">
+          </div>
+          <div class="field-group" style="margin:0;">
+            <label class="field-label">Color</label>
+            <input class="field-input" placeholder="Black, Silver…">
+          </div>
+          <div class="field-group" style="margin:0;">
+            <label class="field-label">License Plate</label>
+            <input class="field-input" placeholder="AZ · ABC1234" style="font-family:monospace;letter-spacing:1px;">
+          </div>
+          <div class="field-group" style="margin:0;">
+            <label class="field-label">Est. Arrival Time</label>
+            <input class="field-input" type="time">
+          </div>
+        </div>
+        <div class="field-group" style="margin:0;">
+          <label class="field-label">Parking Assignment / Notes</label>
+          <input class="field-input" placeholder="Lot B · reserved spot, backstage dock, etc.">
+        </div>
+      </div>
+
+      <!-- Driving Rental -->
+      <div id="modeRental" style="display:none;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="field-group" style="margin:0;">
+            <label class="field-label">Rental Company</label>
+            <input class="field-input" placeholder="Enterprise, Hertz…">
+          </div>
+          <div class="field-group" style="margin:0;">
+            <label class="field-label">Confirmation #</label>
+            <input class="field-input" placeholder="Rental conf. code" style="font-family:monospace;">
+          </div>
+          <div class="field-group" style="margin:0;">
+            <label class="field-label">Vehicle / Seats</label>
+            <input class="field-input" placeholder="SUV · 7 seats">
+          </div>
+          <div class="field-group" style="margin:0;">
+            <label class="field-label">Est. Arrival Time</label>
+            <input class="field-input" type="time">
+          </div>
+        </div>
+        <div class="field-group" style="margin:0;">
+          <label class="field-label">Parking Assignment / Notes</label>
+          <input class="field-input" placeholder="Lot B · reserved spot, backstage dock, etc.">
+        </div>
+      </div>
+
+      <!-- Already Local -->
+      <div id="modeLocal" style="display:none;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="field-group" style="margin:0;">
+            <label class="field-label">Expected Arrival Time</label>
+            <input class="field-input" type="time">
+          </div>
+          <div class="field-group" style="margin:0;">
+            <label class="field-label">Notes</label>
+            <input class="field-input" placeholder="Lives locally, coming from hotel, etc.">
+          </div>
+        </div>
+      </div>
+
+      <!-- Flying section label -->
+      <div id="modeFlying">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:10px;">Flight number(s) from confirmation email</div>
+
+      <!-- Flight leg 1 - already looked up -->
+      <div class="flight-result">
+        <div class="flight-result-route">
+          <div>
+            <div class="airport-code">BUF</div>
+            <div class="airport-city">Buffalo</div>
+          </div>
+          <div class="route-arrow">→</div>
+          <div>
+            <div class="airport-code">CLT</div>
+            <div class="airport-city">Charlotte</div>
+          </div>
+        </div>
+        <div class="flight-result-detail">
+          <strong>Departs:</strong> Mon Apr 7 · 6:19 AM<br>
+          <strong>Arrives:</strong> Mon Apr 7 · 8:25 AM<br>
+          <strong>Duration:</strong> 2h 6m · Economy
+        </div>
+        <div class="flight-num-badge">AA 1659 ✓</div>
+        <button class="icon-btn" title="Remove leg" style="margin-left:auto;">✕</button>
+      </div>
+
+      <!-- Flight leg 2 - already looked up -->
+      <div class="flight-result">
+        <div class="flight-result-route">
+          <div>
+            <div class="airport-code">CLT</div>
+            <div class="airport-city">Charlotte</div>
+          </div>
+          <div class="route-arrow">→</div>
+          <div>
+            <div class="airport-code">PHX</div>
+            <div class="airport-city">Phoenix</div>
+          </div>
+        </div>
+        <div class="flight-result-detail">
+          <strong>Departs:</strong> Mon Apr 7 · 9:10 AM<br>
+          <strong>Arrives:</strong> Mon Apr 7 · 11:42 AM<br>
+          <strong>Duration:</strong> 3h 32m · Economy
+        </div>
+        <div class="flight-num-badge">AA 5998 ✓</div>
+        <button class="icon-btn" title="Remove leg" style="margin-left:auto;">✕</button>
+      </div>
+
+      <!-- Add another leg -->
+      <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:16px;">
+        <div class="field-group" style="margin:0;flex:1;max-width:220px;">
+          <label class="field-label">Add Another Flight Number</label>
+          <input class="field-input" placeholder="e.g. AA 2247">
+        </div>
+        <button class="lookup-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Look Up
+        </button>
+      </div>
+
+      </div><!-- end modeFlying -->
+
+      <!-- Needs pickup -->
+      <div style="padding-top:14px;border-top:1px solid var(--border);">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);cursor:pointer;margin-bottom:14px;">
+          <input type="checkbox" id="needsPickup" checked onchange="togglePickup(this)"> Needs airport pickup
+        </label>
+
+        <div id="pickupDetails">
+          <div style="display:grid;grid-template-columns:200px 1fr;gap:12px;margin-bottom:12px;align-items:flex-start;">
+            <div class="field-group" style="margin:0;">
+              <label class="field-label">Pickup Type</label>
+              <select class="field-input" id="pickupType" onchange="handlePickupType(this.value)">
+                <option value="">Select…</option>
+                <option value="uber">Uber / Rideshare</option>
+                <option value="rental">Rental Car</option>
+                <option value="personal">Personal Car</option>
+                <option value="venue" selected>Venue Pickup Service</option>
+              </select>
+            </div>
+
+            <!-- Uber fields -->
+            <div id="pickupUber" style="display:none;">
+              <div class="field-group" style="margin:0;">
+                <label class="field-label">Notes</label>
+                <input class="field-input" placeholder="Who is booking it, any instructions…">
+              </div>
+            </div>
+
+            <!-- Rental Car fields -->
+            <div id="pickupRental" style="display:none;">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label">Rental Company</label>
+                  <input class="field-input" placeholder="Enterprise, Hertz…">
+                </div>
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label">Vehicle / Seats</label>
+                  <input class="field-input" placeholder="SUV · 7 seats">
+                </div>
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label">Confirmation #</label>
+                  <input class="field-input" placeholder="Rental conf. code">
+                </div>
+              </div>
+            </div>
+
+            <!-- Personal Car fields -->
+            <div id="pickupPersonal" style="display:none;">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label">Driver Name</label>
+                  <input class="field-input" placeholder="Who is driving">
+                </div>
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label">Vehicle</label>
+                  <input class="field-input" placeholder="Black Suburban">
+                </div>
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label">Meeting Point</label>
+                  <input class="field-input" placeholder="Arrivals level, Door 4…">
+                </div>
+              </div>
+            </div>
+
+            <!-- Venue Pickup Service fields -->
+            <div id="pickupVenue">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label">Company Name</label>
+                  <input class="field-input" value="Mesa Premier Transportation">
+                </div>
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label">Contact Name</label>
+                  <input class="field-input" value="Ray Dominguez">
+                </div>
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label">Contact Phone</label>
+                  <input class="field-input" value="(480) 555-0198">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group" style="margin:0 0 14px;">
+            <label class="field-label">Additional Pickup Notes</label>
+            <input class="field-input" placeholder="Meeting point, vehicle color, any special instructions…" value="Black Suburban · Arrivals level Terminal 4">
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="btn btn-primary">Save Traveler</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── PART 2: TRAVEL BOARD ── -->
+  <div class="board-header">
+    <div class="board-title">✈️ Travel Board — Mesa Arts Center</div>
+    <div class="board-date-tabs">
+      <button class="date-tab">All</button>
+      <button class="date-tab active">Apr 7</button>
+      <button class="date-tab">Apr 8</button>
+      <button class="date-tab">Apr 9</button>
+    </div>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="summary-strip">
+    <div class="summary-stat">
+      <div class="summary-num">7</div>
+      <div class="summary-lbl">Travelers</div>
+    </div>
+    <div class="summary-stat">
+      <div class="summary-num" style="color:#2ed573;">4</div>
+      <div class="summary-lbl">On Time</div>
+    </div>
+    <div class="summary-stat">
+      <div class="summary-num" style="color:#ffa500;">1</div>
+      <div class="summary-lbl">Delayed</div>
+    </div>
+    <div class="summary-stat">
+      <div class="summary-num" style="color:#58a6ff;">3</div>
+      <div class="summary-lbl">Landed</div>
+    </div>
+  </div>
+
+  <!-- Pickup alerts -->
+  <div class="pickup-alert">
+    <div class="pickup-alert-icon">🚗</div>
+    <div class="pickup-alert-text">
+      <strong>Uber pickup needed at 2:48 PM</strong> — Jon Wellington arrives MIA on AA 1327 (final leg). Uber booked to hotel — confirm 30 min before landing.
+    </div>
+  </div>
+  <div class="pickup-alert" style="margin-bottom:16px;">
+    <div class="pickup-alert-icon">🚗</div>
+    <div class="pickup-alert-text">
+      <strong>Pickup needed at 11:42 AM</strong> — Marcus Webb arrives PHX on AA 5998. Driver: Ray · Black Suburban · Arrivals level
+    </div>
+  </div>
+
+  <!-- ── Chronological timeline ── -->
+  <div class="timeline-strip">
+    <div class="timeline-strip-title"><span class="live-dot"></span> Live — Monday Apr 7 · All Arrivals</div>
+    <div class="timeline-events">
+      <div class="timeline-event">
+        <div class="te-time">7:52 AM</div>
+        <div class="te-info">
+          Jon Wellington landed CLT
+          <small>AA 3842 · XNA → CLT · Connection</small>
+        </div>
+        <div class="te-badge"><span class="badge badge-landed">✈ Landed</span></div>
+      </div>
+      <div class="timeline-event">
+        <div class="te-time">8:25 AM</div>
+        <div class="te-info">
+          Marcus Webb landed CLT
+          <small>AA 1659 · BUF → CLT · Connection</small>
+        </div>
+        <div class="te-badge"><span class="badge badge-landed">✈ Landed</span></div>
+      </div>
+      <div class="timeline-event">
+        <div class="te-time">10:15 AM</div>
+        <div class="te-info">
+          Jordan Price arrives PHX
+          <small>UA 3847 · DEN → PHX · Final leg</small>
+        </div>
+        <div class="te-badge"><span class="badge badge-ontime">● On Time</span></div>
+      </div>
+      <div class="timeline-event">
+        <div class="te-time">11:00 AM</div>
+        <div class="te-info">
+          Tanya Rhodes — currently boarding
+          <small>DL 204 · ATL → PHX · Seat 14A</small>
+        </div>
+        <div class="te-badge"><span class="badge badge-boarding">⬆ Boarding</span></div>
+      </div>
+      <div class="timeline-event">
+        <div class="te-time">11:42 AM</div>
+        <div class="te-info">
+          Marcus Webb arrives PHX 🚗 Pickup
+          <small>AA 5998 · CLT → PHX · Final leg</small>
+        </div>
+        <div class="te-badge"><span class="badge badge-ontime">● On Time</span></div>
+      </div>
+      <div class="timeline-event">
+        <div class="te-time">1:30 PM</div>
+        <div class="te-info">
+          Devon Clark arrives PHX — <span style="color:#ffa500;">+47 min delay</span>
+          <small>WN 1192 · LAS → PHX · Weather delay</small>
+        </div>
+        <div class="te-badge"><span class="badge badge-delayed">⚠ Delayed</span></div>
+      </div>
+      <div class="timeline-event">
+        <div class="te-time">2:48 PM</div>
+        <div class="te-info">
+          Jon Wellington arrives MIA 🚗 Uber
+          <small>AA 1327 · CLT → MIA · Final leg · Seat 12C</small>
+        </div>
+        <div class="te-badge"><span class="badge badge-ontime">● On Time</span></div>
+      </div>
+      <div class="timeline-event">
+        <div class="te-time">3:55 PM</div>
+        <div class="te-info">
+          Chris Vega arrives PHX
+          <small>AA 447 · ORD → PHX · Non-stop</small>
+        </div>
+        <div class="te-badge"><span class="badge badge-upcoming">— Upcoming</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Traveler cards ── -->
+  <div class="traveler-row">
+    <div class="traveler-row-main">
+      <div>
+        <div class="traveler-name">Jon Wellington</div>
+        <div class="traveler-role">GenX Staff · Advance Security</div>
+        <div class="traveler-conf">Conf: <span>BRTXQP</span> · American Airlines</div>
+      </div>
+      <div class="legs-list">
+        <div class="leg">
+          <div class="leg-flight">AA 3842</div>
+          <div class="leg-route">XNA <span>→</span> CLT</div>
+          <div class="leg-time">5:45 AM → 7:52 AM</div>
+          <div class="leg-status"><span class="badge badge-landed">✈ Landed 7:49 AM</span></div>
+        </div>
+        <div class="leg">
+          <div class="leg-flight">AA 1327</div>
+          <div class="leg-route">CLT <span>→</span> MIA</div>
+          <div class="leg-time">10:15 AM → 2:48 PM</div>
+          <div class="leg-status"><span class="badge badge-ontime">● On Time</span></div>
+        </div>
+      </div>
+      <div class="traveler-actions">
+        <button class="icon-btn" title="Edit">✏️</button>
+        <button class="icon-btn" title="Delete" style="color:var(--red);">🗑</button>
+      </div>
+    </div>
+    <!-- Pickup strip -->
+    <div style="padding:10px 18px;border-top:1px solid rgba(88,166,255,0.15);background:rgba(88,166,255,0.04);display:flex;align-items:center;gap:10px;">
+      <span style="font-size:13px;">🚗</span>
+      <span style="font-size:12px;font-weight:700;color:#58a6ff;">Uber / Rideshare</span>
+      <span style="font-size:12px;color:var(--text-3);">Booked to hotel upon arrival · Confirm 30 min before landing · MIA Terminal D Arrivals</span>
+    </div>
+  </div>
+
+  <div class="traveler-row">
+    <div class="traveler-row-main">
+      <div>
+        <div class="traveler-name">Marcus Webb</div>
+        <div class="traveler-role">GenX Staff · Security Lead</div>
+        <div class="traveler-conf">Conf: <span>SWWIVS</span> · American Airlines</div>
+      </div>
+      <div class="legs-list">
+        <div class="leg">
+          <div class="leg-flight">AA 1659</div>
+          <div class="leg-route">BUF <span>→</span> CLT</div>
+          <div class="leg-time">6:19 AM → 8:25 AM</div>
+          <div class="leg-status"><span class="badge badge-landed">✈ Landed 8:22 AM</span></div>
+        </div>
+        <div class="leg">
+          <div class="leg-flight">AA 5998</div>
+          <div class="leg-route">CLT <span>→</span> PHX</div>
+          <div class="leg-time">9:10 AM → 11:42 AM</div>
+          <div class="leg-status"><span class="badge badge-ontime">● On Time</span></div>
+        </div>
+      </div>
+      <div class="traveler-actions">
+        <button class="icon-btn" title="Edit">✏️</button>
+        <button class="icon-btn" title="Delete" style="color:var(--red);">🗑</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="traveler-row">
+    <div class="traveler-row-main">
+      <div>
+        <div class="traveler-name">Devon Clark</div>
+        <div class="traveler-role">GenX Staff · Operations</div>
+        <div class="traveler-conf">Conf: <span>KRTPWZ</span> · Southwest</div>
+      </div>
+      <div class="legs-list">
+        <div class="leg">
+          <div class="leg-flight">WN 1192</div>
+          <div class="leg-route">LAS <span>→</span> PHX</div>
+          <div class="leg-time">12:45 PM → 1:30 PM</div>
+          <div class="leg-status"><span class="badge badge-delayed">⚠ +47 min</span></div>
+        </div>
+      </div>
+      <div class="traveler-actions">
+        <button class="icon-btn" title="Edit">✏️</button>
+        <button class="icon-btn" title="Delete" style="color:var(--red);">🗑</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="traveler-row">
+    <div class="traveler-row-main">
+      <div>
+        <div class="traveler-name">Tanya Rhodes</div>
+        <div class="traveler-role">Talent · Artist</div>
+        <div class="traveler-conf">Conf: <span>MRXQJL</span> · Delta</div>
+      </div>
+      <div class="legs-list">
+        <div class="leg">
+          <div class="leg-flight">DL 204</div>
+          <div class="leg-route">ATL <span>→</span> PHX</div>
+          <div class="leg-time">9:05 AM → 11:00 AM</div>
+          <div class="leg-status"><span class="badge badge-boarding">⬆ Boarding</span></div>
+        </div>
+      </div>
+      <div class="traveler-actions">
+        <button class="icon-btn" title="Edit">✏️</button>
+        <button class="icon-btn" title="Delete" style="color:var(--red);">🗑</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="traveler-row">
+    <div class="traveler-row-main">
+      <div>
+        <div class="traveler-name">Chris Vega</div>
+        <div class="traveler-role">Crew · Tour Manager</div>
+        <div class="traveler-conf">Conf: <span>BPLNVX</span> · American Airlines</div>
+      </div>
+      <div class="legs-list">
+        <div class="leg">
+          <div class="leg-flight">AA 447</div>
+          <div class="leg-route">ORD <span>→</span> PHX</div>
+          <div class="leg-time">1:35 PM → 3:55 PM</div>
+          <div class="leg-status"><span class="badge badge-upcoming">— Upcoming</span></div>
+        </div>
+      </div>
+      <div class="traveler-actions">
+        <button class="icon-btn" title="Edit">✏️</button>
+        <button class="icon-btn" title="Delete" style="color:var(--red);">🗑</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">How it works</div>
+    <ol style="margin:0;padding-left:18px;font-size:13px;color:var(--text-2);line-height:2;">
+      <li>Get the confirmation email → note the flight numbers (AA 1659, etc.)</li>
+      <li>Enter the traveler's name, role, confirmation code, and each flight number</li>
+      <li>App hits FlightAware API and auto-fills route, times, and live status</li>
+      <li>Travel board updates automatically — delays, boarding, landed</li>
+      <li>Pickup alerts surface automatically when someone's final leg arrives</li>
+    </ol>
+  </div>
+
+</div>
+</div>
+<script>
+  function togglePickup(cb) {
+    document.getElementById('pickupDetails').style.display = cb.checked ? '' : 'none';
+  }
+
+  function handlePickupType(val) {
+    ['pickupUber','pickupRental','pickupPersonal','pickupVenue'].forEach(id => {
+      document.getElementById(id).style.display = 'none';
+    });
+    const map = { uber:'pickupUber', rental:'pickupRental', personal:'pickupPersonal', venue:'pickupVenue' };
+    if (map[val]) document.getElementById(map[val]).style.display = '';
+  }
+
+  function setMode(mode, btn) {
+    // Update button styles
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('mode-active'));
+    btn.classList.add('mode-active');
+
+    // Show/hide sections
+    const flying  = document.getElementById('modeFlying');
+    const driving = document.getElementById('modeDriving');
+    const rental  = document.getElementById('modeRental');
+    const local   = document.getElementById('modeLocal');
+    const pickup  = document.getElementById('needsPickup').closest('div').parentElement;
+
+    flying.style.display  = mode === 'flying'  ? '' : 'none';
+    driving.style.display = mode === 'driving' ? '' : 'none';
+    rental.style.display  = mode === 'rental'  ? '' : 'none';
+    local.style.display   = mode === 'local'   ? '' : 'none';
+
+    // Only show pickup option when flying
+    document.getElementById('needsPickup').closest('label').style.display = mode === 'flying' ? '' : 'none';
+    if (mode !== 'flying') document.getElementById('pickupDetails').style.display = 'none';
+  }
+</script>
+</body>
+</html>

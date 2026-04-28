@@ -1,5 +1,8 @@
 'use strict';
 
+// Load .env locally; on Vercel env vars are already injected.
+try { require('dotenv').config(); } catch (_) {}
+
 const express    = require('express');
 const multer     = require('multer');
 const { v4: uuidv4 } = require('uuid');
@@ -9,12 +12,49 @@ const Anthropic  = require('@anthropic-ai/sdk');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
+const db = require('./db');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Trust X-Forwarded-* from one proxy hop (Vercel, Cloudflare, etc.) so req.secure
+// reflects the real client→proxy scheme.
+app.set('trust proxy', 1);
+
+// Public token-form submissions are text-only — keep them tiny. Authenticated brief PUTs
+// can carry base64 photos, so the global limit is higher.
+app.use((req, res, next) => {
+  const len = Number(req.headers['content-length'] || 0);
+  const isPublicForm = /^\/api\/(intake|travel)\//.test(req.path);
+  const limit = isPublicForm ? 512 * 1024 : 25 * 1024 * 1024;
+  if (len > limit) return res.status(413).json({ error: 'Payload too large' });
+  next();
+});
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// CSRF defence-in-depth: block state-changing /api/* requests whose Origin/Referer
+// (when present) doesn't match this host. Public token routes are exempt because
+// they're meant to be hit from venue/talent inboxes that may rewrite the referer.
+app.use((req, res, next) => {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+  if (!req.path.startsWith('/api/')) return next();
+  if (/^\/api\/(intake|travel)\//.test(req.path)) return next();
+  const origin = req.headers.origin || req.headers.referer;
+  if (!origin) return next();
+  try {
+    const u = new URL(origin);
+    if (u.host === req.headers.host) return next();
+  } catch (_) { /* malformed header → block */ }
+  return res.status(403).json({ error: 'Cross-origin request blocked' });
+});
+// Run schema bootstrap + settings load before any /api request is served.
+app.use(async (req, res, next) => {
+  if (!req.path.startsWith('/api/')) return next();
+  try { await ensureInit(); next(); }
+  catch (err) { console.error('init failed:', err); res.status(500).json({ error: 'Server initialising' }); }
+});
+
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
@@ -26,25 +66,11 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 app.use(cookieParser());
 
-// ── Persistence helpers ───────────────────────────────────────────────────────
-const DATA_DIR      = process.env.VERCEL ? '/tmp' : __dirname;
-const SETTINGS_FILE = path.join(DATA_DIR, '.settings.json');
-const BRIEFS_FILE   = path.join(DATA_DIR, '.briefs.json');
-
-function loadJSON(file, fallback) {
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (_) { return fallback; }
-}
-function saveJSON(file, data) {
-  try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); } catch (_) {}
-}
-
-// ── Photo library store ───────────────────────────────────────────────────────
-const PHOTOS_FILE = path.join(DATA_DIR, '.photos.json');
-let photoLibrary = loadJSON(PHOTOS_FILE, []);
-
-// ── Settings store ────────────────────────────────────────────────────────────
-const settings = Object.assign({
-  anthropicKey: process.env.ANTHROPIC_API_KEY || '',
+// ── Settings cache (single source of truth lives in Postgres) ────────────────
+// Settings are read from DB on cold start and after every write. Treat reads
+// as best-effort cached; writes always hit the DB and refresh the cache.
+const SETTINGS_DEFAULTS = {
+  anthropicKey: '',
   orgName: 'GenX Takeover Security',
   orgContact: '', orgEmail: '', orgPhone: '',
   smtpHost: '', smtpPort: 587, smtpUser: '', smtpPass: '',
@@ -52,32 +78,50 @@ const settings = Object.assign({
   notifyEmail: '', appUrl: process.env.APP_URL || '',
   emailSubject: '', emailIntro: '', emailInstructions: '',
   travelContacts: []
-}, loadJSON(SETTINGS_FILE, {}));
+};
+let settings = { ...SETTINGS_DEFAULTS };
 
-// ── Roster store ─────────────────────────────────────────────────────────────
-const ROSTER_FILE = path.join(DATA_DIR, '.roster.json');
-let roster = loadJSON(ROSTER_FILE, []);
-function saveRoster() { saveJSON(ROSTER_FILE, roster); }
+async function refreshSettings() {
+  const stored = await db.getSettings();
+  settings = { ...SETTINGS_DEFAULTS, ...stored };
+  // Env var always wins over DB so a leaked DB row can't override the live key.
+  if (process.env.ANTHROPIC_API_KEY) settings.anthropicKey = process.env.ANTHROPIC_API_KEY;
+}
 
-// ── Travel token store ────────────────────────────────────────────────────────
-const TRAVEL_TOKENS_FILE = path.join(DATA_DIR, '.travel-tokens.json');
-let travelTokens = loadJSON(TRAVEL_TOKENS_FILE, {});
-function saveTravelTokens() { saveJSON(TRAVEL_TOKENS_FILE, travelTokens); }
+async function saveSettings() {
+  // Strip computed/env-overridden fields before persisting (env var always wins on read).
+  const toStore = { ...settings };
+  await db.saveSettings(toStore);
+}
 
-// ── Venue intake token store ───────────────────────────────────────────────────
-const TOKENS_FILE = path.join(DATA_DIR, '.tokens.json');
-let intakeTokens = loadJSON(TOKENS_FILE, {});
-function saveTokens() { saveJSON(TOKENS_FILE, intakeTokens); }
-
-// ── Portal Users Store ────────────────────────────────────────────────────────
-const USERS_FILE = path.join(DATA_DIR, '.users.json');
-let demoUsers = {};
-try { demoUsers = require('./demo-users.json'); } catch (_) { demoUsers = loadJSON(path.join(__dirname, 'demo-users.json'), {}); }
-let portalUsers = Object.assign({}, demoUsers, loadJSON(USERS_FILE, {}));
-function saveUsers() { saveJSON(USERS_FILE, Object.fromEntries(Object.entries(portalUsers).filter(([id]) => !demoUsers[id]))); }
+// ── Init / cold-start bootstrap ───────────────────────────────────────────────
+// Memoised so it runs once per Node process (or once per Vercel cold start).
+let _initPromise = null;
+function ensureInit() {
+  if (!_initPromise) {
+    _initPromise = (async () => {
+      await db.initSchema();
+      await refreshSettings();
+      const dropped = (await db.sweepStaleIntakeTokens()) + (await db.sweepStaleTravelTokens());
+      if (dropped) console.log(`Swept ${dropped} stale tokens.`);
+    })().catch(err => {
+      _initPromise = null; // allow retry on next request
+      throw err;
+    });
+  }
+  return _initPromise;
+}
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
-const SESSION_SECRET = process.env.SESSION_SECRET || 'genx-security-portal-2025';
+let SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    console.error('FATAL: SESSION_SECRET environment variable is required in production. Refusing to start.');
+    process.exit(1);
+  }
+  SESSION_SECRET = crypto.randomBytes(32).toString('hex');
+  console.warn('⚠️  SESSION_SECRET not set — using ephemeral random secret. All sessions will invalidate on restart. Set SESSION_SECRET in your environment to persist sessions.');
+}
 
 function hashPassword(password, salt) {
   if (!salt) salt = crypto.randomBytes(16).toString('hex');
@@ -106,242 +150,72 @@ function verifyToken(token) {
     return data;
   } catch (_) { return null; }
 }
-function requirePortalAuth(req, res, next) {
-  const token = req.cookies?.gxs || req.headers['x-gxs-token'];
-  const data = verifyToken(token);
-  if (!data) return res.status(401).json({ error: 'Not authenticated' });
-  const user = portalUsers[data.userId];
-  if (!user) return res.status(401).json({ error: 'User not found' });
-  req.portalUser = user;
-  next();
+async function requirePortalAuth(req, res, next) {
+  try {
+    const token = req.cookies?.gxs || req.headers['x-gxs-token'];
+    const data = verifyToken(token);
+    if (!data) return res.status(401).json({ error: 'Not authenticated' });
+    const user = await db.getUserById(data.userId);
+    if (!user) return res.status(401).json({ error: 'User not found' });
+    req.portalUser = user;
+    next();
+  } catch (err) { next(err); }
+}
+function requireAdmin(req, res, next) {
+  requirePortalAuth(req, res, () => {
+    if (req.portalUser.role !== 'security') return res.status(403).json({ error: 'Admin access required' });
+    next();
+  });
 }
 
-// ── In-memory store ──────────────────────────────────────────────────────────
-const briefs = new Map();
-
-// ── Demo data (loaded from demo-data.json) ────────────────────────────────────
-let demoBriefs = {};
-try { demoBriefs = require('./demo-data.json'); } catch (_) {
-  demoBriefs = loadJSON(path.join(__dirname, 'demo-data.json'), {});
+// Escape user-supplied values before embedding in HTML (e.g., outbound emails) to prevent injection.
+function escapeHtml(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-Object.entries(demoBriefs).forEach(([id, b]) => briefs.set(id, b));
 
-// Legacy inline demo placeholder (kept for reference, overridden by demo-data.json)
-if (false) { const demoId = 'demo-001'; briefs.set(demoId, {
-  id: demoId,
-  createdAt: new Date('2025-06-10T14:00:00Z').toISOString(),
-  updatedAt: new Date('2025-06-10T18:30:00Z').toISOString(),
-
-  venue: {
-    name:     'Mesa Arts Center',
-    street:   '1 E Main St',
-    city:     'Mesa',
-    state:    'AZ',
-    zip:      '85201',
-    phone:    '(480) 644-6500',
-    capacity: '1900',
-    type:     'Performing Arts Center'
-  },
-
-  hotel: {
-    name:        'Sheraton Mesa Hotel at Wrigleyville West',
-    street:      '860 N Dobson Rd',
-    city:        'Mesa',
-    state:       'AZ',
-    zip:         '85201',
-    phone:       '(480) 664-1221',
-    checkin:     '2025-07-14',
-    checkinTime: '15:00',
-    checkout:    '2025-07-16',
-    checkoutTime:'11:00',
-    roomBlock:   'GenX Takeover',
-    floor:       '4'
-  },
-
-  timeline: {
-    arrivalDate:   '2025-07-14',
-    arrivalTime:   '14:00',
-    mediaDate:     '2025-07-15',
-    mediaTime:     '10:00',
-    showDate:      '2025-07-15',
-    doorsTime:     '18:30',
-    showTime:      '20:00',
-    departureDate: '2025-07-16',
-    departureTime: '09:00',
-    notes: 'All talent to be escorted from hotel to venue. No early access without security presence. Media credential check at Stage Door only.'
-  },
-
-  contacts: {
-    primary: {
-      name:  'Marcus Webb',
-      title: 'Director of Security',
-      email: 'mwebb@genxsecurity.com',
-      phone: '(602) 555-0142',
-      cell:  '(602) 555-8871'
-    },
-    backup: {
-      name:  'Dana Ortiz',
-      title: 'Security Supervisor',
-      email: 'dortiz@genxsecurity.com',
-      phone: '(602) 555-0143',
-      cell:  '(602) 555-9934'
+// Bound untrusted public form payloads so a single field/array can't blow up memory or storage.
+function sanitiseFormBody(value, depth = 0) {
+  const MAX_STR = 5000;
+  const MAX_ARR = 100;
+  const MAX_KEYS = 200;
+  const MAX_DEPTH = 4;
+  if (depth > MAX_DEPTH) return null;
+  if (value == null) return value;
+  if (typeof value === 'string') return value.length > MAX_STR ? value.slice(0, MAX_STR) : value;
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.slice(0, MAX_ARR).map(v => sanitiseFormBody(v, depth + 1));
+  if (typeof value === 'object') {
+    const out = {};
+    let n = 0;
+    for (const [k, v] of Object.entries(value)) {
+      if (n++ >= MAX_KEYS) break;
+      if (typeof k !== 'string' || k.length > 100) continue;
+      out[k] = sanitiseFormBody(v, depth + 1);
     }
-  },
+    return out;
+  }
+  return null;
+}
 
-  ingress: {
-    magnetometer:    true,
-    bagCheck:        true,
-    wand:            true,
-    patDown:         false,
-    visualInspection:true,
-    ticketingType:   'Digital + Physical',
-    gateCount:       '4',
-    gateOpenTime:    '18:00',
-    notes: 'Magnetometers at main entrance (Gates 1 & 2). Bag check at all gates. No bags larger than 12"x6"x12". Clear bag policy in effect.',
-    prohibitedItems: ['Weapons','Outside Food/Beverages','Professional Cameras','Laser Pointers','Selfie Sticks','Backpacks over 12"']
-  },
+// Reject id/token params that look unsafe — long, non-alphanumeric, or prototype keys.
+// This prevents prototype-pollution writes on the token stores (which are plain objects).
+function isSafeIdParam(s) {
+  return typeof s === 'string'
+    && s.length > 0 && s.length <= 64
+    && /^[a-zA-Z0-9_-]+$/.test(s)
+    && s !== '__proto__' && s !== 'constructor' && s !== 'prototype';
+}
+app.param('id', (req, res, next, val) => {
+  if (!isSafeIdParam(val)) return res.status(400).json({ error: 'Invalid id' });
+  next();
+});
+app.param('token', (req, res, next, val) => {
+  if (!isSafeIdParam(val)) return res.status(400).json({ error: 'Invalid token' });
+  next();
+});
 
-  staffing: {
-    totalSecurity:    24,
-    ushers:           12,
-    leo:              4,
-    backstageSecurity:6,
-    vipSecurity:      3,
-    supervisors:      3,
-    uniformed:        true,
-    uniformDesc:      'Black polo shirt with GenX Security patch, black tactical pants, black boots. Supervisors wear red lanyard.',
-    notes: '4 off-duty MCPD officers assigned to perimeter and main entrance. All staff briefed at 17:00 in loading dock.'
-  },
-
-  medical: {
-    onSite:           true,
-    emtCount:         2,
-    aedCount:         4,
-    aedLocations:     'Main lobby (east wall), backstage corridor, VIP lounge, loading dock',
-    firstAidLocations:'Medical station near Gate 2, backstage right',
-    emergencyProtocol:'In case of medical emergency: 1) Call 911 immediately. 2) Notify Command Post. 3) Clear area around patient. 4) Do not move patient unless in immediate danger. 5) Meet EMS at Gate 1.',
-    hospitalName:     'Banner Desert Medical Center',
-    hospitalAddress:  '1400 S Dobson Rd, Mesa, AZ 85202',
-    hospitalPhone:    '(480) 412-3000',
-    announcementMethod:'PA System + Radio'
-  },
-
-  evacuation: {
-    primaryExit:   'Main lobby doors (north facade) to E Main St',
-    secondaryExit: 'Stage door (west side) to loading dock / N Center St',
-    safeRooms:     ['Green Room','Main Office','Loading Dock'],
-    rallyPoint:    'Mesa Convention Center Parking Lot (north side)',
-    eapNotes:      'Evacuation signal: 3 short blasts on venue PA followed by "Please proceed to the nearest exit." Security sweeps begin from rear of venue forward. Do not use elevators.',
-    lockdownProtocol:'Lockdown signal: continuous tone on PA. Lock all perimeter doors. Move patrons to interior rooms. No entry or exit until all-clear from MCPD Command.'
-  },
-
-  meetgreet: {
-    scheduled:    true,
-    time:         '17:30',
-    duration:     '45',
-    location:     'VIP Lounge — Level 2, East Wing',
-    capacity:     '30',
-    protocol:     "Fans escorted in groups of 10 by VIP Security. No gifts over 8\" in any dimension. One photo per fan (no selfies). Talent has final say on all interactions. Security remains within arm's reach at all times.",
-    giftPolicy:   'Handmade items accepted. No food. No liquids. All gifts inspected and tagged. Gifts transported to tour bus post-show.',
-    staffAssigned:3
-  },
-
-  communications: {
-    radios:       true,
-    radioCount:   18,
-    channels: [
-      { ch:'1', use:'Command / All Security' },
-      { ch:'2', use:'Ingress / Gate Teams' },
-      { ch:'3', use:'Backstage / Production' },
-      { ch:'4', use:'VIP / Meet & Greet' },
-      { ch:'5', use:'Medical / Emergency' },
-      { ch:'9', use:'LEO Liaison' }
-    ],
-    commandPost:  'Production Office, Backstage Level — Room 104',
-    commandPhone: '(602) 555-0150',
-    cellOk:       true,
-    notes: 'All supervisors carry both radio and cell. Radio check at 17:00 mandatory. Spare batteries in Command Post.'
-  },
-
-  access: {
-    doorSystem:  'Wiegand Electronic Keycard + PIN (Allegion Schlage)',
-    credentials: [
-      { name:'Artist / Talent',    color:'Red',   level:'All Access' },
-      { name:'Production / Crew',  color:'Blue',  level:'Production Zones' },
-      { name:'Security Staff',     color:'Black', level:'All Access + Armory' },
-      { name:'Press / Media',      color:'Green', level:'Designated Press Areas Only' },
-      { name:'Venue Staff',        color:'White', level:'Front of House' },
-      { name:'VIP Guests',         color:'Gold',  level:'VIP Lounge + Floor' }
-    ],
-    parkingNotes:'Artist / Crew: Loading dock (west side). Security: Lot C. General: Lot A & B (paid). ADA: Designated spaces on north facade. No vehicles in fire lane at any time.'
-  },
-
-  loadinout: {
-    dockLocation:  'West side, N Center St entrance — Gate W1',
-    loadinDate:    '2025-07-15',
-    loadinTime:    '08:00',
-    loadinNotes:   'Production company arrives 08:00. Security check-in required for all vendors. Valid ID + guest list confirmation. No tailgating through security door.',
-    loadoutDate:   '2025-07-15',
-    loadoutTime:   '23:30',
-    loadoutNotes:  'Load-out begins immediately post-show. All talent/crew off-site by 01:00. Tour bus positioned at dock by 22:30.',
-    vehicleCount:  7,
-    securityAtDock:true
-  },
-
-  runofshow: [
-    { time:'08:00', activity:'Venue opens — Production load-in begins',          notes:'2 security at dock. Check all credentials.',                        critical:false },
-    { time:'12:00', activity:'Catering delivery — Backstage only',               notes:'Inspect all containers. Log vendor name.',                          critical:false },
-    { time:'14:00', activity:'Talent arrival — Hotel transfer',                  notes:'Escort team departs hotel at 13:30. Clear Stage Door prior.',        critical:true  },
-    { time:'14:30', activity:'Soundcheck begins',                                notes:'Venue closed to public. Perimeter patrol active.',                   critical:false },
-    { time:'15:30', activity:'Production photo shoot (backstage)',               notes:'Approved media only. Badge check at stage door.',                    critical:false },
-    { time:'17:00', activity:'Security briefing — all staff muster',             notes:'Loading dock. Attendance mandatory.',                                critical:true  },
-    { time:'17:30', activity:'Meet & Greet — VIP Lounge Level 2',               notes:'VIP escort begins. 3 security in room at all times.',                critical:true  },
-    { time:'18:00', activity:'Gate Open — public ingress begins',                notes:'All gates active. Mag sweep and bag check in effect.',               critical:false },
-    { time:'18:30', activity:'Doors open — general admission to floor',          notes:'Monitor crowd density at floor perimeter.',                          critical:false },
-    { time:'19:00', activity:'Opening act — stage security positions',           notes:'Stage left/right barrier monitors deployed.',                        critical:false },
-    { time:'20:00', activity:'MAIN SHOW — GenX Takeover',                       notes:'Full security protocol active. All positions confirmed.',             critical:true  },
-    { time:'21:45', activity:'Encore break — crowd management',                  notes:'Monitor exits and crowd flow. Watch barrier zones.',                 critical:false },
-    { time:'22:00', activity:'Show ends — controlled egress begins',             notes:'Hold VIP until general public clear. Announce exits on PA.',         critical:true  },
-    { time:'22:30', activity:'Talent departure — tour bus',                      notes:'Clear loading dock. Escort to vehicles. Block paparazzi.',           critical:true  },
-    { time:'23:30', activity:'Load-out begins. Venue sweep complete.',           notes:'Final sweep team. Log all incidents. Supervisor sign-off.',          critical:false }
-  ],
-
-  talent: [
-    { name:'Sherri Dindal',  stageName:'Sherri D',      role:'Lead Vocalist',         notes:'No public interaction without security present. Nut allergy — no tree nuts backstage.', photo:'' },
-    { name:'Nick Harrison',  stageName:'Nix',           role:'Lead Guitarist',        notes:'Approved for brief fan interactions at stage barrier. No weapons of any kind in green room.', photo:'' },
-    { name:'Kelly Manno',    stageName:'K-Mano',        role:'Drummer / Percussionist',notes:'Arrives separately. Contact tour manager for arrival ETA. Do not publish room number.', photo:'' },
-    { name:'Jon Wellington', stageName:'Wellington',    role:'Bassist / Keys',        notes:'VIP access only. No photographs without explicit consent.', photo:'' },
-    { name:'Justin Rupple',  stageName:'J. Rupple',     role:'MC / Hype / Vocals',    notes:'May engage crowd near barrier — keep 2 security alongside at all times.', photo:'' }
-  ],
-
-  crew: [
-    { name:'Ray Dominguez', function:'Tour Manager',        phone:'(602) 555-0191', notes:'Primary point of contact for all logistics. All-access.', photo:'' },
-    { name:'Tara Simmons',  function:'Production Manager',  phone:'(602) 555-0192', notes:'Stage and production zone access. Coordinates load-in/out.', photo:'' },
-    { name:'Dev Patel',     function:'Security',            phone:'(602) 555-0193', notes:'Personal security for Sherri Dindal. Armed and licensed (AZ).', photo:'' },
-    { name:'Cass Monroe',   function:'Publicist',           phone:'(602) 555-0194', notes:'Manages all press. Issues media credentials. No media without her approval.', photo:'' },
-    { name:'Hiro Tanaka',   function:'Sound Engineer',      phone:'(602) 555-0195', notes:'FOH position. Requires unobstructed access to mixing board.', photo:'' },
-    { name:'Lena Kovacs',   function:'Wardrobe / Stylist',  phone:'(602) 555-0196', notes:"Backstage access only. Will require dresser's area near green room.", photo:'' }
-  ],
-
-  emergency: [
-    { role:'MCPD Non-Emergency',   name:'Mesa PD Dispatch',           phone:'(480) 644-2211', email:'' },
-    { role:'Venue Security Chief', name:'Tom Briggs',                  phone:'(480) 555-0101', email:'tbriggs@mesaartscenter.com' },
-    { role:'Show Promoter',        name:'Alex Rivera',                 phone:'(602) 555-0177', email:'arivera@genxpresents.com' },
-    { role:'Talent Rep / Agency',  name:'Marcia Stone',                phone:'(310) 555-0188', email:'mstone@stonetalent.com' },
-    { role:'Building Manager',     name:'Facilities Desk',             phone:'(480) 644-6520', email:'facilities@mesaartscenter.com' },
-    { role:'Insurance / Risk',     name:'Greg Holloway',               phone:'(602) 555-0166', email:'gholloway@genxrisk.com' }
-  ],
-
-  maps: [
-    { title:'Venue Floor Plan',    description:'Ground level — FOH, seating, gates',              image:'' },
-    { title:'Backstage Layout',    description:'Dressing rooms, green room, stage access, dock',  image:'' },
-    { title:'Parking & Perimeter', description:'Lots A/B/C, fire lanes, staging areas',           image:'' }
-  ]
-}); } // end if(false)
-
-// Load any saved briefs (overrides / adds to demo data)
-const savedBriefs = loadJSON(BRIEFS_FILE, {});
-Object.entries(savedBriefs).forEach(([id, b]) => briefs.set(id, b));
 
 // ── National crime baseline (FBI UCR 2022) ────────────────────────────────────
 const NATIONAL_2022 = {
@@ -443,7 +317,7 @@ async function fetchVenueCrimeData(city, state, street) {
         };
       }
     }
-  } catch (_) {}
+  } catch (err) { console.warn('FBI state crime API failed:', err.message); }
 
   // Fallback: if state API failed or returned no rates, use embedded UCR 2022 data
   if (!result.state?.violentRate && STATE_CRIME_2022[stateAbbr]) {
@@ -492,7 +366,7 @@ async function fetchVenueCrimeData(city, state, street) {
         }
       }
     }
-  } catch (_) {}
+  } catch (err) { console.warn('FBI city crime API failed:', err.message); }
 
   // 3 — Census ACS data
   try {
@@ -525,7 +399,7 @@ async function fetchVenueCrimeData(city, state, street) {
         }
       }
     }
-  } catch (_) {}
+  } catch (err) { console.warn('Census ACS API failed:', err.message); }
 
   // 4 — Compute CAP-style crime index (100 = national average)
   const base = result.city || result.state;
@@ -543,42 +417,54 @@ async function fetchVenueCrimeData(city, state, street) {
 }
 
 // ── Multer ───────────────────────────────────────────────────────────────────
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+// Generic upload (badges, maps, etc.) — images + PDFs (maps can be floor plans).
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = /^image\//.test(file.mimetype) || file.mimetype === 'application/pdf';
+    cb(ok ? null : new Error('Only images and PDFs are allowed'), ok);
+  }
+});
+// Photo library — images only.
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = /^image\//.test(file.mimetype);
+    cb(ok ? null : new Error('Only image files are allowed'), ok);
+  }
+});
 
 // ── API ──────────────────────────────────────────────────────────────────────
 
-app.get('/api/debug', (req, res) => {
-  let reqResult, reqError;
-  try { reqResult = Object.keys(require('./demo-data.json')); } catch(e) { reqError = e.message; }
-
-  let fsContent, fsError;
-  try { fsContent = fs.readFileSync('/var/task/demo-data.json','utf8').slice(0,80); } catch(e) { fsError = e.message; }
-
-  let briefsFileContent, briefsFileError;
-  try { briefsFileContent = fs.readFileSync('/var/task/.briefs.json','utf8').slice(0,80); } catch(e) { briefsFileError = e.message; }
-
-  res.json({
-    briefCount: briefs.size, briefIds: [...briefs.keys()],
-    VERCEL_ENV: process.env.VERCEL,
-    DATA_DIR: process.env.VERCEL ? '/tmp' : __dirname,
-    BRIEFS_FILE: path.join(process.env.VERCEL ? '/tmp' : __dirname, '.briefs.json'),
-    requireKeys: reqResult, requireError: reqError,
-    demoFilePreview: fsContent, demoFileError: fsError,
-    briefsFilePreview: briefsFileContent, briefsFileError
-  });
+app.get('/api/debug', requireAdmin, async (req, res, next) => {
+  try {
+    const allBriefs = await db.listBriefs();
+    res.json({
+      briefCount: allBriefs.length,
+      briefIds: allBriefs.map(b => b.id),
+      VERCEL_ENV: process.env.VERCEL || null,
+      hasDb: !!process.env.DATABASE_URL,
+      hasSessionSecret: !!process.env.SESSION_SECRET,
+      hasAnthropicKey: !!settings.anthropicKey
+    });
+  } catch (err) { next(err); }
 });
 
 // ── Auth routes ───────────────────────────────────────────────────────────────
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
-  const user = Object.values(portalUsers).find(u => u.email.toLowerCase() === email.toLowerCase().trim());
-  if (!user || !checkPassword(password, user.passwordHash, user.passwordSalt)) {
-    return res.status(401).json({ error: 'Invalid email or password' });
-  }
-  const token = createToken(user.id);
-  res.cookie('gxs', token, { httpOnly: true, secure: process.env.VERCEL ? true : false, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
-  res.json({ ok: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+app.post('/api/auth/login', async (req, res, next) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+    const user = await db.getUserByEmail(email.trim());
+    if (!user || !checkPassword(password, user.passwordHash, user.passwordSalt)) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    const token = createToken(user.id);
+    res.cookie('gxs', token, { httpOnly: true, secure: req.secure || !!process.env.VERCEL, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    res.json({ ok: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+  } catch (err) { next(err); }
 });
 
 app.post('/api/auth/logout', (req, res) => {
@@ -592,139 +478,149 @@ app.get('/api/auth/me', requirePortalAuth, (req, res) => {
 });
 
 // ── Portal routes (for logged-in team members) ────────────────────────────────
-app.get('/api/portal/brief', requirePortalAuth, (req, res) => {
-  const user = req.portalUser;
-  let brief = null;
-  if (user.briefId) {
-    brief = briefs.get(user.briefId);
-  } else {
-    brief = [...briefs.values()].find(b => b.status === 'finalized') || [...briefs.values()][0];
-  }
-  if (!brief) return res.status(404).json({ error: 'No brief available' });
-
-  const role = user.role;
-
-  if (role === 'security') return res.json(brief);
-
-  // talent & crew: full brief minus risk assessment
-  const { riskAssessment, ...briefWithoutRisk } = brief;
-  res.json(briefWithoutRisk);
+app.get('/api/portal/brief', requirePortalAuth, async (req, res, next) => {
+  try {
+    const user = req.portalUser;
+    let brief = null;
+    if (user.briefId) {
+      brief = await db.getBrief(user.briefId);
+    } else {
+      const all = await db.listBriefs();
+      brief = all.find(b => b.status === 'finalized') || all[0] || null;
+    }
+    if (!brief) return res.status(404).json({ error: 'No brief available' });
+    if (user.role === 'security') return res.json(brief);
+    const { riskAssessment, ...briefWithoutRisk } = brief;
+    res.json(briefWithoutRisk);
+  } catch (err) { next(err); }
 });
 
-app.get('/api/portal/briefs', requirePortalAuth, (req, res) => {
-  const user = req.portalUser;
-  let list = [];
-  if (user.briefId) {
-    const b = briefs.get(user.briefId);
-    if (b) list = [b];
-  } else {
-    list = [...briefs.values()];
-  }
-  res.json(list.map(b => ({ id: b.id, venueName: b.venue?.name, city: b.venue?.city, state: b.venue?.state, showDate: b.timeline?.showDate, status: b.status })));
+app.get('/api/portal/briefs', requirePortalAuth, async (req, res, next) => {
+  try {
+    const user = req.portalUser;
+    let list = [];
+    if (user.briefId) {
+      const b = await db.getBrief(user.briefId);
+      if (b) list = [b];
+    } else {
+      list = await db.listBriefs();
+    }
+    res.json(list.map(b => ({ id: b.id, venueName: b.venue?.name, city: b.venue?.city, state: b.venue?.state, showDate: b.timeline?.showDate, status: b.status })));
+  } catch (err) { next(err); }
 });
 
 // ── Admin: User management ────────────────────────────────────────────────────
-app.get('/api/admin/users', (req, res) => {
-  const list = Object.values(portalUsers).map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, briefId: u.briefId, createdAt: u.createdAt }));
-  res.json(list);
+app.get('/api/admin/users', requireAdmin, async (req, res, next) => {
+  try { res.json(await db.listUsers()); } catch (err) { next(err); }
 });
 
-app.post('/api/admin/users', (req, res) => {
-  const { name, email, password, role, briefId } = req.body || {};
-  if (!name || !email || !password || !role) return res.status(400).json({ error: 'name, email, password, role required' });
-  if (Object.values(portalUsers).find(u => u.email.toLowerCase() === email.toLowerCase())) return res.status(409).json({ error: 'Email already exists' });
-  const id = uuidv4();
-  const { hash, salt } = hashPassword(password);
-  portalUsers[id] = { id, name, email, role, briefId: briefId || null, passwordHash: hash, passwordSalt: salt, createdAt: new Date().toISOString() };
-  saveUsers();
-  res.status(201).json({ id, name, email, role });
+app.post('/api/admin/users', requireAdmin, async (req, res, next) => {
+  try {
+    const { name, email, password, role, briefId } = req.body || {};
+    if (!name || !email || !password || !role) return res.status(400).json({ error: 'name, email, password, role required' });
+    if (await db.emailExists(email)) return res.status(409).json({ error: 'Email already exists' });
+    const id = uuidv4();
+    const { hash, salt } = hashPassword(password);
+    await db.insertUser({ id, name, email, role, briefId: briefId || null, passwordHash: hash, passwordSalt: salt });
+    res.status(201).json({ id, name, email, role });
+  } catch (err) { next(err); }
 });
 
-app.patch('/api/admin/users/:id', (req, res) => {
-  const user = portalUsers[req.params.id];
-  if (!user) return res.status(404).json({ error: 'Not found' });
-  const { name, email, role, briefId, password } = req.body || {};
-  if (name) user.name = name;
-  if (email) user.email = email;
-  if (role) user.role = role;
-  if (briefId !== undefined) user.briefId = briefId || null;
-  if (password) { const { hash, salt } = hashPassword(password); user.passwordHash = hash; user.passwordSalt = salt; }
-  saveUsers();
-  res.json({ ok: true });
+app.patch('/api/admin/users/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const user = await db.getUserById(req.params.id);
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    const { name, email, role, briefId, password } = req.body || {};
+    const patch = {};
+    if (name)            patch.name = name;
+    if (email)           patch.email = email;
+    if (role)            patch.role = role;
+    if (briefId !== undefined) patch.briefId = briefId || null;
+    if (password) { const { hash, salt } = hashPassword(password); patch.passwordHash = hash; patch.passwordSalt = salt; }
+    await db.updateUser(req.params.id, patch);
+    res.json({ ok: true });
+  } catch (err) { next(err); }
 });
 
-app.delete('/api/admin/users/:id', (req, res) => {
-  if (!portalUsers[req.params.id]) return res.status(404).json({ error: 'Not found' });
-  delete portalUsers[req.params.id];
-  saveUsers();
-  res.json({ ok: true });
+app.delete('/api/admin/users/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const ok = await db.deleteUser(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) { next(err); }
 });
 
-// Reload any persisted briefs from disk that aren't in memory yet (handles Vercel cold starts)
-function syncBriefsFromDisk() {
-  const saved = loadJSON(BRIEFS_FILE, {});
-  Object.entries(saved).forEach(([id, b]) => { if (!briefs.has(id)) briefs.set(id, b); });
-}
-
-app.get('/api/briefs', (req, res) => {
-  syncBriefsFromDisk();
-  const list = [...briefs.values()].map(b => ({
-    id:        b.id,
-    venueName: b.venue?.name || 'Untitled Brief',
-    city:      b.venue?.city || '',
-    state:     b.venue?.state || '',
-    showDate:  b.timeline?.showDate || '',
-    talent:        (b.talent || []).length,
-    crew:          (b.crew || []).length,
-    genxSecurity:  (b.genxstaff || []).length,
-    status:        b.status || 'draft',
-    updatedAt:     b.updatedAt,
-    createdAt:     b.createdAt,
-    intakeStatus:  b.venueIntake?.status || null,
-    intakeEmail:   b.venueIntake?.venueEmail || null,
-    intakeSentAt:  b.venueIntake?.sentAt || null,
-    intakeDoneAt:  b.venueIntake?.submittedAt || null,
-    riskScore:     b.riskAssessment?.overallScore ?? null,
-    riskLevel:     b.riskAssessment?.riskLevel || null,
-    riskGeneratedAt: b.riskAssessment?.generatedAt || null
-  }));
-  res.json(list);
+app.get('/api/briefs', requireAdmin, async (req, res, next) => {
+  try {
+    const all = await db.listBriefs();
+    res.json(all.map(b => ({
+      id:        b.id,
+      venueName: b.venue?.name || 'Untitled Brief',
+      city:      b.venue?.city || '',
+      state:     b.venue?.state || '',
+      showDate:  b.timeline?.showDate || '',
+      talent:        (b.talent || []).length,
+      crew:          (b.crew || []).length,
+      genxSecurity:  (b.genxstaff || []).length,
+      status:        b.status || 'draft',
+      updatedAt:     b.updatedAt,
+      createdAt:     b.createdAt,
+      intakeStatus:  b.venueIntake?.status || null,
+      intakeEmail:   b.venueIntake?.venueEmail || null,
+      intakeSentAt:  b.venueIntake?.sentAt || null,
+      intakeDoneAt:  b.venueIntake?.submittedAt || null,
+      riskScore:     b.riskAssessment?.overallScore ?? null,
+      riskLevel:     b.riskAssessment?.riskLevel || null,
+      riskGeneratedAt: b.riskAssessment?.generatedAt || null
+    })));
+  } catch (err) { next(err); }
 });
 
-app.post('/api/briefs', (req, res) => {
-  const id  = uuidv4();
-  const now = new Date().toISOString();
-  briefs.set(id, { id, createdAt: now, updatedAt: now, ...req.body });
-  saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
-  res.status(201).json({ id });
+app.post('/api/briefs', requireAdmin, async (req, res, next) => {
+  try {
+    const id  = uuidv4();
+    const now = new Date().toISOString();
+    await db.upsertBrief({ id, createdAt: now, updatedAt: now, ...req.body });
+    res.status(201).json({ id });
+  } catch (err) { next(err); }
 });
 
-app.get('/api/briefs/:id', (req, res) => {
-  syncBriefsFromDisk();
-  const b = briefs.get(req.params.id);
-  if (!b) return res.status(404).json({ error: 'Not found' });
-  res.json(b);
+app.get('/api/briefs/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const b = await db.getBrief(req.params.id);
+    if (!b) return res.status(404).json({ error: 'Not found' });
+    res.json(b);
+  } catch (err) { next(err); }
 });
 
-app.put('/api/briefs/:id', (req, res) => {
-  syncBriefsFromDisk();
-  const existing = briefs.get(req.params.id) || { id: req.params.id, createdAt: new Date().toISOString() };
-  const updated = { ...existing, ...req.body, id: req.params.id, updatedAt: new Date().toISOString() };
-  briefs.set(req.params.id, updated);
-  saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
-  res.json({ ok: true, updatedAt: updated.updatedAt });
+app.put('/api/briefs/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const existing = await db.getBrief(req.params.id) || { id: req.params.id, createdAt: new Date().toISOString() };
+    const updated = { ...existing, ...req.body, id: req.params.id, updatedAt: new Date().toISOString() };
+    await db.upsertBrief(updated);
+    res.json({ ok: true, updatedAt: updated.updatedAt });
+  } catch (err) { next(err); }
 });
 
-app.delete('/api/briefs/:id', (req, res) => {
-  syncBriefsFromDisk();
-  if (!briefs.has(req.params.id)) return res.status(404).json({ error: 'Not found' });
-  briefs.delete(req.params.id);
-  saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
-  res.json({ ok: true });
+app.delete('/api/briefs/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const ok = await db.deleteBrief(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// PIN-gated full API key reveal. PIN is admin-shoulder-surf gate; auth still required.
+const KEY_VIEW_PIN = process.env.KEY_VIEW_PIN || '1300';
+app.post('/api/settings/reveal-key', requireAdmin, (req, res) => {
+  const { pin } = req.body || {};
+  if (!pin || String(pin) !== KEY_VIEW_PIN) return res.status(403).json({ error: 'Invalid PIN' });
+  if (!settings.anthropicKey) return res.status(404).json({ error: 'No key configured' });
+  res.json({ key: settings.anthropicKey });
 });
 
 // ── Settings routes ───────────────────────────────────────────────────────────
-app.get('/api/settings', (req, res) => {
+app.get('/api/settings', requireAdmin, (req, res) => {
   const maskedKey  = settings.anthropicKey ? 'sk-ant-....' + settings.anthropicKey.slice(-6) : '';
   const maskedPass = settings.smtpPass ? '••••••••' : '';
   res.json({
@@ -736,42 +632,60 @@ app.get('/api/settings', (req, res) => {
   });
 });
 
-app.put('/api/settings', (req, res) => {
-  const { anthropicKey, orgName, orgContact, orgEmail, orgPhone,
-          smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, smtpFromName,
-          notifyEmail, appUrl,
-          emailSubject, emailIntro, emailInstructions } = req.body;
-  if (anthropicKey !== undefined && !anthropicKey.startsWith('sk-ant-....')) settings.anthropicKey = anthropicKey;
-  if (orgName      !== undefined) settings.orgName      = orgName;
-  if (orgContact   !== undefined) settings.orgContact   = orgContact;
-  if (orgEmail     !== undefined) settings.orgEmail     = orgEmail;
-  if (orgPhone     !== undefined) settings.orgPhone     = orgPhone;
-  if (smtpHost     !== undefined) settings.smtpHost     = smtpHost;
-  if (smtpPort     !== undefined) settings.smtpPort     = smtpPort;
-  if (smtpUser     !== undefined) settings.smtpUser     = smtpUser;
-  if (smtpPass !== undefined && smtpPass !== '••••••••') settings.smtpPass = smtpPass;
-  if (smtpFrom     !== undefined) settings.smtpFrom     = smtpFrom;
-  if (smtpFromName !== undefined) settings.smtpFromName = smtpFromName;
-  if (notifyEmail        !== undefined) settings.notifyEmail        = notifyEmail;
-  if (appUrl             !== undefined) settings.appUrl             = appUrl;
-  if (emailSubject       !== undefined) settings.emailSubject       = emailSubject;
-  if (emailIntro         !== undefined) settings.emailIntro         = emailIntro;
-  if (emailInstructions  !== undefined) settings.emailInstructions  = emailInstructions;
-  if (Array.isArray(req.body.travelContacts)) settings.travelContacts = req.body.travelContacts;
-  saveJSON(SETTINGS_FILE, settings);
-  res.json({ ok: true, hasKey: !!settings.anthropicKey, hasSmtp: !!(settings.smtpHost && settings.smtpUser && settings.smtpPass) });
+app.put('/api/settings', requireAdmin, async (req, res, next) => {
+  try {
+    const { anthropicKey, orgName, orgContact, orgEmail, orgPhone,
+            smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, smtpFromName,
+            notifyEmail, appUrl,
+            emailSubject, emailIntro, emailInstructions } = req.body;
+    if (anthropicKey !== undefined && !anthropicKey.startsWith('sk-ant-....')) settings.anthropicKey = anthropicKey;
+    if (orgName      !== undefined) settings.orgName      = orgName;
+    if (orgContact   !== undefined) settings.orgContact   = orgContact;
+    if (orgEmail     !== undefined) settings.orgEmail     = orgEmail;
+    if (orgPhone     !== undefined) settings.orgPhone     = orgPhone;
+    if (smtpHost     !== undefined) settings.smtpHost     = smtpHost;
+    if (smtpPort     !== undefined) settings.smtpPort     = smtpPort;
+    if (smtpUser     !== undefined) settings.smtpUser     = smtpUser;
+    if (smtpPass !== undefined && smtpPass !== '••••••••') settings.smtpPass = smtpPass;
+    if (smtpFrom     !== undefined) settings.smtpFrom     = smtpFrom;
+    if (smtpFromName !== undefined) settings.smtpFromName = smtpFromName;
+    if (notifyEmail        !== undefined) settings.notifyEmail        = notifyEmail;
+    if (appUrl             !== undefined) settings.appUrl             = appUrl;
+    if (emailSubject       !== undefined) settings.emailSubject       = emailSubject;
+    if (emailIntro         !== undefined) settings.emailIntro         = emailIntro;
+    if (emailInstructions  !== undefined) settings.emailInstructions  = emailInstructions;
+    if (Array.isArray(req.body.travelContacts)) settings.travelContacts = req.body.travelContacts;
+    await saveSettings();
+    res.json({ ok: true, hasKey: !!settings.anthropicKey, hasSmtp: !!(settings.smtpHost && settings.smtpUser && settings.smtpPass) });
+  } catch (err) { next(err); }
+});
+
+// ── ROS Template ─────────────────────────────────────────────────────────────
+app.get('/api/ros-template', requireAdmin, (req, res) => {
+  res.json(settings.rosTemplate || []);
+});
+app.put('/api/ros-template', requireAdmin, async (req, res, next) => {
+  try {
+    const rows = req.body;
+    if (!Array.isArray(rows)) return res.status(400).json({ error: 'Expected array' });
+    settings.rosTemplate = rows;
+    await saveSettings();
+    res.json({ ok: true });
+  } catch (err) { next(err); }
 });
 
 // ── Risk Assessment ───────────────────────────────────────────────────────────
-app.get('/api/risk/:id', (req, res) => {
-  const brief = briefs.get(req.params.id);
-  if (!brief) return res.status(404).json({ error: 'Brief not found' });
-  if (!brief.riskAssessment) return res.status(404).json({ error: 'No saved assessment' });
-  res.json(brief.riskAssessment);
+app.get('/api/risk/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const brief = await db.getBrief(req.params.id);
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+    if (!brief.riskAssessment) return res.status(404).json({ error: 'No saved assessment' });
+    res.json(brief.riskAssessment);
+  } catch (err) { next(err); }
 });
 
-app.post('/api/risk/:id', async (req, res) => {
-  const brief = briefs.get(req.params.id);
+app.post('/api/risk/:id', requireAdmin, async (req, res) => {
+  const brief = await db.getBrief(req.params.id);
   if (!brief) return res.status(404).json({ error: 'Brief not found' });
   if (!settings.anthropicKey) return res.status(400).json({ error: 'No API key configured. Add your Anthropic key in Settings.' });
 
@@ -884,8 +798,7 @@ Return this exact JSON structure:
 
     // Save assessment to brief so it can be loaded without regenerating
     brief.riskAssessment = assessment;
-    briefs.set(req.params.id, brief);
-    saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+    await db.upsertBrief(brief);
 
     res.json(assessment);
   } catch (err) {
@@ -894,7 +807,7 @@ Return this exact JSON structure:
   }
 });
 
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post('/api/upload', requireAdmin, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   const b64  = req.file.buffer.toString('base64');
   const mime = req.file.mimetype;
@@ -902,52 +815,31 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 });
 
 // ── Photo Library ─────────────────────────────────────────────────────────────
-const UPLOADS_DIR = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-
-// Migrate any existing base64 photos to files on startup (skip on Vercel — no persistent /public/uploads)
-(function migrateBase64Photos() {
-  if (process.env.VERCEL) return;
-  let changed = false;
-  photoLibrary = photoLibrary.map(p => {
-    if (p.url && p.url.startsWith('data:')) {
-      try {
-        const m = p.url.match(/^data:([^;]+);base64,(.+)$/);
-        if (!m) return p;
-        const ext = m[1].split('/')[1]?.replace('jpeg','jpg') || 'jpg';
-        const filename = `${p.id}.${ext}`;
-        fs.writeFileSync(path.join(UPLOADS_DIR, filename), Buffer.from(m[2], 'base64'));
-        changed = true;
-        return { ...p, url: `/uploads/${filename}` };
-      } catch (_) { return p; }
-    }
-    return p;
-  });
-  if (changed) saveJSON(PHOTOS_FILE, photoLibrary);
-})();
-
-app.get('/api/photos', (req, res) => {
-  res.json(photoLibrary.map(p => ({ id: p.id, name: p.name, url: p.url, addedAt: p.addedAt })));
+// Photos are stored as data: URLs in Postgres. Could later move to Vercel Blob.
+app.get('/api/photos', requireAdmin, async (req, res, next) => {
+  try { res.json(await db.listPhotos()); } catch (err) { next(err); }
 });
 
-app.post('/api/photos', upload.array('files', 100), (req, res) => {
-  if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files' });
-  const added = req.files.map(f => {
-    const id  = uuidv4();
-    const b64 = f.buffer.toString('base64');
-    const url = `data:${f.mimetype};base64,${b64}`;
-    return { id, name: f.originalname, url, addedAt: new Date().toISOString() };
-  });
-  photoLibrary = [...photoLibrary, ...added];
-  saveJSON(PHOTOS_FILE, photoLibrary);
-  res.json({ added: added.length, photos: added });
+app.post('/api/photos', requireAdmin, photoUpload.array('files', 100), async (req, res, next) => {
+  try {
+    if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files' });
+    const added = req.files.map(f => ({
+      id: uuidv4(),
+      name: f.originalname,
+      url: `data:${f.mimetype};base64,${f.buffer.toString('base64')}`,
+      addedAt: new Date().toISOString()
+    }));
+    await db.insertPhotos(added);
+    res.json({ added: added.length, photos: added });
+  } catch (err) { next(err); }
 });
 
-app.delete('/api/photos/:id', (req, res) => {
-  if (!photoLibrary.find(p => p.id === req.params.id)) return res.status(404).json({ error: 'Not found' });
-  photoLibrary = photoLibrary.filter(p => p.id !== req.params.id);
-  saveJSON(PHOTOS_FILE, photoLibrary);
-  res.json({ ok: true });
+app.delete('/api/photos/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const ok = await db.deletePhoto(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) { next(err); }
 });
 
 // ── Email helpers ─────────────────────────────────────────────────────────────
@@ -970,23 +862,29 @@ function venueIntakeEmailHtml(intakeUrl, brief, expiresAt) {
   const exp   = new Date(expiresAt).toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
   const org   = settings.orgName || 'GenX Takeover Security';
 
-  // Use custom template text if set, otherwise fall back to defaults
-  const introText = (settings.emailIntro || `You are receiving this email from the ${org} security team. We have been contracted to provide security services for the upcoming event at [Venue]${date ? ' on [Date]' : ''}.
+  // Templates are admin-controlled but venue/event names come from brief data — escape before substitution.
+  const orgEsc   = escapeHtml(org);
+  const eventEsc = escapeHtml(event);
+  const dateEsc  = escapeHtml(date);
+  const expEsc   = escapeHtml(exp);
+  const urlEsc   = escapeHtml(intakeUrl);
+
+  const introText = escapeHtml(settings.emailIntro || `You are receiving this email from the ${org} security team. We have been contracted to provide security services for the upcoming event at [Venue]${date ? ' on [Date]' : ''}.
 
 As part of our pre-event planning process, we ask that your venue security team complete the attached questionnaire. The information you provide allows us to coordinate effectively with your staff, align on protocols, and build a comprehensive security brief prior to the event.`)
-    .replace(/\[Org\]/g, org)
-    .replace(/\[Venue\]/g, `<strong style="color:#e6edf3;">${event}</strong>`)
-    .replace(/\[Date\]/g, date ? `<strong style="color:#e6edf3;">${date}</strong>` : '');
+    .replace(/\[Org\]/g, orgEsc)
+    .replace(/\[Venue\]/g, `<strong style="color:#e6edf3;">${eventEsc}</strong>`)
+    .replace(/\[Date\]/g, dateEsc ? `<strong style="color:#e6edf3;">${dateEsc}</strong>` : '');
 
-  const instructionsText = (settings.emailInstructions || 'Please fill out as much as you can — not every field will apply to your venue, and nothing is required. Once complete, click Submit and our team will be notified immediately.')
-    .replace(/\[Org\]/g, org)
-    .replace(/\[Venue\]/g, event)
-    .replace(/\[Date\]/g, date);
+  const instructionsText = escapeHtml(settings.emailInstructions || 'Please fill out as much as you can — not every field will apply to your venue, and nothing is required. You can save your progress at any time and return to the link to continue — your answers will be restored automatically. Once complete, click Submit and our team will be notified immediately. A completed copy of the security brief will be provided to your team as well.')
+    .replace(/\[Org\]/g, orgEsc)
+    .replace(/\[Venue\]/g, eventEsc)
+    .replace(/\[Date\]/g, dateEsc);
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0d1117;font-family:'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
 <table width="560" cellpadding="0" cellspacing="0" style="background:#161b22;border-radius:12px;border:1px solid #30363d;overflow:hidden;">
 <tr><td style="background:#e63946;padding:24px 32px;">
-  <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.7);">${org}</p>
+  <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.7);">${orgEsc}</p>
   <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;color:#fff;">Venue Security Questionnaire</h1>
 </td></tr>
 <tr><td style="padding:32px;">
@@ -994,28 +892,30 @@ As part of our pre-event planning process, we ask that your venue security team 
   <p style="margin:0 0 24px;font-size:14px;line-height:1.8;color:#8b949e;white-space:pre-wrap;">${introText}</p>
   <p style="margin:0 0 24px;font-size:14px;line-height:1.8;color:#8b949e;">${instructionsText}</p>
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0 28px;">
-    <a href="${intakeUrl}" style="display:inline-block;background:#e63946;color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:15px;">Complete Questionnaire →</a>
+    <a href="${urlEsc}" style="display:inline-block;background:#e63946;color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:15px;">Complete Questionnaire →</a>
   </td></tr></table>
   <p style="margin:0 0 8px;font-size:13px;color:#8b949e;">Or copy this link into your browser:</p>
-  <p style="margin:0 0 24px;font-size:12px;color:#58a6ff;word-break:break-all;">${intakeUrl}</p>
+  <p style="margin:0 0 24px;font-size:12px;color:#58a6ff;word-break:break-all;">${urlEsc}</p>
   <table width="100%" cellpadding="12" cellspacing="0" style="background:#0d1117;border-radius:8px;border:1px solid #30363d;margin-bottom:24px;">
     <tr><td style="font-size:12px;color:#8b949e;line-height:1.8;">
-      <strong style="color:#e6edf3;">Important:</strong> This link is valid until <strong style="color:#e6edf3;">${exp}</strong> and can only be used once. Once you submit, access to the questionnaire will close automatically.<br><br>
+      <strong style="color:#e6edf3;">Important:</strong> This link is valid until <strong style="color:#e6edf3;">${expEsc}</strong> and can only be used once. Once you submit, access to the questionnaire will close automatically.<br><br>
       If you have any questions or need to reach our team directly, please reply to this email.
     </td></tr>
   </table>
   <p style="margin:0 0 4px;font-size:13px;color:#e6edf3;font-weight:600;">Thank you for your cooperation.</p>
-  <p style="margin:0;font-size:12px;color:#484f58;">— ${org} Security Operations</p>
+  <p style="margin:0;font-size:12px;color:#484f58;">— ${orgEsc} Security Operations</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
 }
 
 function intakeNotificationEmailHtml(brief, token, briefUrl, data) {
-  const venue = brief?.venue?.name || token.venueName || 'Unknown Venue';
-  const date  = brief?.timeline?.showDate || '';
-  const rows  = Object.entries(data).map(([k, v]) => {
-    const label = k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
-    return `<tr><td style="padding:6px 8px;font-size:12px;color:#8b949e;white-space:nowrap;border-bottom:1px solid #21262d;">${label}</td><td style="padding:6px 8px;font-size:12px;color:#e6edf3;border-bottom:1px solid #21262d;">${String(v||'').slice(0,200)}</td></tr>`;
+  const venue = escapeHtml(brief?.venue?.name || token.venueName || 'Unknown Venue');
+  const date  = escapeHtml(brief?.timeline?.showDate || '');
+  const url   = escapeHtml(briefUrl);
+  const rows  = Object.entries(data || {}).map(([k, v]) => {
+    const label = escapeHtml(String(k).replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()));
+    const value = escapeHtml(String(v == null ? '' : v).slice(0, 200));
+    return `<tr><td style="padding:6px 8px;font-size:12px;color:#8b949e;white-space:nowrap;border-bottom:1px solid #21262d;">${label}</td><td style="padding:6px 8px;font-size:12px;color:#e6edf3;border-bottom:1px solid #21262d;">${value}</td></tr>`;
   }).join('');
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0d1117;font-family:'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
@@ -1032,14 +932,14 @@ function intakeNotificationEmailHtml(brief, token, briefUrl, data) {
     ${rows}
   </table>
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:4px 0 8px;">
-    <a href="${briefUrl}" style="display:inline-block;background:#e63946;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:14px;">Open Brief & Apply Updates</a>
+    <a href="${url}" style="display:inline-block;background:#e63946;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:14px;">Open Brief & Apply Updates</a>
   </td></tr></table>
 </td></tr>
 </table></td></tr></table></body></html>`;
 }
 
 // ── Test email route ──────────────────────────────────────────────────────────
-app.post('/api/settings/test-email', async (req, res) => {
+app.post('/api/settings/test-email', requireAdmin, async (req, res) => {
   const { to } = req.body;
   if (!to) return res.status(400).json({ error: 'to is required' });
   if (!settings.smtpHost || !settings.smtpUser || !settings.smtpPass) {
@@ -1053,7 +953,7 @@ app.post('/api/settings/test-email', async (req, res) => {
       html: `<div style="font-family:sans-serif;padding:24px;background:#0d1117;color:#e6edf3;border-radius:8px;">
         <h2 style="color:#3fb950;">✓ Email is working!</h2>
         <p style="color:#8b949e;">Your SMTP configuration is set up correctly. Venue intake emails will send successfully.</p>
-        <p style="color:#484f58;font-size:12px;">— ${settings.orgName || 'GenX Takeover Security'}</p>
+        <p style="color:#484f58;font-size:12px;">— ${escapeHtml(settings.orgName || 'GenX Takeover Security')}</p>
       </div>`
     });
     res.json({ ok: true });
@@ -1065,8 +965,8 @@ app.post('/api/settings/test-email', async (req, res) => {
 // ── Venue Intake routes ───────────────────────────────────────────────────────
 
 // Send intake link to venue contact
-app.post('/api/briefs/:id/send-venue-intake', async (req, res) => {
-  const brief = briefs.get(req.params.id);
+app.post('/api/briefs/:id/send-venue-intake', requireAdmin, async (req, res) => {
+  const brief = await db.getBrief(req.params.id);
   if (!brief) return res.status(404).json({ error: 'Brief not found' });
 
   const { venueEmail } = req.body;
@@ -1075,19 +975,14 @@ app.post('/api/briefs/:id/send-venue-intake', async (req, res) => {
     return res.status(400).json({ error: 'Email not configured. Add SMTP settings in Settings.' });
   }
 
-  // Cancel any active tokens for this brief
-  Object.values(intakeTokens).forEach(t => {
-    if (t.briefId === req.params.id && !t.used) t.cancelled = true;
-  });
+  await db.cancelIntakeTokensForBrief(req.params.id);
 
   const token     = uuidv4();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  intakeTokens[token] = { briefId: req.params.id, venueEmail, createdAt: new Date().toISOString(), expiresAt, used: false, cancelled: false };
-  saveTokens();
+  await db.insertIntakeToken({ token, briefId: req.params.id, venueEmail, expiresAt });
 
   brief.venueIntake = { status: 'pending', sentAt: new Date().toISOString(), venueEmail };
-  briefs.set(req.params.id, brief);
-  saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+  await db.upsertBrief(brief);
 
   const appUrl    = (settings.appUrl || `http://localhost:${PORT}`).replace(/\/$/, '');
   const intakeUrl = `${appUrl}/intake/${token}`;
@@ -1104,58 +999,59 @@ app.post('/api/briefs/:id/send-venue-intake', async (req, res) => {
     });
     res.json({ ok: true, expiresAt, intakeUrl });
   } catch (err) {
-    // Revert on email failure
-    delete intakeTokens[token];
-    saveTokens();
+    await db.deleteIntakeToken(token);
     brief.venueIntake = null;
-    briefs.set(req.params.id, brief);
-    saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+    await db.upsertBrief(brief);
     res.status(500).json({ error: 'Failed to send email: ' + err.message });
   }
 });
 
 // Venue fetches intake form data
-app.get('/api/intake/:token', (req, res) => {
-  const t = intakeTokens[req.params.token];
-  if (!t || t.cancelled)                    return res.status(410).json({ error: 'This link is no longer valid.' });
-  if (t.used)                               return res.status(410).json({ error: 'This questionnaire has already been submitted. Thank you!' });
-  if (new Date(t.expiresAt) < new Date())   return res.status(410).json({ error: 'This link has expired. Please contact the security company.' });
-  const brief = briefs.get(t.briefId);
-  res.json({
-    venueName:  brief?.venue?.name   || '',
-    venueStreet:brief?.venue?.street || '',
-    venueCity:  brief?.venue?.city   || '',
-    venueState: brief?.venue?.state  || '',
-    venueZip:   brief?.venue?.zip    || '',
-    eventDate:  brief?.timeline?.showDate || '',
-    orgName:    settings.orgName || 'GenX Takeover Security',
-    expiresAt:  t.expiresAt
-  });
+app.get('/api/intake/:token', async (req, res, next) => {
+  try {
+    const t = await db.getIntakeToken(req.params.token);
+    if (!t || t.cancelled)                    return res.status(410).json({ error: 'This link is no longer valid.' });
+    if (t.used)                               return res.status(410).json({ error: 'This questionnaire has already been submitted. Thank you!' });
+    if (new Date(t.expiresAt) < new Date())   return res.status(410).json({ error: 'This link has expired. Please contact the security company.' });
+    const brief = await db.getBrief(t.briefId);
+    res.json({
+      venueName:  brief?.venue?.name   || '',
+      venueStreet:brief?.venue?.street || '',
+      venueCity:  brief?.venue?.city   || '',
+      venueState: brief?.venue?.state  || '',
+      venueZip:   brief?.venue?.zip    || '',
+      eventDate:  brief?.timeline?.showDate || '',
+      orgName:    settings.orgName || 'GenX Takeover Security',
+      expiresAt:  t.expiresAt
+    });
+  } catch (err) { next(err); }
 });
 
 // Venue submits intake form
-app.post('/api/intake/:token', async (req, res) => {
-  const t = intakeTokens[req.params.token];
+app.post('/api/intake/:token', async (req, res, next) => {
+  try {
+  const t = await db.getIntakeToken(req.params.token);
   if (!t || t.cancelled)                    return res.status(410).json({ error: 'This link is no longer valid.' });
   if (t.used)                               return res.status(410).json({ error: 'Already submitted.' });
   if (new Date(t.expiresAt) < new Date())   return res.status(410).json({ error: 'Link expired.' });
 
-  t.used = true;
-  t.submittedAt = new Date().toISOString();
-  saveTokens();
+  const data = sanitiseFormBody(req.body) || {};
 
-  const brief = briefs.get(t.briefId);
+  await db.markIntakeSubmitted(req.params.token);
+  t.submittedAt = new Date().toISOString();
+
+  const brief = await db.getBrief(t.briefId);
   if (brief) {
     brief.venueIntake = {
       status: 'completed',
       submittedAt: t.submittedAt,
       venueEmail: t.venueEmail,
       sentAt: brief.venueIntake?.sentAt,
-      data: req.body
+      data
     };
 
     // Merge submitted emergency contacts into brief.emergency
-    const submitted = (req.body.emergencyContacts || []).filter(c => c.name || c.phone);
+    const submitted = (data.emergencyContacts || []).filter(c => c && (c.name || c.phone));
     if (submitted.length) {
       if (!Array.isArray(brief.emergency)) brief.emergency = [];
       // Append only contacts not already present (match by name + phone)
@@ -1168,8 +1064,7 @@ app.post('/api/intake/:token', async (req, res) => {
       }
     }
 
-    briefs.set(t.briefId, brief);
-    saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+    await db.upsertBrief(brief);
   }
 
   // Notify Steve
@@ -1182,19 +1077,20 @@ app.post('/api/intake/:token', async (req, res) => {
         from: fromAddress(),
         to: notifyTo,
         subject: `Venue Intake Completed — ${brief?.venue?.name || t.venueEmail}`,
-        html: intakeNotificationEmailHtml(brief, t, briefUrl, req.body)
+        html: intakeNotificationEmailHtml(brief, t, briefUrl, data)
       });
     } catch (err) { console.error('Intake notification email failed:', err.message); }
   }
 
   res.json({ ok: true });
+  } catch (err) { next(err); }
 });
 
 // ── Travel Questionnaire routes ───────────────────────────────────────────────
 
 // Send travel questionnaire to selected contacts
-app.post('/api/briefs/:id/send-travel-questionnaire', async (req, res) => {
-  const brief = briefs.get(req.params.id);
+app.post('/api/briefs/:id/send-travel-questionnaire', requireAdmin, async (req, res) => {
+  const brief = await db.getBrief(req.params.id);
   if (!brief) return res.status(404).json({ error: 'Brief not found' });
   if (!settings.smtpHost || !settings.smtpUser || !settings.smtpPass)
     return res.status(400).json({ error: 'Email not configured. Add SMTP settings in Settings.' });
@@ -1212,35 +1108,33 @@ app.post('/api/briefs/:id/send-travel-questionnaire', async (req, res) => {
 
   for (const contact of contacts) {
     if (!contact.email) continue;
-    // Cancel any un-submitted tokens for this person+brief
-    Object.values(travelTokens).forEach(t => {
-      if (t.briefId === req.params.id && t.email === contact.email && !t.submitted) t.cancelled = true;
-    });
+    await db.cancelTravelTokensFor(req.params.id, contact.email);
     const token = uuidv4();
     const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-    travelTokens[token] = {
-      briefId: req.params.id, name: contact.name, email: contact.email, role: contact.role || '',
-      createdAt: new Date().toISOString(), expiresAt, submitted: false, cancelled: false
-    };
-    saveTravelTokens();
+    await db.insertTravelToken({ token, briefId: req.params.id, name: contact.name, email: contact.email, role: contact.role || '', expiresAt });
     const formUrl = `${appUrl}/travel/${token}`;
     const dateStr = showDate ? new Date(showDate + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }) : '';
+    const orgEsc       = escapeHtml(org);
+    const venueEsc     = escapeHtml(venueName);
+    const nameEsc      = escapeHtml(contact.name || 'there');
+    const dateEsc      = escapeHtml(dateStr);
+    const formUrlEsc   = escapeHtml(formUrl);
     const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0d1117;font-family:'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
 <table width="560" cellpadding="0" cellspacing="0" style="background:#161b22;border-radius:12px;border:1px solid #30363d;overflow:hidden;">
 <tr><td style="background:#58a6ff;padding:24px 32px;">
-  <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.8);">${org}</p>
+  <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.8);">${orgEsc}</p>
   <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;color:#fff;">Travel Info Request ✈️</h1>
 </td></tr>
 <tr><td style="padding:32px;">
-  <p style="margin:0 0 16px;font-size:15px;font-weight:600;color:#e6edf3;">Hi ${contact.name || 'there'},</p>
-  <p style="margin:0 0 20px;font-size:14px;line-height:1.8;color:#8b949e;">We're coordinating travel for <strong style="color:#e6edf3;">${venueName}</strong>${dateStr ? ` on <strong style="color:#e6edf3;">${dateStr}</strong>` : ''}. Please fill out your flight details so we can build the travel brief and coordinate pickups.</p>
+  <p style="margin:0 0 16px;font-size:15px;font-weight:600;color:#e6edf3;">Hi ${nameEsc},</p>
+  <p style="margin:0 0 20px;font-size:14px;line-height:1.8;color:#8b949e;">We're coordinating travel for <strong style="color:#e6edf3;">${venueEsc}</strong>${dateEsc ? ` on <strong style="color:#e6edf3;">${dateEsc}</strong>` : ''}. Please fill out your flight details so we can build the travel brief and coordinate pickups.</p>
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0 28px;">
-    <a href="${formUrl}" style="display:inline-block;background:#58a6ff;color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:15px;">Enter My Travel Info →</a>
+    <a href="${formUrlEsc}" style="display:inline-block;background:#58a6ff;color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:15px;">Enter My Travel Info →</a>
   </td></tr></table>
   <p style="margin:0 0 8px;font-size:13px;color:#8b949e;">Or copy this link:</p>
-  <p style="margin:0 0 24px;font-size:12px;color:#58a6ff;word-break:break-all;">${formUrl}</p>
-  <p style="margin:0;font-size:12px;color:#484f58;">— ${org} Travel Coordination</p>
+  <p style="margin:0 0 24px;font-size:12px;color:#58a6ff;word-break:break-all;">${formUrlEsc}</p>
+  <p style="margin:0;font-size:12px;color:#484f58;">— ${orgEsc} Travel Coordination</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
 
@@ -1252,99 +1146,239 @@ app.post('/api/briefs/:id/send-travel-questionnaire', async (req, res) => {
       });
       sent.push(contact.email);
     } catch (err) {
-      delete travelTokens[token];
+      await db.deleteTravelToken(token);
       failed.push({ email: contact.email, error: err.message });
     }
   }
-
-  saveTravelTokens();
 
   // Store send record on brief
   if (!brief.travel) brief.travel = {};
   if (!brief.travel.questionnaires) brief.travel.questionnaires = [];
   brief.travel.questionnaires.push({ sentAt: new Date().toISOString(), contacts: contacts.map(c => c.email), sent, failed });
-  briefs.set(req.params.id, brief);
-  saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+  await db.upsertBrief(brief);
 
   res.json({ ok: true, sent, failed });
 });
 
 // Traveler fetches their form context
-app.get('/api/travel/:token', (req, res) => {
-  const t = travelTokens[req.params.token];
-  if (!t || t.cancelled) return res.status(410).json({ error: 'This link is no longer valid.' });
-  if (t.submitted)       return res.status(410).json({ error: 'You already submitted your travel info. Thank you!' });
-  if (new Date(t.expiresAt) < new Date()) return res.status(410).json({ error: 'This link has expired. Please contact the team.' });
-  const brief = briefs.get(t.briefId);
-  res.json({
-    name: t.name || '', role: t.role || '',
-    venueName: brief?.venue?.name || '', venueCity: brief?.venue?.city || '', venueState: brief?.venue?.state || '',
-    showDate: brief?.timeline?.showDate || '', hotelName: brief?.hotel?.name || '',
-    checkin: brief?.hotel?.checkin || '', checkout: brief?.hotel?.checkout || '',
-    orgName: settings.orgName || 'GenX Takeover Security',
-    expiresAt: t.expiresAt
-  });
+app.get('/api/travel/:token', async (req, res, next) => {
+  try {
+    const t = await db.getTravelToken(req.params.token);
+    if (!t || t.cancelled) return res.status(410).json({ error: 'This link is no longer valid.' });
+    if (t.submitted)       return res.status(410).json({ error: 'You already submitted your travel info. Thank you!' });
+    if (new Date(t.expiresAt) < new Date()) return res.status(410).json({ error: 'This link has expired. Please contact the team.' });
+    const brief = await db.getBrief(t.briefId);
+    res.json({
+      name: t.name || '', role: t.role || '',
+      venueName: brief?.venue?.name || '', venueCity: brief?.venue?.city || '', venueState: brief?.venue?.state || '',
+      showDate: brief?.timeline?.showDate || '', hotelName: brief?.hotel?.name || '',
+      checkin: brief?.hotel?.checkin || '', checkout: brief?.hotel?.checkout || '',
+      orgName: settings.orgName || 'GenX Takeover Security',
+      expiresAt: t.expiresAt
+    });
+  } catch (err) { next(err); }
 });
 
 // Traveler submits their travel info
-app.post('/api/travel/:token', async (req, res) => {
-  const t = travelTokens[req.params.token];
+app.post('/api/travel/:token', async (req, res, next) => {
+  try {
+  const t = await db.getTravelToken(req.params.token);
   if (!t || t.cancelled) return res.status(410).json({ error: 'This link is no longer valid.' });
   if (t.submitted)       return res.status(410).json({ error: 'Already submitted.' });
   if (new Date(t.expiresAt) < new Date()) return res.status(410).json({ error: 'Link expired.' });
 
-  t.submitted = true;
-  t.submittedAt = new Date().toISOString();
-  saveTravelTokens();
+  const data = sanitiseFormBody(req.body) || {};
 
-  const brief = briefs.get(t.briefId);
+  await db.markTravelSubmitted(req.params.token);
+  t.submittedAt = new Date().toISOString();
+
+  const brief = await db.getBrief(t.briefId);
   if (brief) {
     if (!brief.travel) brief.travel = {};
     if (!brief.travel.responses) brief.travel.responses = [];
     // Replace if already responded (edge case)
     const existing = brief.travel.responses.findIndex(r => r.email === t.email);
-    const record = { name: t.name, email: t.email, role: t.role, submittedAt: t.submittedAt, token: req.params.token, ...req.body };
+    const record = { name: t.name, email: t.email, role: t.role, submittedAt: t.submittedAt, token: req.params.token, ...data };
     if (existing >= 0) brief.travel.responses[existing] = record;
     else brief.travel.responses.push(record);
-    briefs.set(t.briefId, brief);
-    saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+    await db.upsertBrief(brief);
   }
 
   // Notify admin
   const notifyTo = settings.notifyEmail || settings.orgEmail;
   if (notifyTo && settings.smtpHost && settings.smtpUser && settings.smtpPass) {
     try {
+      const whoEsc   = escapeHtml(t.name || t.email);
+      const roleEsc  = escapeHtml(t.role || 'Unknown role');
+      const venEsc   = escapeHtml(brief?.venue?.name || 'Unknown Venue');
+      const rowsHtml = Object.entries(data).map(([k,v]) => {
+        const labelEsc = escapeHtml(String(k).replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase()));
+        const valEsc   = escapeHtml(String(v == null ? '' : v));
+        return `<tr><td style="padding:6px 8px;color:#8b949e;font-size:12px;border-bottom:1px solid #21262d;">${labelEsc}</td><td style="padding:6px 8px;color:#e6edf3;font-size:12px;border-bottom:1px solid #21262d;">${valEsc}</td></tr>`;
+      }).join('');
       await makeTransporter().sendMail({
         from: fromAddress(), to: notifyTo,
         subject: `Travel Response — ${t.name || t.email} · ${brief?.venue?.name || 'Unknown Venue'}`,
         html: `<div style="font-family:sans-serif;padding:24px;background:#0d1117;color:#e6edf3;border-radius:8px;">
           <h2 style="color:#58a6ff;">✈️ Travel Info Submitted</h2>
-          <p style="color:#8b949e;"><strong style="color:#e6edf3;">${t.name || t.email}</strong> (${t.role || 'Unknown role'}) submitted their travel info for <strong style="color:#e6edf3;">${brief?.venue?.name || 'Unknown Venue'}</strong>.</p>
-          <table style="border-collapse:collapse;width:100%;margin-top:16px;">${
-            Object.entries(req.body).map(([k,v]) => `<tr><td style="padding:6px 8px;color:#8b949e;font-size:12px;border-bottom:1px solid #21262d;">${k.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase())}</td><td style="padding:6px 8px;color:#e6edf3;font-size:12px;border-bottom:1px solid #21262d;">${String(v||'')}</td></tr>`).join('')
-          }</table>
+          <p style="color:#8b949e;"><strong style="color:#e6edf3;">${whoEsc}</strong> (${roleEsc}) submitted their travel info for <strong style="color:#e6edf3;">${venEsc}</strong>.</p>
+          <table style="border-collapse:collapse;width:100%;margin-top:16px;">${rowsHtml}</table>
         </div>`
       });
-    } catch (_) {}
+    } catch (err) { console.warn('Travel notification email failed:', err.message); }
   }
 
   res.json({ ok: true });
+  } catch (err) { next(err); }
 });
 
 // Get travel responses for a brief
-app.get('/api/briefs/:id/travel', (req, res) => {
-  const brief = briefs.get(req.params.id);
+app.get('/api/briefs/:id/travel', requireAdmin, async (req, res, next) => {
+  try {
+    const brief = await db.getBrief(req.params.id);
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+    const pendingRows = await db.listPendingTravelForBrief(req.params.id);
+    const pending = pendingRows.map(t => ({ name: t.name, email: t.email, role: t.role, status: 'pending', sentAt: t.createdAt }));
+    res.json({ responses: brief.travel?.responses || [], pending, questionnaires: brief.travel?.questionnaires || [] });
+  } catch (err) { next(err); }
+});
+
+// Cancel a pending travel token (delete by email)
+app.delete('/api/briefs/:id/travel-pending', requireAdmin, async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    await db.cancelTravelTokensFor(req.params.id, email);
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// Resend travel questionnaire to one person
+app.post('/api/briefs/:id/travel-pending/resend', requireAdmin, async (req, res) => {
+  const brief = await db.getBrief(req.params.id);
   if (!brief) return res.status(404).json({ error: 'Brief not found' });
-  // Attach pending tokens too so dashboard shows who hasn't responded yet
-  const pending = Object.entries(travelTokens)
-    .filter(([, t]) => t.briefId === req.params.id && !t.submitted && !t.cancelled && new Date(t.expiresAt) >= new Date())
-    .map(([, t]) => ({ name: t.name, email: t.email, role: t.role, status: 'pending', sentAt: t.createdAt }));
-  res.json({ responses: brief.travel?.responses || [], pending, questionnaires: brief.travel?.questionnaires || [] });
+  if (!settings.smtpHost || !settings.smtpUser || !settings.smtpPass)
+    return res.status(400).json({ error: 'Email not configured.' });
+  const { email, name, role } = req.body;
+  if (!email) return res.status(400).json({ error: 'email required' });
+
+  await db.cancelTravelTokensFor(req.params.id, email);
+
+  const token = uuidv4();
+  const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+  await db.insertTravelToken({ token, briefId: req.params.id, name, email, role: role || '', expiresAt });
+
+  const appUrl    = (settings.appUrl || `http://localhost:${PORT}`).replace(/\/$/, '');
+  const venueName = brief.venue?.name || 'the upcoming show';
+  const showDate  = brief.timeline?.showDate || '';
+  const org       = settings.orgName || 'GenX Takeover Security';
+  const formUrl   = `${appUrl}/travel/${token}`;
+  const dateStr   = showDate ? new Date(showDate + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }) : '';
+
+  const orgEsc     = escapeHtml(org);
+  const nameEsc    = escapeHtml(name || 'there');
+  const venueEsc   = escapeHtml(venueName);
+  const dateEsc    = escapeHtml(dateStr);
+  const formUrlEsc = escapeHtml(formUrl);
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0d1117;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#161b22;border-radius:12px;border:1px solid #30363d;overflow:hidden;">
+<tr><td style="background:#58a6ff;padding:24px 32px;">
+  <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.8);">${orgEsc}</p>
+  <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;color:#fff;">Travel Info Request ✈️</h1>
+</td></tr>
+<tr><td style="padding:32px;">
+  <p style="margin:0 0 16px;font-size:15px;font-weight:600;color:#e6edf3;">Hi ${nameEsc},</p>
+  <p style="margin:0 0 20px;font-size:14px;line-height:1.8;color:#8b949e;">We're coordinating travel for <strong style="color:#e6edf3;">${venueEsc}</strong>${dateEsc ? ` on <strong style="color:#e6edf3;">${dateEsc}</strong>` : ''}. Please fill out your flight details so we can build the travel brief and coordinate pickups.</p>
+  <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0 28px;">
+    <a href="${formUrlEsc}" style="display:inline-block;background:#58a6ff;color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:15px;">Enter My Travel Info →</a>
+  </td></tr></table>
+  <p style="margin:0 0 8px;font-size:13px;color:#8b949e;">Or copy this link:</p>
+  <p style="margin:0 0 24px;font-size:12px;color:#58a6ff;word-break:break-all;">${formUrlEsc}</p>
+  <p style="margin:0;font-size:12px;color:#484f58;">— ${orgEsc} Travel Coordination</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+
+  try {
+    await makeTransporter().sendMail({
+      from: fromAddress(), to: email,
+      subject: `Travel Info Needed — ${venueName}${dateStr ? ' · ' + dateStr : ''}`,
+      html
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    await db.deleteTravelToken(token);
+    res.status(500).json({ error: 'Failed to send: ' + err.message });
+  }
+});
+
+// Delete a submitted travel response
+app.delete('/api/briefs/:id/travel-response', requireAdmin, async (req, res, next) => {
+  try {
+    const brief = await db.getBrief(req.params.id);
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    if (brief.travel?.responses) {
+      brief.travel.responses = brief.travel.responses.filter(r => r.email !== email);
+    }
+    await db.upsertBrief(brief);
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// Cancel venue intake (delete token + clear brief status)
+app.delete('/api/briefs/:id/intake', requireAdmin, async (req, res, next) => {
+  try {
+    const brief = await db.getBrief(req.params.id);
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+    await db.cancelIntakeTokensForBrief(req.params.id);
+    brief.venueIntake = null;
+    await db.upsertBrief(brief);
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// Resend venue intake email (same email, new token)
+app.post('/api/briefs/:id/intake/resend', requireAdmin, async (req, res) => {
+  const brief = await db.getBrief(req.params.id);
+  if (!brief) return res.status(404).json({ error: 'Brief not found' });
+  if (!settings.smtpHost || !settings.smtpUser || !settings.smtpPass)
+    return res.status(400).json({ error: 'Email not configured.' });
+  const venueEmail = brief.venueIntake?.venueEmail;
+  if (!venueEmail) return res.status(400).json({ error: 'No email on record.' });
+
+  await db.cancelIntakeTokensForBrief(req.params.id);
+
+  const token = uuidv4();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  await db.insertIntakeToken({ token, briefId: req.params.id, venueEmail, expiresAt });
+
+  brief.venueIntake = { status: 'pending', sentAt: new Date().toISOString(), venueEmail };
+  await db.upsertBrief(brief);
+
+  const appUrl    = (settings.appUrl || `http://localhost:${PORT}`).replace(/\/$/, '');
+  const intakeUrl = `${appUrl}/intake/${token}`;
+  try {
+    await makeTransporter().sendMail({
+      from: fromAddress(),
+      to: venueEmail,
+      subject: (settings.emailSubject || 'Venue Security Questionnaire — [Event Name]')
+        .replace(/\[Event Name\]/g, brief.venue?.name || 'Security Brief')
+        .replace(/\[Venue\]/g,     brief.venue?.name || 'Security Brief')
+        .replace(/\[Date\]/g,      brief.timeline?.showDate || ''),
+      html: venueIntakeEmailHtml(intakeUrl, brief, expiresAt)
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    await db.deleteIntakeToken(token);
+    res.status(500).json({ error: 'Failed to send: ' + err.message });
+  }
 });
 
 // AI-generate travel brief
-app.post('/api/briefs/:id/generate-travel-brief', async (req, res) => {
-  const brief = briefs.get(req.params.id);
+app.post('/api/briefs/:id/generate-travel-brief', requireAdmin, async (req, res) => {
+  const brief = await db.getBrief(req.params.id);
   if (!brief) return res.status(404).json({ error: 'Brief not found' });
   if (!settings.anthropicKey) return res.status(400).json({ error: 'No API key configured.' });
   const responses = brief.travel?.responses || [];
@@ -1376,8 +1410,7 @@ Format clearly with headers. Be concise and practical. Use 24-hour time where po
     const text = msg.content?.[0]?.text || '';
     if (!brief.travel) brief.travel = {};
     brief.travel.generatedBrief = { text, generatedAt: new Date().toISOString() };
-    briefs.set(req.params.id, brief);
-    saveJSON(BRIEFS_FILE, Object.fromEntries(briefs));
+    await db.upsertBrief(brief);
     res.json({ ok: true, brief: text });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1385,57 +1418,72 @@ Format clearly with headers. Be concise and practical. Use 24-hour time where po
 });
 
 // ── Roster routes ─────────────────────────────────────────────────────────────
-app.get('/api/roster', (req, res) => res.json(roster));
-
-app.post('/api/roster', (req, res) => {
-  const { name, email, role, phone, category, photo } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name is required' });
-  const person = { id: uuidv4(), name, email: email || '', role: role || '', phone: phone || '', category: category || 'crew', photo: photo || '', createdAt: new Date().toISOString() };
-  roster.push(person);
-  saveRoster();
-  res.json(person);
+app.get('/api/roster', requireAdmin, async (req, res, next) => {
+  try { res.json(await db.listRoster()); } catch (err) { next(err); }
 });
 
-app.put('/api/roster/:id', (req, res) => {
-  const idx = roster.findIndex(p => p.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
-  roster[idx] = { ...roster[idx], ...req.body, id: roster[idx].id, createdAt: roster[idx].createdAt };
-  saveRoster();
-  res.json(roster[idx]);
+app.post('/api/roster', requireAdmin, async (req, res, next) => {
+  try {
+    const { name, email, role, phone, category, photo } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+    const person = { id: uuidv4(), name, email: email || '', role: role || '', phone: phone || '', category: category || 'crew', photo: photo || '', createdAt: new Date().toISOString() };
+    await db.insertRosterPerson(person);
+    res.json(person);
+  } catch (err) { next(err); }
 });
 
-app.delete('/api/roster/:id', (req, res) => {
-  const idx = roster.findIndex(p => p.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
-  roster.splice(idx, 1);
-  saveRoster();
-  res.json({ ok: true });
+app.put('/api/roster/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const list = await db.listRoster();
+    const existing = list.find(p => p.id === req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Not found' });
+    const updated = { ...existing, ...req.body, id: existing.id, createdAt: existing.createdAt };
+    await db.updateRosterPerson(req.params.id, updated);
+    res.json(updated);
+  } catch (err) { next(err); }
+});
+
+app.delete('/api/roster/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const ok = await db.deleteRosterPerson(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) { next(err); }
 });
 
 // Import people from all existing briefs into roster
-app.post('/api/roster/import-from-briefs', (req, res) => {
-  const candidates = [];
-  for (const [, brief] of briefs) {
-    for (const p of (brief.talent || [])) {
-      if (p.name) candidates.push({ name: p.name, role: p.role || '', phone: '', email: '', photo: p.photo || '', category: 'talent' });
+app.post('/api/roster/import-from-briefs', requireAdmin, async (req, res, next) => {
+  try {
+    const allBriefs = await db.listBriefs();
+    const roster = await db.listRoster();
+    const candidates = [];
+    for (const brief of allBriefs) {
+      for (const p of (brief.talent || [])) {
+        if (p.name) candidates.push({ name: p.name, stageName: p.stageName || '', role: p.role || '', phone: '', email: '', photo: p.photo || '', category: 'talent' });
+      }
+      for (const p of (brief.crew || [])) {
+        if (p.name) candidates.push({ name: p.name, role: p.function || p.role || '', phone: p.phone || '', email: '', photo: p.photo || '', category: 'crew' });
+      }
+      for (const p of (brief.genxstaff || [])) {
+        if (p.name) candidates.push({ name: p.name, role: p.role || '', phone: p.phone || '', email: p.email || '', photo: p.photo || '', category: 'staff' });
+      }
     }
-    for (const p of (brief.crew || [])) {
-      if (p.name) candidates.push({ name: p.name, role: p.function || p.role || '', phone: p.phone || '', email: '', photo: p.photo || '', category: 'crew' });
+    let added = 0;
+    for (const c of candidates) {
+      const existing = roster.find(r => r.name.toLowerCase() === c.name.toLowerCase() && r.category === c.category);
+      if (!existing) {
+        const person = { id: uuidv4(), ...c, createdAt: new Date().toISOString() };
+        await db.insertRosterPerson(person);
+        roster.push(person);
+        added++;
+      } else if (c.stageName && !existing.stageName) {
+        existing.stageName = c.stageName;
+        await db.updateRosterPerson(existing.id, existing);
+        added++;
+      }
     }
-    for (const p of (brief.genxstaff || [])) {
-      if (p.name) candidates.push({ name: p.name, role: p.role || '', phone: p.phone || '', email: p.email || '', photo: p.photo || '', category: 'staff' });
-    }
-  }
-  let added = 0;
-  for (const c of candidates) {
-    const exists = roster.some(r => r.name.toLowerCase() === c.name.toLowerCase() && r.category === c.category);
-    if (!exists) {
-      roster.push({ id: uuidv4(), ...c, createdAt: new Date().toISOString() });
-      added++;
-    }
-  }
-  if (added) saveRoster();
-  res.json({ added, total: roster.length });
+    res.json({ added, total: roster.length });
+  } catch (err) { next(err); }
 });
 
 // ── Page routes ──────────────────────────────────────────────────────────────
@@ -1452,6 +1500,13 @@ app.get('/roster', (_, res) => res.sendFile(path.join(pub, 'roster.html')));
 app.get('/login',  (_, res) => res.sendFile(path.join(pub, 'login.html')));
 app.get('/portal', (_, res) => res.sendFile(path.join(pub, 'portal.html')));
 app.get('*',           (_, res) => res.sendFile(path.join(pub, 'index.html')));
+
+// Final error handler — catches multer fileFilter rejections, body-parser errors, etc.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err.status || (err.name === 'MulterError' || /Only (images|image)/.test(err.message) ? 400 : 500);
+  res.status(status).json({ error: err.message || 'Server error' });
+});
 
 if (!process.env.VERCEL) {
   app.listen(PORT, () => console.log(`GenX Security running on http://localhost:${PORT}`));

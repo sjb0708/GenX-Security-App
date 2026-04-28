@@ -9,7 +9,7 @@
   <style>
     .roster-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
       gap: 14px;
       margin-top: 24px;
     }
@@ -17,37 +17,39 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 18px;
+      padding: 20px 16px 16px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      align-items: center;
+      gap: 0;
       position: relative;
       transition: border-color 0.15s;
+      text-align: center;
     }
     .roster-card:hover { border-color: var(--border-2); }
-    .roster-card-top { display: flex; align-items: center; gap: 14px; }
     .roster-avatar {
-      width: 48px; height: 48px; border-radius: 50%;
-      background: var(--surface-2); border: 1px solid var(--border);
+      width: 80px; height: 80px; border-radius: 50%;
+      background: var(--surface-2); border: 2px solid var(--border);
       display: flex; align-items: center; justify-content: center;
-      font-size: 17px; font-weight: 800; color: var(--text-2);
-      flex-shrink: 0; overflow: hidden;
+      font-size: 24px; font-weight: 800; color: var(--text-2);
+      overflow: hidden; margin-bottom: 12px; flex-shrink: 0;
     }
     .roster-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .roster-name { font-size: 14px; font-weight: 700; color: var(--text); }
-    .roster-role { font-size: 12px; color: var(--text-2); margin-top: 1px; }
+    .roster-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .roster-role { font-size: 11px; color: var(--text-2); margin-bottom: 6px; }
     .roster-cat {
       font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-      padding: 2px 8px; border-radius: 20px; margin-top: 4px; display: inline-block;
+      padding: 2px 8px; border-radius: 20px; display: inline-block; margin-bottom: 10px;
     }
     .roster-cat.talent { background: rgba(88,166,255,0.12); color: #58a6ff; border: 1px solid rgba(88,166,255,0.3); }
     .roster-cat.crew   { background: rgba(63,185,80,0.1); color: #3fb950; border: 1px solid rgba(63,185,80,0.3); }
     .roster-cat.staff  { background: rgba(230,57,70,0.1); color: var(--red); border: 1px solid rgba(230,57,70,0.3); }
-    .roster-detail { font-size: 11px; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+    .roster-detail { font-size: 11px; color: var(--text-3); display: flex; align-items: center; gap: 5px; justify-content: center; max-width: 100%; overflow: hidden; }
+    .roster-detail span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .roster-detail svg { flex-shrink: 0; }
-    .roster-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .roster-actions { display: flex; gap: 8px; margin-top: 10px; }
     .roster-remove {
-      position: absolute; top: 12px; right: 12px;
+      position: absolute; top: 10px; right: 10px;
       background: transparent; border: none; color: var(--text-3);
       font-size: 18px; cursor: pointer; line-height: 1; padding: 2px 6px;
       border-radius: 4px; transition: all 0.1s;
@@ -132,6 +134,27 @@
   <!-- Roster grid -->
   <div class="roster-grid" id="rosterGrid"></div>
 
+  <!-- Photo Library Picker Modal -->
+  <div id="photoPickerModal" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closePhotoPicker()">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:680px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">Photo Library</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Click a photo to use it, or upload a new one</div>
+        </div>
+        <button onclick="closePhotoPicker()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;line-height:1;padding:4px;">✕</button>
+      </div>
+      <div id="photoPickerGrid" style="padding:16px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;flex:1;"></div>
+      <div id="photoPickerEmpty" style="display:none;padding:40px;text-align:center;color:var(--text-3);font-size:13px;">No photos in library yet — upload some in <a href="/settings" style="color:#58a6ff;">Settings → Photo Library</a></div>
+      <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <label for="fPhotoFile" onclick="closePhotoPicker()" style="font-size:12px;font-weight:600;color:#58a6ff;cursor:pointer;background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.3);border-radius:7px;padding:6px 14px;">
+          + Upload from Computer
+        </label>
+        <button onclick="closePhotoPicker()" style="font-size:12px;font-weight:600;color:var(--text-3);background:transparent;border:1px solid var(--border);border-radius:7px;padding:6px 14px;cursor:pointer;font-family:inherit;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Add / Edit form -->
   <div class="add-form" id="addForm" style="display:none;">
     <div class="add-form-title" id="addFormTitle">Add Person to Roster</div>
@@ -139,12 +162,19 @@
 
       <!-- Photo -->
       <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;">
-        <div id="fPhotoPreview" onclick="document.getElementById('fPhotoFile').click()" style="width:80px;height:80px;border-radius:50%;background:var(--surface-2);border:2px dashed var(--border-2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color 0.15s;position:relative;" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border-2)'">
+        <div id="fPhotoPreview"
+          style="width:80px;height:80px;border-radius:50%;background:var(--surface-2);border:2px dashed var(--border-2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color 0.15s,background 0.15s;position:relative;"
+          onclick="openPhotoPicker()"
+          onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border-2)'"
+          ondragover="event.preventDefault();this.style.borderColor='#58a6ff';this.style.background='rgba(88,166,255,0.1)'"
+          ondragleave="this.style.borderColor='var(--border-2)';this.style.background='var(--surface-2)'"
+          ondrop="event.preventDefault();this.style.borderColor='var(--border-2)';this.style.background='var(--surface-2)';dropRosterPhoto(event)">
           <span id="fPhotoInitials" style="font-size:22px;font-weight:800;color:var(--text-3);">?</span>
           <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);opacity:0;transition:opacity 0.15s;" id="fPhotoOverlay">📷</div>
         </div>
         <input type="file" id="fPhotoFile" accept="image/*" style="display:none;" onchange="previewRosterPhoto(this)">
-        <button type="button" onclick="document.getElementById('fPhotoFile').click()" style="font-size:11px;font-weight:600;color:var(--text-3);background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:inherit;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-3)'">Change Photo</button>
+        <button type="button" onclick="openPhotoPicker()" style="font-size:11px;font-weight:600;color:var(--text-3);background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:inherit;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-2)'" onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">Choose Photo</button>
+        <span style="font-size:9px;color:var(--text-3);text-align:center;">or drag from Finder</span>
       </div>
 
       <!-- Fields -->
@@ -164,6 +194,10 @@
         <div class="f">
           <label>Role / Function</label>
           <input id="fRole" placeholder="Tour Manager">
+        </div>
+        <div class="f">
+          <label>Stage Name</label>
+          <input id="fStageName" placeholder="e.g., The Real Slim Sherri">
         </div>
         <div class="f">
           <label>Phone</label>
@@ -232,23 +266,19 @@ function renderRoster() {
 
   grid.innerHTML = filtered.map(p => {
     const initials = getInitials(p.name);
-    const avatarInner = p.photo
-      ? `<img src="${esc(p.photo)}" alt="">`
-      : initials || '?';
     const catLabel = { talent: 'Talent', crew: 'Crew', staff: 'Staff' }[p.category] || p.category;
     return `
       <div class="roster-card">
-        <button class="roster-remove" onclick="removePerson('${p.id}')" title="Remove from roster">×</button>
-        <div class="roster-card-top">
-          <div class="roster-avatar">${typeof avatarInner === 'string' && p.photo ? avatarInner : `<span style="font-size:17px;font-weight:800;">${initials||'?'}</span>`}</div>
-          <div style="flex:1;min-width:0;">
-            <div class="roster-name">${esc(p.name)}</div>
-            ${p.role ? `<div class="roster-role">${esc(p.role)}</div>` : ''}
-            <span class="roster-cat ${p.category}">${catLabel}</span>
-          </div>
+        <button class="roster-remove" onclick="removePerson('${p.id}')" title="Remove">×</button>
+        <div class="roster-avatar">
+          ${p.photo ? `<img src="${esc(p.photo)}" alt="">` : `<span>${initials||'?'}</span>`}
         </div>
-        ${p.email ? `<div class="roster-detail"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.4"/></svg>${esc(p.email)}</div>` : ''}
-        ${p.phone ? `<div class="roster-detail"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 2h3l1 3-2 1a9 9 0 004 4l1-2 3 1v3a1 1 0 01-1 1A13 13 0 012 3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4"/></svg>${esc(p.phone)}</div>` : ''}
+        <div class="roster-name">${esc(p.name)}</div>
+        ${p.stageName ? `<div style="font-size:11px;font-style:italic;color:#58a6ff;margin-bottom:2px;">${esc(p.stageName)}</div>` : ''}
+        ${p.role ? `<div class="roster-role">${esc(p.role)}</div>` : ''}
+        <span class="roster-cat ${p.category}">${catLabel}</span>
+        ${p.email ? `<div class="roster-detail"><svg width="11" height="11" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.4"/></svg><span>${esc(p.email)}</span></div>` : ''}
+        ${p.phone ? `<div class="roster-detail" style="margin-top:3px;"><svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M3 2h3l1 3-2 1a9 9 0 004 4l1-2 3 1v3a1 1 0 01-1 1A13 13 0 012 3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4"/></svg><span>${esc(p.phone)}</span></div>` : ''}
         <div class="roster-actions">
           <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editPerson('${p.id}')">Edit</button>
         </div>
@@ -280,7 +310,7 @@ function hideAddForm() {
 let _fPhotoData = ''; // base64 or URL of selected photo
 
 function clearForm() {
-  ['fName','fRole','fPhone','fEmail'].forEach(id => document.getElementById(id).value = '');
+  ['fName','fRole','fStageName','fPhone','fEmail'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('fCategory').value = 'crew';
   document.getElementById('addFormError').style.display = 'none';
   document.getElementById('fPhotoFile').value = '';
@@ -313,9 +343,56 @@ function updateFormInitials() {
   }
 }
 
+async function openPhotoPicker() {
+  const modal = document.getElementById('photoPickerModal');
+  const grid  = document.getElementById('photoPickerGrid');
+  const empty = document.getElementById('photoPickerEmpty');
+  modal.style.display = 'flex';
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-3);">Loading…</div>';
+  try {
+    const res    = await fetch('/api/photos');
+    const photos = await res.json();
+    if (!photos.length) {
+      grid.innerHTML = '';
+      empty.style.display = '';
+      return;
+    }
+    empty.style.display = 'none';
+    grid.innerHTML = photos.map(p => `
+      <div onclick="pickLibraryPhoto('${p.id}',\`${p.url}\`)"
+        style="aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color 0.15s,transform 0.15s;background:var(--surface-2);"
+        onmouseover="this.style.borderColor='#58a6ff';this.style.transform='scale(1.04)'"
+        onmouseout="this.style.borderColor='transparent';this.style.transform='scale(1)'">
+        <img src="${p.url}" style="width:100%;height:100%;object-fit:cover;" alt="${p.name||''}">
+      </div>`).join('');
+  } catch (e) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--red);">Failed to load library</div>';
+  }
+}
+
+function closePhotoPicker() {
+  document.getElementById('photoPickerModal').style.display = 'none';
+}
+
+function pickLibraryPhoto(id, url) {
+  _fPhotoData = url;
+  setFormPhoto(url, '');
+  closePhotoPicker();
+}
+
 function previewRosterPhoto(input) {
   const file = input.files?.[0];
   if (!file) return;
+  readPhotoFile(file);
+}
+
+function dropRosterPhoto(event) {
+  const file = event.dataTransfer?.files?.[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  readPhotoFile(file);
+}
+
+function readPhotoFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
     _fPhotoData = e.target.result;
@@ -328,10 +405,11 @@ function editPerson(id) {
   const p = _roster.find(r => r.id === id);
   if (!p) return;
   _editId = id;
-  document.getElementById('fName').value     = p.name  || '';
-  document.getElementById('fRole').value     = p.role  || '';
-  document.getElementById('fPhone').value    = p.phone || '';
-  document.getElementById('fEmail').value    = p.email || '';
+  document.getElementById('fName').value      = p.name      || '';
+  document.getElementById('fRole').value      = p.role      || '';
+  document.getElementById('fStageName').value = p.stageName || '';
+  document.getElementById('fPhone').value     = p.phone     || '';
+  document.getElementById('fEmail').value     = p.email     || '';
   document.getElementById('fCategory').value = p.category || 'crew';
   document.getElementById('addFormError').style.display = 'none';
   document.getElementById('fPhotoFile').value = '';
@@ -345,11 +423,12 @@ function editPerson(id) {
 }
 
 async function savePerson() {
-  const name     = document.getElementById('fName').value.trim();
-  const role     = document.getElementById('fRole').value.trim();
-  const phone    = document.getElementById('fPhone').value.trim();
-  const email    = document.getElementById('fEmail').value.trim();
-  const category = document.getElementById('fCategory').value;
+  const name      = document.getElementById('fName').value.trim();
+  const role      = document.getElementById('fRole').value.trim();
+  const stageName = document.getElementById('fStageName').value.trim();
+  const phone     = document.getElementById('fPhone').value.trim();
+  const email     = document.getElementById('fEmail').value.trim();
+  const category  = document.getElementById('fCategory').value;
 
   if (!name) {
     document.getElementById('addFormError').textContent = 'Name is required.';
@@ -363,7 +442,7 @@ async function savePerson() {
   try {
     const url    = _editId ? `/api/roster/${_editId}` : '/api/roster';
     const method = _editId ? 'PUT' : 'POST';
-    const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, role, phone, email, category, photo: _fPhotoData }) });
+    const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, role, stageName, phone, email, category, photo: _fPhotoData }) });
     const data   = await res.json();
     if (!res.ok) throw new Error(data.error || 'Save failed');
 

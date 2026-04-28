@@ -56,6 +56,15 @@ function formatTime(ts) {
   return `${hr % 12 || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
 }
 
+// True if the show date is before today (any time today still counts as upcoming).
+function isPastShow(ds) {
+  if (!ds) return false;
+  try {
+    const d = new Date(ds.includes('T') ? ds : ds + 'T23:59:59');
+    return d.getTime() < Date.now();
+  } catch (_) { return false; }
+}
+
 function timeAgo(iso) {
   if (!iso) return '';
   const diff = Date.now() - new Date(iso).getTime();
@@ -156,14 +165,20 @@ function renderDashboard(briefs) {
   if (empty) empty.classList.add('hidden');
 
   briefs.forEach((b, i) => {
+    const past = isPastShow(b.showDate);
     const card = document.createElement('div');
-    card.className = `brief-card fade-in-up stagger-${Math.min(i + 1, 5)}`;
+    card.className = `brief-card fade-in-up stagger-${Math.min(i + 1, 5)}${past ? ' brief-card-past' : ''}`;
+    if (past) card.style.opacity = '0.78';
+    const dateColor = past ? 'var(--green, #3fb950)' : 'var(--red)';
     card.innerHTML = `
       <div class="brief-card-top"></div>
       <div class="brief-card-body" onclick="window.location='/brief?id=${esc(b.id)}'">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
-          <div class="brief-card-venue" style="margin-bottom:0;">${esc(b.venueName || 'Untitled Brief')}</div>
-          ${b.showDate ? `<div style="text-align:right;flex-shrink:0;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">Venue Date</div><div style="font-size:12px;font-weight:700;color:var(--red);">${esc(formatDate(b.showDate))}</div></div>` : ''}
+          <div style="display:flex;flex-direction:column;gap:6px;min-width:0;">
+            <div class="brief-card-venue" style="margin-bottom:0;">${esc(b.venueName || 'Untitled Brief')}</div>
+            ${past ? `<span style="display:inline-flex;align-items:center;gap:4px;align-self:flex-start;padding:2px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#3fb950;background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.3);border-radius:4px;">✓ Show Complete</span>` : ''}
+          </div>
+          ${b.showDate ? `<div style="text-align:right;flex-shrink:0;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">Venue Date</div><div style="font-size:12px;font-weight:700;color:${dateColor};">${esc(formatDate(b.showDate))}</div></div>` : ''}
         </div>
         <div class="brief-card-meta">
           ${b.city || b.state ? `<span class="brief-card-location">${esc([b.city, b.state].filter(Boolean).join(', '))}</span>` : ''}
@@ -224,8 +239,12 @@ function intakeBadgeHtml(b) {
     return `<div style="padding:8px 20px 12px;border-top:1px solid rgba(210,153,34,0.25);background:rgba(210,153,34,0.04);">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="font-size:10px;color:#d29922;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">⏳ Awaiting Venue</span>
-        <span style="font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;" title="${esc(b.intakeEmail || '')}">${esc(b.intakeEmail || '')}</span>
-        ${sent ? `<span style="font-size:10px;color:var(--text-3);margin-left:auto;">Sent ${sent}</span>` : ''}
+        <span style="font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;" title="${esc(b.intakeEmail || '')}">${esc(b.intakeEmail || '')}</span>
+        ${sent ? `<span style="font-size:10px;color:var(--text-3);">Sent ${sent}</span>` : ''}
+        <div style="display:flex;gap:6px;margin-left:auto;">
+          <button onclick="event.stopPropagation();resendIntake('${esc(b.id)}')" style="font-size:10px;font-weight:700;color:#58a6ff;background:none;border:1px solid rgba(88,166,255,0.4);border-radius:5px;padding:2px 8px;cursor:pointer;font-family:inherit;">Resend</button>
+          <button onclick="event.stopPropagation();cancelIntake('${esc(b.id)}')" style="font-size:10px;font-weight:700;color:var(--red);background:none;border:1px solid rgba(230,57,70,0.3);border-radius:5px;padding:2px 8px;cursor:pointer;font-family:inherit;">Cancel</button>
+        </div>
       </div>
     </div>`;
   }
@@ -240,6 +259,33 @@ function intakeBadgeHtml(b) {
     </div>`;
   }
   return '';
+}
+
+async function resendIntake(briefId) {
+  try {
+    const r = await fetch(`${API}/api/briefs/${briefId}/intake/resend`, { method: 'POST' });
+    let d = {};
+    try { d = await r.json(); } catch (_) {}
+    if (!r.ok) { toast(d.error || `Server error ${r.status}`, 'error'); return; }
+    toast('Questionnaire resent', 'success');
+    const res = await fetch(`${API}/api/briefs`);
+    allBriefs = await res.json();
+    renderDashboard(allBriefs);
+  } catch (e) { toast('Network error — is the server running?', 'error'); }
+}
+
+async function cancelIntake(briefId) {
+  if (!confirm('Cancel this venue questionnaire? The link will stop working.')) return;
+  try {
+    const r = await fetch(`${API}/api/briefs/${briefId}/intake`, { method: 'DELETE' });
+    let d = {};
+    try { d = await r.json(); } catch (_) {}
+    if (!r.ok) { toast(d.error || `Server error ${r.status}`, 'error'); return; }
+    toast('Questionnaire cancelled', 'success');
+    const res = await fetch(`${API}/api/briefs`);
+    allBriefs = await res.json();
+    renderDashboard(allBriefs);
+  } catch (e) { toast('Network error — is the server running?', 'error'); }
 }
 
 function filterBriefs(q) {
@@ -434,7 +480,7 @@ function populateBrief(b) {
   setVal('rallyPoint',       evac.rallyPoint);
   setVal('eapNotes',         evac.eapNotes);
   setVal('lockdownProtocol', evac.lockdownProtocol);
-  if (evac.safeRooms?.length) evac.safeRooms.forEach(t => addTag('safeRoomsWrap', t));
+  if (evac.safeRooms?.length) document.getElementById('safeRoomInput').value = Array.isArray(evac.safeRooms) ? evac.safeRooms.join('\n') : evac.safeRooms;
 
   // Meet & Greet
   const mg = b.meetgreet || {};
@@ -621,7 +667,7 @@ function collectBrief() {
     evacuation: {
       primaryExit:      val('primaryExit'),
       secondaryExit:    val('secondaryExit'),
-      safeRooms:        getTagValues('safeRoomsWrap'),
+      safeRooms:        (document.getElementById('safeRoomInput')?.value || '').split('\n').map(s => s.trim()).filter(Boolean),
       rallyPoint:       val('rallyPoint'),
       eapNotes:         val('eapNotes'),
       lockdownProtocol: val('lockdownProtocol')
@@ -1015,6 +1061,27 @@ function collectROS() {
       critical: inputs[3]?.checked || false
     };
   });
+}
+
+async function saveROSTemplate() {
+  const rows = collectROS();
+  if (!rows.length) { alert('No rows to save.'); return; }
+  if (!confirm(`Save ${rows.length} rows as the standard Run of Show template?`)) return;
+  const r = await fetch('/api/ros-template', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows) });
+  if (r.ok) showToast('Standard template saved!');
+  else showToast('Failed to save template', 'error');
+}
+
+async function loadROSTemplate() {
+  const r = await fetch('/api/ros-template');
+  const rows = await r.json();
+  if (!rows.length) { alert('No template saved yet. Build your Run of Show and click "Save as Standard Template" first.'); return; }
+  const existing = collectROS().length;
+  if (existing && !confirm(`Replace the current ${existing} rows with the standard template?`)) return;
+  document.getElementById('rosBody').innerHTML = '';
+  rows.forEach(row => addROSRow(row));
+  scheduleSave();
+  showToast('Standard template loaded!');
 }
 
 // ROS drag-and-drop

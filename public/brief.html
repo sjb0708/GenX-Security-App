@@ -252,39 +252,39 @@
       <div class="grid-2">
         <div class="field-group">
           <label class="field-label">Venue Name</label>
-          <input class="field-input" id="venueName" placeholder="Mesa Arts Center" oninput="scheduleSave();updateMapsButtons();updateNav()">
+          <input class="field-input" id="venueName" placeholder="Venue Name" oninput="scheduleSave();updateMapsButtons();updateNav()">
         </div>
         <div class="field-group">
           <label class="field-label">Street Address</label>
-          <input class="field-input" id="venueStreet" placeholder="1 E Main St" oninput="scheduleSave();updateMapsButtons()">
+          <input class="field-input" id="venueStreet" placeholder="Street Address" oninput="scheduleSave();updateMapsButtons()">
         </div>
       </div>
       <div class="grid-3">
         <div class="field-group">
           <label class="field-label">City</label>
-          <input class="field-input" id="venueCity" placeholder="Mesa" oninput="scheduleSave();updateMapsButtons()">
+          <input class="field-input" id="venueCity" placeholder="City" oninput="scheduleSave();updateMapsButtons()">
         </div>
         <div class="field-group">
           <label class="field-label">State</label>
-          <input class="field-input" id="venueState" placeholder="AZ" oninput="scheduleSave()">
+          <input class="field-input" id="venueState" placeholder="ST" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">ZIP</label>
-          <input class="field-input" id="venueZip" placeholder="85201" oninput="scheduleSave()">
+          <input class="field-input" id="venueZip" placeholder="Zip" oninput="scheduleSave()">
         </div>
       </div>
       <div class="grid-4">
         <div class="field-group">
           <label class="field-label">Phone</label>
-          <input class="field-input" id="venuePhone" placeholder="(480) 644-6500" oninput="scheduleSave()">
+          <input class="field-input" id="venuePhone" placeholder="(555) 000-0000" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Capacity</label>
-          <input class="field-input" id="venueCapacity" placeholder="1,900" oninput="scheduleSave()">
+          <input class="field-input" id="venueCapacity" placeholder="Total Capacity" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Total Ticketed</label>
-          <input class="field-input" id="venueTotalTicketed" placeholder="1,750" oninput="scheduleSave()">
+          <input class="field-input" id="venueTotalTicketed" placeholder="Ticketed Count" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Venue Type</label>
@@ -331,30 +331,30 @@
       <div class="grid-2">
         <div class="field-group">
           <label class="field-label">Hotel Name</label>
-          <input class="field-input" id="hotelName" placeholder="Sheraton Mesa Hotel" oninput="scheduleSave()">
+          <input class="field-input" id="hotelName" placeholder="Hotel Name" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Street Address</label>
-          <input class="field-input" id="hotelStreet" placeholder="860 N Dobson Rd" oninput="scheduleSave()">
+          <input class="field-input" id="hotelStreet" placeholder="Street Address" oninput="scheduleSave()">
         </div>
       </div>
       <div class="grid-3">
         <div class="field-group">
           <label class="field-label">City</label>
-          <input class="field-input" id="hotelCity" placeholder="Mesa" oninput="scheduleSave()">
+          <input class="field-input" id="hotelCity" placeholder="City" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">State</label>
-          <input class="field-input" id="hotelState" placeholder="AZ" oninput="scheduleSave()">
+          <input class="field-input" id="hotelState" placeholder="ST" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">ZIP</label>
-          <input class="field-input" id="hotelZip" placeholder="85201" oninput="scheduleSave()">
+          <input class="field-input" id="hotelZip" placeholder="Zip" oninput="scheduleSave()">
         </div>
       </div>
       <div class="field-group" style="max-width:280px;">
         <label class="field-label">Phone</label>
-        <input class="field-input" id="hotelPhone" placeholder="(480) 664-1221" oninput="scheduleSave()">
+        <input class="field-input" id="hotelPhone" placeholder="(555) 000-0000" oninput="scheduleSave()">
       </div>
       <div class="grid-4">
         <div class="field-group">
@@ -532,7 +532,7 @@
   <section class="panel" id="sec-ingress">
     <div class="panel-header">
       <div class="section-icon">🚪</div>
-      <h2>Ingress &amp; Screening</h2>
+      <h2>Entry &amp; Guest Screening</h2>
     </div>
     <div class="panel-body">
       <div class="field-group">
@@ -560,7 +560,7 @@
         </div>
         <div class="field-group">
           <label class="field-label">Total Screening Entry Points</label>
-          <input class="field-input" type="number" id="gateCount" placeholder="4" oninput="scheduleSave()">
+          <input class="field-input" type="number" id="gateCount" placeholder="0" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Gate Open Time</label>
@@ -590,19 +590,19 @@
       <div class="grid-4">
         <div class="field-group">
           <label class="field-label">Total Security</label>
-          <input class="field-input" type="number" id="totalSecurity" placeholder="24" oninput="scheduleSave()">
+          <input class="field-input" type="number" id="totalSecurity" placeholder="0" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Ushers</label>
-          <input class="field-input" type="number" id="ushers" placeholder="12" oninput="scheduleSave()">
+          <input class="field-input" type="number" id="ushers" placeholder="0" oninput="scheduleSave()">
         </div>
         <div class="field-group">
-          <label class="field-label">LEO Officers</label>
-          <input class="field-input" type="number" id="leoCount" placeholder="4" oninput="scheduleSave()">
+          <label class="field-label">Law Enforcement Officers (LEO)</label>
+          <input class="field-input" type="number" id="leoCount" placeholder="0" oninput="scheduleSave()">
         </div>
         <div class="field-group">
-          <label class="field-label">Backstage</label>
-          <input class="field-input" type="number" id="backstageSecurity" placeholder="6" oninput="scheduleSave()">
+          <label class="field-label">Backstage Security</label>
+          <input class="field-input" type="number" id="backstageSecurity" placeholder="0" oninput="scheduleSave()">
         </div>
       </div>
       <div class="field-group" style="max-width:200px;margin-top:4px;">
@@ -653,7 +653,7 @@
       <div class="grid-2" style="max-width:500px;">
         <div class="field-group">
           <label class="field-label">First Responder Count</label>
-          <input class="field-input" type="number" id="firstResponderCount" placeholder="2" oninput="scheduleSave()">
+          <input class="field-input" type="number" id="firstResponderCount" placeholder="0" oninput="scheduleSave()">
         </div>
       </div>
       <div style="display:flex;gap:32px;flex-wrap:wrap;margin-top:12px;margin-bottom:4px;">
@@ -678,7 +678,7 @@
       </div>
       <div class="field-group">
         <label class="field-label">First Aid Station Locations</label>
-        <input class="field-input" id="firstAidLocations" placeholder="Section 101, backstage right…" oninput="scheduleSave()">
+        <input class="field-input" id="firstAidLocations" placeholder="e.g., Main floor left, backstage area, upper concourse…" oninput="scheduleSave()">
       </div>
       <div class="field-group">
         <label class="field-label">Emergency Protocol</label>
@@ -719,14 +719,12 @@
         </div>
       </div>
       <div class="field-group">
-        <label class="field-label">Safe Rooms <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;color:var(--text-3);">(press Enter to add)</span></label>
-        <div class="tag-input-wrap" id="safeRoomsWrap" onclick="document.getElementById('safeRoomInput').focus()">
-          <input class="tag-input-field" id="safeRoomInput" placeholder="Add safe room and press Enter…" onkeydown="handleTagKey(event,'safeRoomsWrap','safeRoomInput')">
-        </div>
+        <label class="field-label">Safe Rooms</label>
+        <textarea class="field-input" id="safeRoomInput" placeholder="e.g., Green Room, Main Office, Loading Dock…" style="min-height:70px;" oninput="scheduleSave()"></textarea>
       </div>
       <div class="field-group">
-        <label class="field-label">Rally Point</label>
-        <input class="field-input" id="rallyPoint" oninput="scheduleSave()">
+        <label class="field-label">Evacuation Rally Point / Assembly Area</label>
+        <input class="field-input" id="rallyPoint" placeholder="e.g., North parking lot, Convention Center east entrance…" oninput="scheduleSave()">
       </div>
       <div class="field-group" style="max-width:300px;">
         <label class="field-label">Evacuation Announcement Method</label>
@@ -739,8 +737,8 @@
         </select>
       </div>
       <div class="field-group">
-        <label class="field-label">EAP Additional Notes</label>
-        <textarea class="field-input" id="eapNotes" placeholder="Exact announcement language for evacuation…" oninput="scheduleSave()"></textarea>
+        <label class="field-label">Evacuation Announcement Text</label>
+        <textarea class="field-input" id="eapNotes" placeholder="Enter the exact PA announcement to use during evacuation…" oninput="scheduleSave()"></textarea>
       </div>
       <div class="field-group">
         <label class="field-label">Lockdown Protocol</label>
@@ -773,25 +771,25 @@
         </div>
         <div class="field-group">
           <label class="field-label">Duration (min)</label>
-          <input class="field-input" type="number" id="mgDuration" placeholder="45" oninput="scheduleSave()">
+          <input class="field-input" type="number" id="mgDuration" placeholder="0" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Location</label>
-          <input class="field-input" id="mgLocation" placeholder="VIP Lounge" oninput="scheduleSave()">
+          <input class="field-input" id="mgLocation" placeholder="e.g., VIP Lounge, Backstage Room…" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Total VIPs</label>
-          <input class="field-input" type="number" id="mgTotalVips" placeholder="30" oninput="scheduleSave()">
+          <input class="field-input" type="number" id="mgTotalVips" placeholder="0" oninput="scheduleSave()">
         </div>
       </div>
       <div class="grid-2" style="max-width:420px;">
         <div class="field-group">
           <label class="field-label">Security Staff Assigned</label>
-          <input class="field-input" type="number" id="mgStaff" placeholder="3" oninput="scheduleSave()">
+          <input class="field-input" type="number" id="mgStaff" placeholder="0" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Total GenX Security Staff</label>
-          <input class="field-input" type="number" id="mgGenxStaff" placeholder="2" oninput="scheduleSave()">
+          <input class="field-input" type="number" id="mgGenxStaff" placeholder="0" oninput="scheduleSave()">
         </div>
       </div>
       <div class="field-group">
@@ -958,7 +956,7 @@
     <div class="panel-body">
       <div class="field-group">
         <label class="field-label">Dock Location</label>
-        <input class="field-input" id="dockLocation" placeholder="Rear Loading Dock — Robson St entrance" oninput="scheduleSave()">
+        <input class="field-input" id="dockLocation" placeholder="e.g., South side loading dock, ground level door" oninput="scheduleSave()">
       </div>
       <div class="grid-3" style="margin-top:4px;">
         <div class="field-group">
@@ -995,7 +993,7 @@
         </div>
         <div class="field-group">
           <label class="field-label">Vehicle Count</label>
-          <input class="field-input" type="number" id="vehicleCount" placeholder="7" oninput="scheduleSave()">
+          <input class="field-input" type="number" id="vehicleCount" placeholder="0" oninput="scheduleSave()">
         </div>
       </div>
       <div class="field-group">
@@ -1009,7 +1007,7 @@
   <section class="panel" id="sec-ros">
     <div class="panel-header">
       <div class="section-icon">📋</div>
-      <h2>Run of Show</h2>
+      <h2>Event Schedule (Run of Show)</h2>
     </div>
     <div class="panel-body p-0">
       <div class="ros-table-wrap">
@@ -1027,8 +1025,10 @@
           <tbody id="rosBody"></tbody>
         </table>
       </div>
-      <div class="ros-add-row">
+      <div class="ros-add-row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-ghost btn-sm" onclick="addROSRow({})">+ Add Row</button>
+        <button class="btn btn-ghost btn-sm" style="border-color:rgba(88,166,255,0.4);color:#58a6ff;" onclick="loadROSTemplate()">📋 Load Standard Template</button>
+        <button class="btn btn-ghost btn-sm" style="border-color:rgba(63,185,80,0.4);color:#3fb950;" onclick="saveROSTemplate()">💾 Save as Standard Template</button>
       </div>
     </div>
   </section>
@@ -1183,114 +1183,149 @@
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:8px;">Travel Mode</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
           <button type="button" onclick="setTravelMode('flying',this)" class="travel-mode-btn travel-mode-active">✈️ Flying</button>
-          <button type="button" onclick="setTravelMode('driving',this)" class="travel-mode-btn">🚗 Driving Personal</button>
-          <button type="button" onclick="setTravelMode('rental',this)" class="travel-mode-btn">🚙 Driving Rental</button>
+          <button type="button" onclick="setTravelMode('driving',this)" class="travel-mode-btn">🚗 Driving</button>
           <button type="button" onclick="setTravelMode('local',this)" class="travel-mode-btn">📍 Already Local</button>
         </div>
 
         <!-- Flying fields -->
         <div id="travelModeFlying">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:8px;">Flight Numbers <span style="color:var(--text-3);font-weight:400;text-transform:none;letter-spacing:0;">(from confirmation email — add one per leg)</span></div>
-          <div id="travelLegsContainer"></div>
-          <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:14px;">
-            <div class="field-group" style="margin:0;max-width:180px;">
-              <label class="field-label">Flight Number</label>
-              <input class="field-input" id="travelFlightInput" placeholder="AA 1659" style="font-family:monospace;" onkeydown="if(event.key==='Enter')addFlightLeg()">
-            </div>
-            <div class="field-group" style="margin:0;max-width:140px;">
-              <label class="field-label">Airline</label>
-              <select class="field-input" id="travelAirline">
-                <option value="AA">American</option>
-                <option value="UA">United</option>
-                <option value="DL">Delta</option>
-                <option value="WN">Southwest</option>
-                <option value="B6">JetBlue</option>
-                <option value="AS">Alaska</option>
-                <option value="F9">Frontier</option>
-                <option value="NK">Spirit</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <button type="button" class="btn btn-ghost btn-sm" onclick="addFlightLeg()" style="height:40px;">+ Add Leg</button>
-          </div>
 
-          <!-- Pickup -->
-          <div style="border-top:1px solid var(--border);padding-top:12px;">
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);cursor:pointer;margin-bottom:10px;">
-              <input type="checkbox" id="travelNeedsPickup" onchange="toggleTravelPickup(this)"> Needs airport pickup
-            </label>
-            <div id="travelPickupFields" style="display:none;">
-              <div style="display:grid;grid-template-columns:180px 1fr;gap:12px;margin-bottom:10px;align-items:flex-start;">
+          <!-- Arrival Flight -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:12px;">🛬 Arrival Flight</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div class="field-group" style="margin:0;">
+                <label class="field-label">Flight Number</label>
+                <input class="field-input" id="travelArrFlight" placeholder="AA 1234" style="font-family:monospace;">
+              </div>
+              <div class="field-group" style="margin:0;">
+                <label class="field-label">Date of Arrival</label>
+                <input class="field-input" id="travelArrDate" type="date">
+              </div>
+            </div>
+            <div id="travelConnectingLegs"></div>
+            <button type="button" onclick="addAdminConnecting()" style="background:none;border:1px dashed var(--border);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;color:var(--text-3);cursor:pointer;width:100%;margin-bottom:14px;font-family:'Montserrat',sans-serif;" onmouseover="this.style.borderColor='#58a6ff';this.style.color='#58a6ff'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">+ Add Connecting Flight</button>
+            <div style="border-top:1px solid var(--border);padding-top:12px;">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:8px;">Airport → Hotel Transportation</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div class="field-group" style="margin:0;">
-                  <label class="field-label">Pickup Type</label>
-                  <select class="field-input" id="travelPickupType" onchange="handleTravelPickupType(this.value)">
+                  <label class="field-label">Getting from airport to hotel</label>
+                  <select class="field-input" id="travelArrTransport" onchange="handleAdminArrTransport(this.value)">
                     <option value="">Select…</option>
-                    <option value="uber">Uber / Rideshare</option>
+                    <option value="uber">Uber / Lyft / Taxi</option>
                     <option value="rental">Rental Car</option>
-                    <option value="personal">Personal Car</option>
-                    <option value="venue">Venue Pickup Service</option>
+                    <option value="personal">Personal Vehicle / Being Picked Up</option>
+                    <option value="tour_bus">Tour Bus / Van</option>
+                    <option value="tbd">Not sure yet</option>
                   </select>
                 </div>
-                <div id="travelPickupUber" style="display:none;">
-                  <div class="field-group" style="margin:0;"><label class="field-label">Notes</label><input class="field-input" id="travelPickupUberNotes" placeholder="Who is booking, instructions…"></div>
+                <div class="field-group" style="margin:0;display:none;" id="travelArrRentalSeatsWrap">
+                  <label class="field-label">Rental — Seats Available</label>
+                  <select class="field-input" id="travelArrRentalSeats">
+                    <option value="">Select…</option>
+                    <option>1 — Just me</option>
+                    <option>2</option><option>3</option><option>4</option>
+                    <option>5</option><option>6</option><option>7</option><option>8+</option>
+                  </select>
                 </div>
-                <div id="travelPickupRental" style="display:none;">
-                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                    <div class="field-group" style="margin:0;"><label class="field-label">Company</label><input class="field-input" id="travelPickupRentalCo" placeholder="Enterprise…"></div>
-                    <div class="field-group" style="margin:0;"><label class="field-label">Vehicle</label><input class="field-input" id="travelPickupRentalVeh" placeholder="SUV · 7 seats"></div>
-                    <div class="field-group" style="margin:0;"><label class="field-label">Conf #</label><input class="field-input" id="travelPickupRentalConf" placeholder="Rental code" style="font-family:monospace;"></div>
-                  </div>
-                </div>
-                <div id="travelPickupPersonal" style="display:none;">
-                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                    <div class="field-group" style="margin:0;"><label class="field-label">Driver</label><input class="field-input" id="travelPickupDriver" placeholder="Driver name"></div>
-                    <div class="field-group" style="margin:0;"><label class="field-label">Vehicle</label><input class="field-input" id="travelPickupVehicle" placeholder="Black Suburban"></div>
-                    <div class="field-group" style="margin:0;"><label class="field-label">Meeting Point</label><input class="field-input" id="travelPickupMeeting" placeholder="Arrivals · Door 4"></div>
-                  </div>
-                </div>
-                <div id="travelPickupVenue" style="display:none;">
-                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                    <div class="field-group" style="margin:0;"><label class="field-label">Company</label><input class="field-input" id="travelPickupVenueCo" placeholder="Mesa Premier Transport"></div>
-                    <div class="field-group" style="margin:0;"><label class="field-label">Contact Name</label><input class="field-input" id="travelPickupVenueContact" placeholder="Ray Dominguez"></div>
-                    <div class="field-group" style="margin:0;"><label class="field-label">Contact Phone</label><input class="field-input" id="travelPickupVenuePhone" placeholder="(480) 555-0198"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="field-group" style="margin:0 0 4px;">
-                <label class="field-label">Additional Pickup Notes</label>
-                <input class="field-input" id="travelPickupNotes" placeholder="Meeting point, vehicle color, special instructions…">
               </div>
             </div>
           </div>
+
+          <!-- Return Flight (optional) -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;margin-bottom:12px;">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">🛫 Return Flight</div>
+              <span style="font-size:11px;color:var(--text-3);margin-left:auto;">Optional</span>
+            </div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);cursor:pointer;margin-bottom:10px;">
+              <input type="checkbox" id="travelHasReturn" onchange="document.getElementById('travelReturnFields').style.display=this.checked?'':'none'"> I have a return flight to enter
+            </label>
+            <div id="travelReturnFields" style="display:none;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label">Flight Number</label>
+                  <input class="field-input" id="travelDepFlight" placeholder="AA 5678" style="font-family:monospace;">
+                </div>
+                <div class="field-group" style="margin:0;">
+                  <label class="field-label">Date of Departure</label>
+                  <input class="field-input" id="travelDepDate" type="date">
+                </div>
+              </div>
+              <div style="border-top:1px solid var(--border);padding-top:12px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:8px;">Hotel → Airport Transportation</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div class="field-group" style="margin:0;">
+                    <label class="field-label">Getting from hotel to airport</label>
+                    <select class="field-input" id="travelDepTransport" onchange="handleAdminDepTransport(this.value)">
+                      <option value="">Select…</option>
+                      <option value="uber">Uber / Lyft / Taxi</option>
+                      <option value="rental">Rental Car</option>
+                      <option value="personal">Personal Vehicle / Being Dropped Off</option>
+                      <option value="tour_bus">Tour Bus / Van</option>
+                      <option value="tbd">Not sure yet</option>
+                    </select>
+                  </div>
+                  <div class="field-group" style="margin:0;display:none;" id="travelDepRentalSeatsWrap">
+                    <label class="field-label">Rental — Seats Available</label>
+                    <select class="field-input" id="travelDepRentalSeats">
+                      <option value="">Select…</option>
+                      <option>1 — Just me</option>
+                      <option>2</option><option>3</option><option>4</option>
+                      <option>5</option><option>6</option><option>7</option><option>8+</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <!-- Driving Personal -->
+        <!-- Driving fields -->
         <div id="travelModeDriving" style="display:none;">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:10px;">
-            <div class="field-group" style="margin:0;"><label class="field-label">Make / Model</label><input class="field-input" id="driveModel" placeholder="Ford F-150…"></div>
-            <div class="field-group" style="margin:0;"><label class="field-label">Color</label><input class="field-input" id="driveColor" placeholder="Black, Silver…"></div>
-            <div class="field-group" style="margin:0;"><label class="field-label">License Plate</label><input class="field-input" id="drivePlate" placeholder="AZ · ABC1234" style="font-family:monospace;"></div>
-            <div class="field-group" style="margin:0;"><label class="field-label">Est. Arrival</label><input class="field-input" type="time" id="driveArrival"></div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:12px;">🚗 Driving Details</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div class="field-group" style="margin:0;">
+                <label class="field-label">Vehicle Type</label>
+                <select class="field-input" id="travelDriveType">
+                  <option value="">Select…</option>
+                  <option value="personal">Personal Vehicle</option>
+                  <option value="rental">Rental Car</option>
+                </select>
+              </div>
+              <div class="field-group" style="margin:0;">
+                <label class="field-label">Seats Available (including driver)</label>
+                <select class="field-input" id="travelDriveSeats">
+                  <option value="">Select…</option>
+                  <option>1 — Just me</option>
+                  <option>2</option><option>3</option><option>4</option>
+                  <option>5</option><option>6</option><option>7</option><option>8+</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="field-group" style="margin:0;">
+                <label class="field-label">Departing From</label>
+                <input class="field-input" id="travelDriveFrom" placeholder="Los Angeles, CA">
+              </div>
+              <div class="field-group" style="margin:0;">
+                <label class="field-label">Estimated Arrival Date</label>
+                <input class="field-input" id="travelDriveArrDate" type="date">
+              </div>
+            </div>
           </div>
-          <div class="field-group" style="margin:0;"><label class="field-label">Parking Assignment / Notes</label><input class="field-input" id="driveParking" placeholder="Lot B · backstage dock…"></div>
-        </div>
-
-        <!-- Driving Rental -->
-        <div id="travelModeRental" style="display:none;">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:10px;">
-            <div class="field-group" style="margin:0;"><label class="field-label">Rental Company</label><input class="field-input" id="rentalCo" placeholder="Enterprise, Hertz…"></div>
-            <div class="field-group" style="margin:0;"><label class="field-label">Confirmation #</label><input class="field-input" id="rentalConf" placeholder="Rental code" style="font-family:monospace;"></div>
-            <div class="field-group" style="margin:0;"><label class="field-label">Vehicle / Seats</label><input class="field-input" id="rentalVeh" placeholder="SUV · 7 seats"></div>
-            <div class="field-group" style="margin:0;"><label class="field-label">Est. Arrival</label><input class="field-input" type="time" id="rentalArrival"></div>
-          </div>
-          <div class="field-group" style="margin:0;"><label class="field-label">Parking Assignment / Notes</label><input class="field-input" id="rentalParking" placeholder="Lot B · backstage dock…"></div>
         </div>
 
         <!-- Already Local -->
         <div id="travelModeLocal" style="display:none;">
-          <div style="display:grid;grid-template-columns:160px 1fr;gap:12px;">
-            <div class="field-group" style="margin:0;"><label class="field-label">Expected Arrival</label><input class="field-input" type="time" id="localArrival"></div>
-            <div class="field-group" style="margin:0;"><label class="field-label">Notes</label><input class="field-input" id="localNotes" placeholder="Lives locally, coming from hotel…"></div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:12px;">📍 Already Local</div>
+            <div style="display:grid;grid-template-columns:160px 1fr;gap:12px;">
+              <div class="field-group" style="margin:0;"><label class="field-label">Expected Arrival</label><input class="field-input" type="time" id="localArrival"></div>
+              <div class="field-group" style="margin:0;"><label class="field-label">Notes</label><input class="field-input" id="localNotes" placeholder="Lives locally, coming from hotel…"></div>
+            </div>
           </div>
         </div>
 
@@ -1349,7 +1384,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── Travel ────────────────────────────────────────────────────────────────────
 
 let currentTravelMode = 'flying';
-let travelLegs = []; // pending legs for current form
+let adminConnectingLegs = [];
 let _travelRosterCache = null;
 
 async function openRosterPickerForTravel() {
@@ -1423,46 +1458,41 @@ function setTravelMode(mode, btn) {
   btn.classList.add('travel-mode-active');
   document.getElementById('travelModeFlying').style.display  = mode === 'flying'  ? '' : 'none';
   document.getElementById('travelModeDriving').style.display = mode === 'driving' ? '' : 'none';
-  document.getElementById('travelModeRental').style.display  = mode === 'rental'  ? '' : 'none';
   document.getElementById('travelModeLocal').style.display   = mode === 'local'   ? '' : 'none';
 }
 
-function toggleTravelPickup(cb) {
-  document.getElementById('travelPickupFields').style.display = cb.checked ? '' : 'none';
+function handleAdminArrTransport(val) {
+  document.getElementById('travelArrRentalSeatsWrap').style.display = val === 'rental' ? '' : 'none';
 }
 
-function handleTravelPickupType(val) {
-  ['travelPickupUber','travelPickupRental','travelPickupPersonal','travelPickupVenue'].forEach(id => {
-    document.getElementById(id).style.display = 'none';
-  });
-  const map = { uber:'travelPickupUber', rental:'travelPickupRental', personal:'travelPickupPersonal', venue:'travelPickupVenue' };
-  if (map[val]) document.getElementById(map[val]).style.display = '';
+function handleAdminDepTransport(val) {
+  document.getElementById('travelDepRentalSeatsWrap').style.display = val === 'rental' ? '' : 'none';
 }
 
-function addFlightLeg() {
-  const input   = document.getElementById('travelFlightInput');
-  const airline = document.getElementById('travelAirline');
-  const raw     = input.value.trim().toUpperCase();
-  if (!raw) return;
-  const leg = { flight: raw, airline: airline.value, airlineName: airline.options[airline.selectedIndex].text };
-  travelLegs.push(leg);
-  input.value = '';
-  renderPendingLegs();
+function addAdminConnecting() {
+  adminConnectingLegs.push({ flight: '', date: '' });
+  renderAdminConnecting();
 }
 
-function removePendingLeg(i) {
-  travelLegs.splice(i, 1);
-  renderPendingLegs();
+function removeAdminConnecting(i) {
+  adminConnectingLegs.splice(i, 1);
+  renderAdminConnecting();
 }
 
-function renderPendingLegs() {
-  const c = document.getElementById('travelLegsContainer');
-  if (!travelLegs.length) { c.innerHTML = ''; return; }
-  c.innerHTML = travelLegs.map((l, i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(88,166,255,0.07);border:1px solid rgba(88,166,255,0.2);border-radius:8px;margin-bottom:6px;">
-      <span style="font-size:12px;font-weight:700;color:#58a6ff;min-width:70px;">${l.flight}</span>
-      <span style="font-size:12px;color:var(--text-3);">${l.airlineName}</span>
-      <button type="button" onclick="removePendingLeg(${i})" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px;">✕</button>
+function renderAdminConnecting() {
+  const c = document.getElementById('travelConnectingLegs');
+  if (!adminConnectingLegs.length) { c.innerHTML = ''; return; }
+  c.innerHTML = adminConnectingLegs.map((leg, i) => `
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px;">
+      <div class="field-group" style="margin:0;">
+        <label class="field-label">Connecting Flight ${i+1}</label>
+        <input class="field-input" style="font-family:monospace;" placeholder="AA 5678" value="${esc(leg.flight)}" oninput="adminConnectingLegs[${i}].flight=this.value">
+      </div>
+      <div class="field-group" style="margin:0;">
+        <label class="field-label">Date</label>
+        <input class="field-input" type="date" value="${leg.date||''}" oninput="adminConnectingLegs[${i}].date=this.value">
+      </div>
+      <button type="button" onclick="removeAdminConnecting(${i})" style="height:38px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text-3);cursor:pointer;padding:0 10px;font-size:14px;">✕</button>
     </div>`).join('');
 }
 
@@ -1476,34 +1506,28 @@ function addTraveler() {
   const traveler = { id: Date.now(), name, role, conf, mode };
 
   if (mode === 'flying') {
-    traveler.legs = [...travelLegs];
-    traveler.needsPickup = document.getElementById('travelNeedsPickup').checked;
-    if (traveler.needsPickup) {
-      const ptype = document.getElementById('travelPickupType').value;
-      traveler.pickupType = ptype;
-      traveler.pickupNotes = document.getElementById('travelPickupNotes').value.trim();
-      if (ptype === 'uber')     traveler.pickupDetail = document.getElementById('travelPickupUberNotes').value.trim();
-      if (ptype === 'rental')   traveler.pickupDetail = [document.getElementById('travelPickupRentalCo').value, document.getElementById('travelPickupRentalVeh').value, document.getElementById('travelPickupRentalConf').value].filter(Boolean).join(' · ');
-      if (ptype === 'personal') traveler.pickupDetail = [document.getElementById('travelPickupDriver').value, document.getElementById('travelPickupVehicle').value, document.getElementById('travelPickupMeeting').value].filter(Boolean).join(' · ');
-      if (ptype === 'venue')    traveler.pickupDetail = [document.getElementById('travelPickupVenueCo').value, document.getElementById('travelPickupVenueContact').value, document.getElementById('travelPickupVenuePhone').value].filter(Boolean).join(' · ');
+    traveler.arrFlight      = document.getElementById('travelArrFlight').value.trim().toUpperCase();
+    traveler.arrDate        = document.getElementById('travelArrDate').value;
+    traveler.connecting     = adminConnectingLegs.filter(l => l.flight).map(l => ({...l}));
+    traveler.arrTransport   = document.getElementById('travelArrTransport').value;
+    traveler.arrRentalSeats = traveler.arrTransport === 'rental' ? document.getElementById('travelArrRentalSeats').value : '';
+    traveler.hasReturn      = document.getElementById('travelHasReturn').checked;
+    if (traveler.hasReturn) {
+      traveler.depFlight      = document.getElementById('travelDepFlight').value.trim().toUpperCase();
+      traveler.depDate        = document.getElementById('travelDepDate').value;
+      traveler.depTransport   = document.getElementById('travelDepTransport').value;
+      traveler.depRentalSeats = traveler.depTransport === 'rental' ? document.getElementById('travelDepRentalSeats').value : '';
     }
   } else if (mode === 'driving') {
-    traveler.vehicle  = [document.getElementById('driveColor').value, document.getElementById('driveModel').value].filter(Boolean).join(' ');
-    traveler.plate    = document.getElementById('drivePlate').value.trim();
-    traveler.eta      = document.getElementById('driveArrival').value;
-    traveler.parking  = document.getElementById('driveParking').value.trim();
-  } else if (mode === 'rental') {
-    traveler.rentalCo   = document.getElementById('rentalCo').value.trim();
-    traveler.rentalConf = document.getElementById('rentalConf').value.trim();
-    traveler.vehicle    = document.getElementById('rentalVeh').value.trim();
-    traveler.eta        = document.getElementById('rentalArrival').value;
-    traveler.parking    = document.getElementById('rentalParking').value.trim();
+    traveler.driveType    = document.getElementById('travelDriveType').value;
+    traveler.driveSeats   = document.getElementById('travelDriveSeats').value;
+    traveler.driveFrom    = document.getElementById('travelDriveFrom').value.trim();
+    traveler.driveArrDate = document.getElementById('travelDriveArrDate').value;
   } else if (mode === 'local') {
     traveler.eta   = document.getElementById('localArrival').value;
     traveler.notes = document.getElementById('localNotes').value.trim();
   }
 
-  // Save to brief
   if (!window._travelersData) window._travelersData = [];
   window._travelersData.push(traveler);
   saveTravelers();
@@ -1523,24 +1547,26 @@ function saveTravelers() {
 }
 
 function resetTravelForm() {
-  ['travelName','travelConf','travelFlightInput','travelPickupNotes','travelPickupUberNotes',
-   'travelPickupRentalCo','travelPickupRentalVeh','travelPickupRentalConf',
-   'travelPickupDriver','travelPickupVehicle','travelPickupMeeting',
-   'travelPickupVenueCo','travelPickupVenueContact','travelPickupVenuePhone',
-   'driveModel','driveColor','drivePlate','driveParking',
-   'rentalCo','rentalConf','rentalVeh','rentalParking','localNotes'].forEach(id => {
+  ['travelName','travelConf','travelArrFlight','travelArrDate',
+   'travelDepFlight','travelDepDate','travelDriveFrom','travelDriveArrDate',
+   'localArrival','localNotes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('travelRole').value = '';
-  document.getElementById('travelNeedsPickup').checked = false;
-  document.getElementById('travelPickupFields').style.display = 'none';
-  document.getElementById('travelPickupType').value = '';
-  travelLegs = [];
-  renderPendingLegs();
+  document.getElementById('travelArrTransport').value = '';
+  document.getElementById('travelArrRentalSeatsWrap').style.display = 'none';
+  document.getElementById('travelHasReturn').checked = false;
+  document.getElementById('travelReturnFields').style.display = 'none';
+  document.getElementById('travelDepTransport').value = '';
+  document.getElementById('travelDepRentalSeatsWrap').style.display = 'none';
+  document.getElementById('travelDriveType').value = '';
+  document.getElementById('travelDriveSeats').value = '';
+  adminConnectingLegs = [];
+  renderAdminConnecting();
 }
 
-const pickupTypeLabels = { uber:'Uber / Rideshare', rental:'Rental Car', personal:'Personal Car', venue:'Venue Pickup Service' };
-const modeIcons = { flying:'✈️', driving:'🚗', rental:'🚙', local:'📍' };
+const transportLabels = { uber:'Uber / Lyft / Taxi', rental:'Rental Car', personal:'Personal Vehicle', tour_bus:'Tour Bus / Van', tbd:'Not sure yet' };
+const modeIcons = { flying:'✈️', driving:'🚗', local:'📍' };
 
 function renderTravelers(travelers) {
   const list  = document.getElementById('travelersList');
@@ -1559,41 +1585,64 @@ function renderTravelers(travelers) {
     // Summary line shown when collapsed
     let summary = '';
     if (t.mode === 'flying') {
-      const flights = (t.legs || []).map(l => l.flight).filter(Boolean).join(', ');
-      summary = flights ? `✈️ ${flights}` : '✈️ Flying — no flights entered';
-    } else if (t.mode === 'driving') summary = `🚗 Driving Personal`;
-    else if (t.mode === 'rental')  summary = `🚙 Driving Rental`;
-    else if (t.mode === 'local')   summary = `📍 Already Local`;
+      // Support both new format (arrFlight) and old format (legs[])
+      const mainFlight = t.arrFlight || (t.legs && t.legs[0] && t.legs[0].flight) || '';
+      const connecting = (t.connecting || (t.legs && t.legs.slice(1)) || []).map(l => l.flight).filter(Boolean);
+      const depFlight  = t.hasReturn && t.depFlight ? t.depFlight : '';
+      const allFlights = [mainFlight, ...connecting, depFlight].filter(Boolean).join(', ');
+      summary = allFlights ? `✈️ ${allFlights}` : '✈️ Flying — no flights entered';
+    } else if (t.mode === 'driving' || t.mode === 'rental') summary = `🚗 Driving`;
+    else if (t.mode === 'local') summary = `📍 Already Local`;
 
     // Expanded detail rows
     let expandRows = '';
     if (t.mode === 'flying') {
-      (t.legs || []).forEach((l, i) => {
-        expandRows += `<div style="display:flex;gap:24px;padding:8px 0;border-bottom:1px solid var(--border);">
-          <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:2px;">Leg ${i+1} Flight</div><div style="font-size:13px;font-weight:700;color:#58a6ff;font-family:monospace;">${esc(l.flight||'—')}</div></div>
-          <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:2px;">Airline</div><div style="font-size:13px;color:var(--text-2);">${esc(l.airlineName||l.airline||'—')}</div></div>
+      // Arrival block
+      expandRows += `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">🛬 Arrival</div>
+        <div style="display:flex;flex-wrap:wrap;gap:20px;">
+          ${t.arrFlight    ? `<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);">Flight</div><div style="font-size:13px;font-weight:700;color:#58a6ff;font-family:monospace;">${esc(t.arrFlight)}</div></div>` : ''}
+          ${t.arrDate      ? `<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);">Date</div><div style="font-size:13px;color:var(--text-2);">${esc(t.arrDate)}</div></div>` : ''}
+          ${t.arrTransport ? `<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);">Airport→Hotel</div><div style="font-size:13px;color:var(--text-2);">${transportLabels[t.arrTransport]||t.arrTransport}${t.arrRentalSeats?' ('+t.arrRentalSeats+' seats)':''}</div></div>` : ''}
+        </div>
+      </div>`;
+      // Connecting
+      const connLegs = t.connecting || (t.legs && t.legs.slice(1)) || [];
+      if (connLegs.length) {
+        expandRows += `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">Connecting Flights</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${connLegs.map(l => `<div style="background:rgba(88,166,255,0.07);border:1px solid rgba(88,166,255,0.2);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;color:#58a6ff;font-family:monospace;">${esc(l.flight||l.airlineName||'')}${l.date?` <span style="font-family:Montserrat;font-weight:400;font-size:11px;color:var(--text-3);">${esc(l.date)}</span>`:''}</div>`).join('')}
+          </div>
         </div>`;
-      });
-      if (t.needsPickup) {
-        expandRows += `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
-          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:2px;">Airport Pickup</div>
-          <div style="font-size:13px;color:var(--text-2);">${pickupTypeLabels[t.pickupType]||'Needed'}${t.pickupDetail ? ' — ' + esc(t.pickupDetail) : ''}</div>
-          ${t.pickupNotes ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px;">${esc(t.pickupNotes)}</div>` : ''}
+      }
+      // Return
+      if (t.hasReturn) {
+        expandRows += `<div style="margin-bottom:8px;">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">🛫 Return</div>
+          <div style="display:flex;flex-wrap:wrap;gap:20px;">
+            ${t.depFlight    ? `<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);">Flight</div><div style="font-size:13px;font-weight:700;color:#58a6ff;font-family:monospace;">${esc(t.depFlight)}</div></div>` : ''}
+            ${t.depDate      ? `<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);">Date</div><div style="font-size:13px;color:var(--text-2);">${esc(t.depDate)}</div></div>` : ''}
+            ${t.depTransport ? `<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);">Hotel→Airport</div><div style="font-size:13px;color:var(--text-2);">${transportLabels[t.depTransport]||t.depTransport}${t.depRentalSeats?' ('+t.depRentalSeats+' seats)':''}</div></div>` : ''}
+          </div>
         </div>`;
       }
     } else if (t.mode === 'driving' || t.mode === 'rental') {
       const fields = [
-        t.rentalCo    ? ['Rental Co',  t.rentalCo]    : null,
-        t.rentalConf  ? ['Conf #',     t.rentalConf]  : null,
+        t.driveType    ? ['Vehicle Type',   t.driveType === 'personal' ? 'Personal Vehicle' : 'Rental Car'] : null,
+        t.driveSeats   ? ['Seats',          t.driveSeats]   : null,
+        t.driveFrom    ? ['Departing From', t.driveFrom]    : null,
+        t.driveArrDate ? ['Arrival Date',   t.driveArrDate] : null,
+        // Legacy fields
         t.vehicle||t.rentalVeh ? ['Vehicle', t.vehicle||t.rentalVeh] : null,
-        t.plate       ? ['Plate',      t.plate]       : null,
-        t.eta         ? ['ETA',        t.eta]         : null,
-        t.parking     ? ['Parking',    t.parking]     : null,
+        t.plate        ? ['Plate',          t.plate]        : null,
+        t.rentalCo     ? ['Rental Co',      t.rentalCo]     : null,
+        t.rentalConf   ? ['Conf #',         t.rentalConf]   : null,
       ].filter(Boolean);
       expandRows = fields.map(([label, val]) => `
         <div style="display:inline-flex;flex-direction:column;gap:2px;margin-right:24px;margin-bottom:8px;">
           <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);">${label}</div>
-          <div style="font-size:13px;color:var(--text-2);">${esc(val)}</div>
+          <div style="font-size:13px;color:var(--text-2);">${esc(String(val))}</div>
         </div>`).join('');
       if (expandRows) expandRows = `<div style="padding:8px 0;display:flex;flex-wrap:wrap;">${expandRows}</div>`;
     } else if (t.mode === 'local') {
@@ -1663,6 +1712,7 @@ async function sendVenueIntake() {
   if (!briefId) return;
   const email = document.getElementById('venueIntakeEmail').value.trim();
   if (!email) { showIntakeError('Please enter the venue contact email.'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showIntakeError('That doesn\'t look like a valid email address — please double-check it.'); return; }
 
   const btn = document.getElementById('sendVenueIntakeConfirm');
   btn.disabled = true; btn.textContent = 'Sending…';
@@ -1706,7 +1756,7 @@ function showIntakeBanner(status, email, submittedAt) {
     icon.textContent           = '⏳';
     title.textContent          = 'Venue Questionnaire Sent';
     title.style.color          = '#d2993c';
-    sub.textContent            = `Awaiting response from ${email || 'the venue'} — link valid for 7 days.`;
+    sub.innerHTML              = `Sent to <strong style="color:var(--text);">${email || 'the venue'}</strong> — link valid for 7 days. If you used the wrong address, cancel below and resend. If the email bounces, the bounce notification will go to your SMTP from address in Settings.`;
     sub.style.color            = 'var(--text-2)';
     action.style.display       = 'none';
   } else if (status === 'completed') {
@@ -1853,22 +1903,20 @@ function renderRosterPicker() {
   const q = document.getElementById('rosterPickerSearch').value.toLowerCase();
   const list = document.getElementById('rosterPickerList');
 
-  // Show matching category first, others below
+  // Only show people matching the current section category
   let filtered = _rosterAll.filter(p => {
-    return !q || [p.name, p.role, p.email].some(v => (v||'').toLowerCase().includes(q));
+    const catMatch = p.category === _rosterPickerType;
+    const qMatch = !q || [p.name, p.role, p.email].some(v => (v||'').toLowerCase().includes(q));
+    return catMatch && qMatch;
   });
 
-  // Sort: matching category first
-  filtered.sort((a, b) => {
-    const aMatch = a.category === _rosterPickerType ? 0 : 1;
-    const bMatch = b.category === _rosterPickerType ? 0 : 1;
-    return aMatch - bMatch || a.name.localeCompare(b.name);
-  });
+  filtered.sort((a, b) => a.name.localeCompare(b.name));
 
   if (!filtered.length) {
-    list.innerHTML = _rosterAll.length === 0
-      ? '<div style="text-align:center;padding:32px;color:var(--text-3);font-size:13px;">Your roster is empty.<br><a href="/roster" target="_blank" style="color:#58a6ff;">Go to Roster to add people →</a></div>'
-      : '<div style="text-align:center;padding:32px;color:var(--text-3);font-size:13px;">No people match that search.</div>';
+    const catLabel = _rosterPickerType.charAt(0).toUpperCase() + _rosterPickerType.slice(1);
+    list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-3);font-size:13px;">'
+      + (q ? `No ${catLabel} match that search.` : `No ${catLabel} on your roster yet.<br><a href="/roster" target="_blank" style="color:#58a6ff;">Go to Roster to add people →</a>`)
+      + '</div>';
     return;
   }
 
@@ -1920,11 +1968,12 @@ function addFromRoster() {
       addGenxStaffCard({ name: p.name, role: p.role || '', phone: p.phone || '', email: p.email || '', photo: p.photo || '', certs: [] });
     } else {
       addPersonCard({
-        name:     p.name,
-        photo:    p.photo || '',
-        role:     _rosterPickerType === 'talent' ? (p.role || '') : '',
-        function: _rosterPickerType === 'crew'   ? (p.role || '') : '',
-        phone:    p.phone || ''
+        name:      p.name,
+        photo:     p.photo || '',
+        stageName: p.stageName || '',
+        role:      _rosterPickerType === 'talent' ? (p.role || '') : '',
+        function:  _rosterPickerType === 'crew'   ? (p.role || '') : '',
+        phone:     p.phone || ''
       }, _rosterPickerType);
     }
   });
@@ -2082,7 +2131,11 @@ async function loadTravelResponses(briefId) {
       ...responses.map(r => ({ ...r, status: 'submitted' })),
       ...pending
     ];
-    if (!all.length) return;
+    if (!all.length) {
+      document.getElementById('travelQTrackerWrap').style.display = 'none';
+      document.getElementById('travelResponsesTable').innerHTML = '';
+      return;
+    }
 
     document.getElementById('travelQTrackerWrap').style.display = '';
     const table = document.getElementById('travelResponsesTable');
@@ -2105,6 +2158,7 @@ async function loadTravelResponses(briefId) {
             <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Dep. Date</th>
             <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Hotel→Airport</th>
             <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Status</th>
+            <th style="padding:8px;text-align:left;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -2121,6 +2175,13 @@ async function loadTravelResponses(briefId) {
             const depFlight = r.depFlight || '—';
             const depDate   = r.depDate || '—';
             const depXport  = r.travelMode === 'flying' && r.depFlight ? `${transportLabel(r.depTransport)}${r.depRentalSeats ? ` (${r.depRentalSeats} seats)` : ''}` : '—';
+            const emailEnc  = encodeURIComponent(r.email || '');
+            const nameEnc   = encodeURIComponent(r.name || '');
+            const roleEnc   = encodeURIComponent(r.role || '');
+            const actions = isSubmitted
+              ? `<button onclick="deleteTravelResponse('${emailEnc}')" title="Delete response" style="background:none;border:1px solid rgba(230,57,70,0.3);color:var(--red);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:700;">Delete</button>`
+              : `<button onclick="resendTravelQ('${emailEnc}','${nameEnc}','${roleEnc}')" title="Resend questionnaire" style="background:none;border:1px solid rgba(88,166,255,0.4);color:#58a6ff;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:700;margin-right:4px;">Resend</button>
+                 <button onclick="cancelTravelQ('${emailEnc}')" title="Cancel / delete" style="background:none;border:1px solid rgba(230,57,70,0.3);color:var(--red);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:700;">Delete</button>`;
             return `<tr style="border-bottom:1px solid var(--border);">
               <td style="padding:10px 8px;color:var(--text);font-weight:600;">${r.name || r.travelerName || '—'}</td>
               <td style="padding:10px 8px;color:var(--text-2);">${r.role || r.travelerRole || '—'}</td>
@@ -2132,6 +2193,7 @@ async function loadTravelResponses(briefId) {
               <td style="padding:10px 8px;color:var(--text-2);">${depDate}</td>
               <td style="padding:10px 8px;color:var(--text-2);">${depXport}</td>
               <td style="padding:10px 8px;">${statusBadge}</td>
+              <td style="padding:10px 8px;white-space:nowrap;">${actions}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -2143,6 +2205,46 @@ async function loadTravelResponses(briefId) {
       document.getElementById('genTravelBriefBtn').style.display = '';
     }
   } catch (e) { console.error('Failed to load travel responses', e); }
+}
+
+async function cancelTravelQ(emailEnc) {
+  const email = decodeURIComponent(emailEnc);
+  const briefId = new URLSearchParams(location.search).get('id');
+  if (!confirm(`Cancel questionnaire for ${email}?`)) return;
+  try {
+    const r = await fetch(`/api/briefs/${briefId}/travel-pending`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    let d = {}; try { d = await r.json(); } catch (_) {}
+    if (!r.ok) { toast(d.error || `Server error ${r.status} — restart the server`, 'error'); return; }
+    toast('Questionnaire cancelled', 'success');
+    loadTravelResponses(briefId);
+  } catch (e) { toast('Network error — restart the server and try again', 'error'); }
+}
+
+async function resendTravelQ(emailEnc, nameEnc, roleEnc) {
+  const email = decodeURIComponent(emailEnc);
+  const name  = decodeURIComponent(nameEnc);
+  const role  = decodeURIComponent(roleEnc);
+  const briefId = new URLSearchParams(location.search).get('id');
+  try {
+    const r = await fetch(`/api/briefs/${briefId}/travel-pending/resend`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, name, role }) });
+    let d = {}; try { d = await r.json(); } catch (_) {}
+    if (!r.ok) { toast(d.error || `Server error ${r.status} — restart the server`, 'error'); return; }
+    toast(`Resent to ${email}`, 'success');
+    loadTravelResponses(briefId);
+  } catch (e) { toast('Network error — restart the server and try again', 'error'); }
+}
+
+async function deleteTravelResponse(emailEnc) {
+  const email = decodeURIComponent(emailEnc);
+  const briefId = new URLSearchParams(location.search).get('id');
+  if (!confirm(`Delete submitted response from ${email}?`)) return;
+  try {
+    const r = await fetch(`/api/briefs/${briefId}/travel-response`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    let d = {}; try { d = await r.json(); } catch (_) {}
+    if (!r.ok) { toast(d.error || `Server error ${r.status} — restart the server`, 'error'); return; }
+    toast('Response deleted', 'success');
+    loadTravelResponses(briefId);
+  } catch (e) { toast('Network error — restart the server and try again', 'error'); }
 }
 
 async function generateTravelBrief() {

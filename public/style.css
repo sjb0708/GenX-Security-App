@@ -1047,44 +1047,168 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 
 /* ── Print ────────────────────────────────────────────────────────────────── */
 @media print {
-  @page { margin: 0.6in 0.5in; }
+  @page { margin: 0.65in 0.55in; size: letter portrait; }
 
+  /* Force all colors to print */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box !important; }
+
+  /* Override dark CSS variables with light equivalents */
+  :root {
+    --surface:   #ffffff !important;
+    --surface-2: #f3f4f6 !important;
+    --surface-3: #e9ebee !important;
+    --border:    #d1d5db !important;
+    --border-2:  #9ca3af !important;
+    --red:       #c1121f !important;
+    --red-dim:   rgba(193,18,31,0.09) !important;
+    --gold:      #92680a !important;
+    --gold-dim:  rgba(146,104,10,0.10) !important;
+    --text:      #111827 !important;
+    --text-2:    #374151 !important;
+    --text-3:    #6b7280 !important;
+    --blue:      #1d4ed8 !important;
+  }
+
+  /* Hide all chrome */
   .topnav, .sidebar, .status-bar, .view-topbar,
   .no-print, .toast-container { display: none !important; }
+
+  /* Body */
+  body {
+    background: #fff !important;
+    color: #111827 !important;
+    font-size: 10.5pt !important;
+    font-family: 'Montserrat', sans-serif !important;
+  }
+
+  /* Layout: remove nav offsets */
   .main-content { margin: 0 !important; padding: 0 !important; }
-  .view-content { margin: 0 !important; padding: 16px !important; max-width: none !important; }
-  body { background: white !important; color: black !important; font-size: 11px !important; }
-  .panel, .view-panel, .brief-header-block { background: white !important; border-color: #ccc !important; }
-  .panel-header, .view-panel-header { background: #f5f5f5 !important; }
+  .view-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 
-  /* Most panels stay together — but allow large ones to flow across pages */
-  .brief-card { break-inside: avoid; }
-  .panel { break-inside: avoid; }
+  /* ── Brief header ── */
+  .brief-header-block {
+    background: #fff !important;
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    margin-bottom: 18pt !important;
+    break-inside: avoid;
+  }
+  .brief-header-red {
+    height: 5px !important;
+    background: linear-gradient(90deg, #c1121f, #e63946 60%, transparent) !important;
+  }
+  .brief-header-body {
+    background: #fff !important;
+    padding: 14pt 0 10pt !important;
+    border-bottom: 2px solid #c1121f !important;
+  }
+  .brief-header-venue { color: #111827 !important; font-size: 20pt !important; font-weight: 800 !important; }
 
-  /* Run of Show — allow the panel to break across pages */
-  .ros-panel { break-inside: auto !important; }
+  /* ── Panels ── */
+  .view-panel {
+    background: #fff !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6pt !important;
+    overflow: visible !important;          /* KEY: was overflow:hidden, clips content */
+    margin-bottom: 12pt !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .view-panel-header {
+    background: #f3f4f6 !important;
+    border-bottom: 1px solid #d1d5db !important;
+    padding: 7pt 12pt !important;
+  }
+  .view-panel-header h3 { color: #111827 !important; font-size: 9pt !important; letter-spacing: 0.5pt !important; }
+  .view-panel-body { padding: 12pt !important; overflow: visible !important; }
+
+  /* Run of Show — allow page breaks within */
+  .ros-panel { break-inside: auto !important; page-break-inside: auto !important; }
   .ros-panel .view-panel-body { overflow: visible !important; }
 
-  /* ROS table — header repeats on each page, rows never split */
-  .ros-table { width: 100%; border-collapse: collapse; }
-  .ros-table thead { display: table-header-group; }
-  .ros-table tr { break-inside: avoid; page-break-inside: avoid; }
-  .ros-table td, .ros-table th { padding: 6px 8px; border: 1px solid #ddd; font-size: 10.5px; }
-  .ros-table th { background: #f0f0f0 !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+  /* ── Grids ── */
+  .grid-2 { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10pt !important; }
+  .grid-3 { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 7pt !important; }
+  .grid-4 { display: grid !important; grid-template-columns: repeat(4,1fr) !important; gap: 7pt !important; }
 
-  /* Force background colors to print (credentials, tags, badges) */
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  /* ── Mini stats ── */
+  .mini-stat { background: #f3f4f6 !important; border: 1px solid #d1d5db !important; border-radius: 5pt !important; padding: 8pt !important; break-inside: avoid; }
+  .mini-stat-val { color: #111827 !important; font-size: 13pt !important; font-weight: 700 !important; }
+  .mini-stat-lbl { color: #6b7280 !important; font-size: 7.5pt !important; text-transform: uppercase !important; }
+  .mini-stat-sub { color: #374151 !important; font-size: 8.5pt !important; }
 
-  /* Credential color tags */
-  .tag { border: 1px solid currentColor !important; }
-  .tag-red   { color: #e63946 !important; background: rgba(230,57,70,0.15) !important; }
-  .tag-gray  { color: #555 !important; background: #eee !important; }
+  /* ── KV rows ── */
+  .view-kv { display: flex !important; flex-direction: column !important; gap: 0 !important; }
+  .kv-row { display: flex !important; padding: 4pt 0 !important; border-bottom: 1px solid #e9ebee !important; gap: 8pt !important; }
+  .kv-label { color: #6b7280 !important; font-size: 7.5pt !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.3pt !important; min-width: 90pt !important; flex-shrink: 0 !important; }
+  .kv-value { color: #111827 !important; font-size: 9.5pt !important; }
 
-  /* Credential table images */
-  .data-table td img { max-width: 40px !important; }
+  /* ── Tags ── */
+  .tag { border-radius: 3pt !important; font-size: 7.5pt !important; padding: 1.5pt 5pt !important; font-weight: 700 !important; border: 1px solid transparent !important; }
+  .tag-red  { background: rgba(193,18,31,0.09) !important; color: #c1121f !important; border-color: rgba(193,18,31,0.25) !important; }
+  .tag-gold { background: rgba(146,104,10,0.09) !important; color: #92680a !important; border-color: rgba(146,104,10,0.25) !important; }
+  .tag-blue { background: rgba(29,78,216,0.08) !important; color: #1d4ed8 !important; border-color: rgba(29,78,216,0.25) !important; }
+  .tag-gray { background: #f3f4f6 !important; color: #374151 !important; border-color: #d1d5db !important; }
 
-  /* GenX credential badge images */
+  /* ── Contact cards ── */
+  .contact-cards-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10pt !important; }
+  .contact-card { background: #f3f4f6 !important; border: 1px solid #d1d5db !important; border-radius: 6pt !important; overflow: visible !important; }
+  .contact-card.primary { border-left: 3px solid #c1121f !important; }
+  .contact-card.backup  { border-left: 3px solid #92680a !important; }
+  .contact-card-badge { font-size: 7pt !important; color: #6b7280 !important; font-weight: 700 !important; text-transform: uppercase !important; }
+
+  /* ── ROS table ── */
+  .ros-table-wrap, [style*="overflow-x:auto"], [style*="overflow-x: auto"] { overflow: visible !important; }
+  .ros-table { width: 100% !important; border-collapse: collapse !important; font-size: 9pt !important; table-layout: fixed !important; }
+  .ros-table colgroup, .ros-table col { display: none; }
+  .ros-table thead { display: table-header-group !important; }
+  .ros-table thead tr { background: #c1121f !important; color: #fff !important; }
+  .ros-table th { padding: 6pt 8pt !important; font-size: 8pt !important; font-weight: 700 !important; text-transform: uppercase !important; color: #fff !important; border: none !important; }
+  .ros-table td { padding: 5pt 8pt !important; border-bottom: 1px solid #e9ebee !important; color: #111827 !important; word-wrap: break-word !important; vertical-align: top !important; }
+  .ros-table tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+  .ros-row-critical td { background: rgba(193,18,31,0.07) !important; font-weight: 700 !important; }
+  .ros-row-critical td:first-child { border-left: 3px solid #c1121f !important; }
+  /* drag handle column — hide in print */
+  .ros-table td:first-child, .ros-table th:first-child { display: none !important; }
+  /* delete button column — hide in print */
+  .ros-table td:last-child, .ros-table th:last-child { display: none !important; }
+
+  /* ── Data tables ── */
+  .data-table { width: 100% !important; border-collapse: collapse !important; font-size: 9pt !important; }
+  .data-table th { background: #f3f4f6 !important; color: #374151 !important; padding: 5pt 8pt !important; border-bottom: 1px solid #d1d5db !important; font-size: 7.5pt !important; text-transform: uppercase !important; font-weight: 700 !important; }
+  .data-table td { padding: 5pt 8pt !important; border-bottom: 1px solid #e9ebee !important; color: #111827 !important; }
+  .data-table td img { max-width: 40pt !important; height: auto !important; border-radius: 3pt !important; }
+
+  /* ── Person cards ── */
+  .person-grid { display: flex !important; flex-wrap: wrap !important; gap: 8pt !important; }
+  .person-card { background: #f3f4f6 !important; border: 1px solid #d1d5db !important; border-radius: 6pt !important; width: 88pt !important; padding: 8pt !important; break-inside: avoid !important; overflow: visible !important; box-shadow: none !important; }
+  .person-name  { color: #111827 !important; font-size: 8.5pt !important; font-weight: 700 !important; }
+  .person-stage { color: #1d4ed8 !important; font-size: 8pt !important; }
+  .person-role  { color: #6b7280 !important; font-size: 7.5pt !important; }
+  .person-notes { color: #374151 !important; font-size: 7.5pt !important; }
+  .person-photo { background: #e9ebee !important; border: 1px solid #d1d5db !important; }
+  .person-photo span { color: #374151 !important; }
+  .person-photo img { border-radius: 50% !important; }
+
+  /* ── Channel grid ── */
+  .channel-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 5pt !important; }
+  .channel-row  { background: #f3f4f6 !important; border: 1px solid #d1d5db !important; border-radius: 4pt !important; padding: 5pt 8pt !important; }
+  .channel-num  { color: #c1121f !important; font-size: 11pt !important; font-weight: 800 !important; }
+  .channel-use  { color: #374151 !important; font-size: 8.5pt !important; }
+
+  /* ── Images ── */
+  img { max-width: 100% !important; height: auto !important; }
   .view-panel img { max-width: 100% !important; }
+
+  /* ── Page breaks ── */
+  .brief-header-block { page-break-after: avoid; }
+  .mini-stat, .person-card, .contact-card, .kv-row { page-break-inside: avoid; }
 }
 
 /* ── Travel mode buttons ──────────────────────────────────────────────────── */

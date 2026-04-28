@@ -416,6 +416,7 @@
     // Load current settings
     async function loadSettings() {
       const res = await fetch('/api/settings');
+      if (res.status === 401) { window.location.href = '/login?next=/settings'; return; }
       const data = await res.json();
 
       // Key status
@@ -596,16 +597,48 @@
       btn.textContent = input.type === 'password' ? 'Show' : 'Hide';
     }
 
-    function toggleKeyVisibility() {
+    let _keyHideTimer = null;
+    async function toggleKeyVisibility() {
       const input = document.getElementById('anthropicKey');
       const btn = document.querySelector('.key-toggle-btn');
-      if (input.type === 'password') {
+
+      // Already revealed → hide and clear.
+      if (btn.textContent === 'Hide') {
+        input.type = 'password';
+        input.value = '';
+        btn.textContent = 'Show';
+        if (_keyHideTimer) { clearTimeout(_keyHideTimer); _keyHideTimer = null; }
+        return;
+      }
+
+      // If user has typed a key into the input, just toggle visibility on what they typed.
+      if (input.value) {
         input.type = 'text';
         btn.textContent = 'Hide';
-      } else {
-        input.type = 'password';
-        btn.textContent = 'Show';
+        return;
       }
+
+      // Otherwise reveal the saved key — requires PIN.
+      const pin = prompt('Enter PIN to view API key:');
+      if (pin === null) return;
+      const res = await fetch('/api/settings/reveal-key', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin })
+      });
+      if (res.status === 403) { toast('Invalid PIN', 'error'); return; }
+      if (res.status === 404) { toast('No key configured', 'error'); return; }
+      if (!res.ok) { toast('Could not reveal key', 'error'); return; }
+      const data = await res.json();
+      input.value = data.key;
+      input.type = 'text';
+      btn.textContent = 'Hide';
+      // Auto-hide after 30 seconds so the key isn't left on screen.
+      _keyHideTimer = setTimeout(() => {
+        input.type = 'password';
+        input.value = '';
+        btn.textContent = 'Show';
+        _keyHideTimer = null;
+      }, 30000);
     }
 
     function showSaveIndicator(id) {

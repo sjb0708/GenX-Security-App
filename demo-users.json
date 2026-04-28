@@ -1,0 +1,22 @@
+{
+  "1f8c34d6-8375-4b3e-aeaf-eca1c2a3f9a7": {
+    "id": "1f8c34d6-8375-4b3e-aeaf-eca1c2a3f9a7",
+    "name": "Steve Bailey",
+    "email": "stevebailey130@gmail.com",
+    "role": "security",
+    "briefId": null,
+    "passwordHash": "7b213d5e672e8a7ff60be9cd7e8c692872fdb6991d07e971808a1156fe2147bf",
+    "passwordSalt": "767c3a8671343bc3ef0e5388b739e835",
+    "createdAt": "2026-04-06T21:22:26.175Z"
+  },
+  "eef3ae4c-5e9f-4fbf-a0aa-20faa94644dd": {
+    "id": "eef3ae4c-5e9f-4fbf-a0aa-20faa94644dd",
+    "name": "GenX Takeover Security",
+    "email": "genxtakeoversecurity@gmail.com",
+    "role": "security",
+    "briefId": null,
+    "passwordHash": "f3aa506c6380597a603284da7f622fd30a35d0386f2861f1ff6ab79f5a2c5a18",
+    "passwordSalt": "d57cf7aa47b88faf8e563b1231edba03",
+    "createdAt": "2026-04-28T00:00:00.000Z"
+  }
+}

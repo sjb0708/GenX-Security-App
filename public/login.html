@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Login — GenX Takeover Security</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface-2: #1c2333;
+      --border: #30363d; --border-2: #444c56;
+      --red: #e63946; --red-dim: rgba(230,57,70,0.15);
+      --text: #e6edf3; --text-2: #8b949e; --text-3: #6e7681;
+      --green: #3fb950;
+    }
+    body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+    .logo-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+    .logo-icon { width: 48px; height: 48px; background: var(--red); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 26px; height: 26px; }
+    .logo-text .name { font-size: 20px; font-weight: 800; color: var(--text); }
+    .logo-text .sub { font-size: 13px; font-weight: 600; color: var(--red); }
+    .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px; width: 100%; max-width: 400px; }
+    .login-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .login-sub { font-size: 13px; color: var(--text-2); margin-bottom: 28px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-2); margin-bottom: 8px; }
+    .field input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-family: inherit; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.15s; }
+    .field input:focus { border-color: var(--red); }
+    .field input::placeholder { color: var(--text-3); }
+    .btn-login { width: 100%; background: var(--red); color: white; border: none; border-radius: 8px; padding: 13px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: opacity 0.15s; }
+    .btn-login:hover { opacity: 0.9; }
+    .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-msg { background: rgba(230,57,70,0.1); border: 1px solid rgba(230,57,70,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--red); margin-top: 12px; display: none; }
+    .error-msg.show { display: block; }
+    .secure-note { text-align: center; font-size: 11px; color: var(--text-3); margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .demo-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .demo-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-3); text-align: center; margin-bottom: 12px; }
+    .demo-btns { display: flex; gap: 8px; }
+    .btn-demo { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 8px; font-family: inherit; font-size: 11px; font-weight: 700; color: var(--text-2); cursor: pointer; transition: all 0.15s; text-align: center; }
+    .btn-demo:hover { border-color: var(--red); color: var(--text); background: var(--red-dim); }
+  </style>
+</head>
+<body>
+  <div class="logo-wrap">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M12 2L3 7v6c0 5.25 3.75 10.15 9 11.35C17.25 23.15 21 18.25 21 13V7L12 2z"/></svg>
+    </div>
+    <div class="logo-text">
+      <div class="name">GenX Takeover</div>
+      <div class="sub">Security — Team Access</div>
+    </div>
+  </div>
+
+  <div class="login-card">
+    <div class="login-title">Sign In</div>
+    <div class="login-sub">Enter your credentials to access your security brief</div>
+
+    <div class="field">
+      <label>Email Address</label>
+      <input type="email" id="email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In</button>
+    <div class="error-msg" id="errorMsg"></div>
+
+  </div>
+
+  <div class="secure-note">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v6c0 5.25 3.75 10.15 9 11.35C17.25 23.15 21 18.25 21 13V7L12 2z" stroke="#6e7681" stroke-width="2" fill="none"/></svg>
+    Secured connection — GenX Corporate Security
+  </div>
+
+  <script>
+    // If already logged in, redirect
+    fetch('/api/auth/me').then(r => { if (r.ok) window.location.href = '/portal'; }).catch(() => {});
+
+    document.getElementById('password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    document.getElementById('email').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('password').focus(); });
+
+    async function doLogin() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('loginBtn');
+      const err = document.getElementById('errorMsg');
+
+      if (!email || !password) { showError('Please enter your email and password.'); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      err.classList.remove('show');
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { showError(data.error || 'Login failed'); return; }
+        if (data.user.role === 'security') { window.location.href = '/'; }
+        else { window.location.href = data.user.briefId ? `/view?id=${data.user.briefId}` : '/portal'; }
+      } catch (e) {
+        showError('Connection error. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    }
+
+    function demoLogin(email) {
+      document.getElementById('email').value = email;
+      document.getElementById('password').value = 'genx2025';
+      doLogin();
+    }
+
+    function showError(msg) {
+      const err = document.getElementById('errorMsg');
+      err.textContent = msg;
+      err.classList.add('show');
+    }
+  </script>
+</body>
+</html>

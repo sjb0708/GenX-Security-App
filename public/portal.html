@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Portal — GenX Takeover Security</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface-2: #1c2333; --surface-3: #21262d;
+      --border: #30363d; --border-2: #444c56;
+      --red: #e63946; --red-dim: rgba(230,57,70,0.15);
+      --gold: #d4a017; --gold-dim: rgba(212,160,23,0.12);
+      --blue: #388bfd; --green: #3fb950;
+      --text: #e6edf3; --text-2: #8b949e; --text-3: #6e7681;
+    }
+    body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.6; }
+
+    /* Nav */
+    .topnav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: 56px; background: rgba(22,27,34,0.97); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; backdrop-filter: blur(12px); }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .nav-logo-icon { width: 32px; height: 32px; background: var(--red); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .nav-logo-icon svg { width: 18px; height: 18px; }
+    .nav-logo-text { font-size: 14px; font-weight: 800; color: var(--text); }
+    .nav-logo-text span { color: var(--red); }
+    .nav-center { flex: 1; }
+    .nav-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .nav-user { font-size: 12px; color: var(--text-2); font-weight: 600; }
+    .nav-badge { background: var(--red-dim); border: 1px solid rgba(230,57,70,0.3); color: var(--red); border-radius: 20px; padding: 2px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .btn-logout { background: transparent; border: 1px solid var(--border); color: var(--text-2); border-radius: 6px; padding: 5px 12px; font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-logout:hover { border-color: var(--border-2); color: var(--text); }
+
+    /* Layout */
+    .page { max-width: 760px; margin: 0 auto; padding: 80px 16px 60px; }
+
+    /* Hero */
+    .brief-hero { background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%); border: 1px solid var(--border); border-top: 3px solid var(--red); border-radius: 16px; padding: 28px 24px; margin-bottom: 24px; }
+    .brief-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--red); margin-bottom: 8px; }
+    .brief-venue { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1.2; margin-bottom: 4px; }
+    .brief-location { font-size: 14px; color: var(--text-2); margin-bottom: 20px; }
+    .brief-meta { display: flex; flex-wrap: wrap; gap: 20px; }
+    .brief-meta-item { display: flex; flex-direction: column; gap: 2px; }
+    .brief-meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); }
+    .brief-meta-value { font-size: 15px; font-weight: 700; color: var(--text); }
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); color: var(--green); border-radius: 20px; padding: 3px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Cards */
+    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-3); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+    .card-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+    .card-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .card-icon.red { background: var(--red-dim); }
+    .card-icon.gold { background: var(--gold-dim); }
+    .card-icon.blue { background: rgba(56,139,253,0.1); }
+    .card-icon.green { background: rgba(63,185,80,0.1); }
+    .card-title { font-size: 13px; font-weight: 700; color: var(--text); }
+    .card-sub { font-size: 11px; color: var(--text-2); margin-top: 1px; }
+    .card-body { padding: 20px; }
+
+    /* Grid */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 480px) { .info-grid { grid-template-columns: 1fr; } }
+    .info-item { }
+    .info-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); margin-bottom: 4px; }
+    .info-value { font-size: 14px; font-weight: 600; color: var(--text); }
+    .info-value.mono { font-family: monospace; letter-spacing: 0.5px; }
+
+    /* Timeline rows */
+    .timeline-row { display: flex; align-items: flex-start; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .timeline-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .timeline-time { font-size: 13px; font-weight: 700; color: var(--red); min-width: 52px; flex-shrink: 0; padding-top: 1px; }
+    .timeline-content { flex: 1; }
+    .timeline-activity { font-size: 13px; font-weight: 600; color: var(--text); }
+    .timeline-notes { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+    .timeline-critical { display: inline-block; background: var(--red-dim); color: var(--red); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 4px; padding: 1px 6px; margin-left: 8px; vertical-align: middle; }
+
+    /* Person cards */
+    .person-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .person-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+    .person-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--surface-3); margin: 0 auto 10px; overflow: hidden; border: 2px solid var(--border-2); }
+    .person-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .person-avatar-initials { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: var(--red); }
+    .person-name { font-size: 12px; font-weight: 700; color: var(--text); }
+    .person-role { font-size: 10px; color: var(--text-2); margin-top: 2px; }
+
+    /* Emergency contacts */
+    .contact-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+    .contact-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .contact-info .contact-role { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); }
+    .contact-info .contact-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .contact-phone { font-size: 13px; font-weight: 700; color: var(--red); text-decoration: none; }
+    .contact-phone:hover { opacity: 0.8; }
+
+    /* Credential */
+    .cred-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .cred-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .cred-color { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .cred-name { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+    .cred-level { font-size: 11px; color: var(--text-2); }
+
+    /* Radio channels */
+    .channel-row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .channel-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .channel-num { width: 32px; height: 32px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: var(--red); flex-shrink: 0; }
+    .channel-use { font-size: 13px; color: var(--text); font-weight: 500; }
+
+    /* Check list */
+    .check-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 13px; color: var(--text-2); border-bottom: 1px solid var(--border); }
+    .check-item:last-child { border-bottom: none; }
+    .check-dot { width: 8px; height: 8px; background: var(--red); border-radius: 50%; flex-shrink: 0; }
+
+    /* Loading / error */
+    .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; color: var(--text-2); font-size: 13px; }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tag { display: inline-block; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; font-size: 11px; color: var(--text-2); margin: 2px; }
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .note-text { font-size: 12px; color: var(--text-2); background: var(--surface-2); border-left: 3px solid var(--red); padding: 10px 14px; border-radius: 0 8px 8px 0; line-height: 1.7; }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="topnav">
+  <a class="nav-logo" href="/portal">
+    <div class="nav-logo-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M12 2L3 7v6c0 5.25 3.75 10.15 9 11.35C17.25 23.15 21 18.25 21 13V7L12 2z"/></svg>
+    </div>
+    <div class="nav-logo-text">GenX <span>Security</span></div>
+  </a>
+  <div class="nav-center"></div>
+  <div class="nav-right">
+    <span class="nav-user" id="navUserName"></span>
+    <span class="nav-badge" id="navUserRole"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+
+<!-- Content -->
+<div class="page" id="pageContent">
+  <div class="loading" id="loadingState">
+    <div class="spinner"></div>
+    <span>Loading your brief...</span>
+  </div>
+</div>
+
+<script>
+let me = null;
+
+async function init() {
+  try {
+    const meRes = await fetch('/api/auth/me');
+    if (!meRes.ok) { window.location.href = '/login'; return; }
+    me = await meRes.json();
+    if (me.role === 'security') { window.location.href = '/'; return; }
+
+    // Fetch list of briefs this user can access
+    const briefsRes = await fetch('/api/portal/briefs');
+    const briefs = briefsRes.ok ? await briefsRes.json() : [];
+
+    if (briefs.length === 1) {
+      // Single brief — go straight to it
+      window.location.href = `/view?id=${briefs[0].id}`;
+      return;
+    } else if (briefs.length === 0 && me.briefId) {
+      // Fallback: use briefId on user
+      window.location.href = `/view?id=${me.briefId}`;
+      return;
+    }
+
+    // Multiple briefs — show selection
+    renderBriefList(briefs);
+  } catch (e) {
+    window.location.href = '/login';
+  }
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  try { return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }); } catch { return d; }
+}
+
+function renderBriefList(briefs) {
+  document.getElementById('navUserName').textContent = me.name;
+  document.getElementById('navUserRole').textContent = me.role.charAt(0).toUpperCase() + me.role.slice(1);
+
+  if (briefs.length === 0) {
+    document.getElementById('pageContent').innerHTML = '<div class="loading"><span style="color:#e63946">No briefs assigned to your account yet.</span></div>';
+    return;
+  }
+
+  const cards = briefs.map(b => `
+    <a href="/view?id=${b.id}" style="text-decoration:none;">
+      <div class="card" style="cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--border-2)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div class="card-header">
+          <div class="card-icon red">📍</div>
+          <div>
+            <div class="card-title">${b.venueName || 'Event'}</div>
+            <div class="card-sub">${[b.city, b.state].filter(Boolean).join(', ')}${b.showDate ? ' · ' + fmtDate(b.showDate) : ''}</div>
+          </div>
+          <div style="margin-left:auto;">
+            ${b.status === 'finalized' ? '<span class="status-badge">✓ Finalized</span>' : '<span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Draft</span>'}
+          </div>
+        </div>
+      </div>
+    </a>
+  `).join('');
+
+  document.getElementById('pageContent').innerHTML = `
+    <div>
+      <div style="font-size:13px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;">Your Assigned Briefs</div>
+      ${cards}
+    </div>
+  `;
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login';
+}
+
+
+init();
+</script>
+</body>
+</html>

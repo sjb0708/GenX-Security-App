@@ -12,7 +12,7 @@
       "phone": "(480) 644-6500",
       "capacity": "1900",
       "totalTicketed": "",
-      "type": "Persforming Arts Center"
+      "type": "Performing Arts Center"
     },
     "hotel": {
       "name": "Sheraton Mesa Hotel at Wrigleyville West",
@@ -262,7 +262,7 @@
       },
       {
         "time": "19:40",
-        "activity": "Jon Wellington — 20 min ("Top Gun Anthem" – Harold Faltermeyer)",
+        "activity": "Jon Wellington — 20 min (\"Top Gun Anthem\" – Harold Faltermeyer)",
         "notes": "Monitor crowd density at floor perimeter.",
         "critical": false
       },
@@ -274,7 +274,7 @@
       },
       {
         "time": "20:20",
-        "activity": "Kelly Manno — 20 min ("The Right Stuff" – NKOTB)",
+        "activity": "Kelly Manno — 20 min (\"The Right Stuff\" – NKOTB)",
         "notes": "Monitor exits and crowd flow.",
         "critical": false
       },
