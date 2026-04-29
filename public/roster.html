@@ -34,7 +34,7 @@
       font-size: 24px; font-weight: 800; color: var(--text-2);
       overflow: hidden; margin-bottom: 12px; flex-shrink: 0;
     }
-    .roster-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .roster-avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center 15%; }
     .roster-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
     .roster-role { font-size: 11px; color: var(--text-2); margin-bottom: 6px; }
     .roster-cat {
@@ -272,7 +272,7 @@ function renderRoster() {
       <div class="roster-card">
         <button class="roster-remove" onclick="removePerson('${p.id}')" title="Remove">×</button>
         <div class="roster-avatar">
-          ${p.photo ? `<img src="${esc(p.photo)}" alt="" style="object-position:${esc(p.photoPosition || '50% 50%')};">` : `<span>${initials||'?'}</span>`}
+          ${p.photo ? `<img src="${esc(p.photo)}" alt="" style="object-position:${esc(p.photoPosition || '50% 15%')};">` : `<span>${initials||'?'}</span>`}
         </div>
         <div class="roster-name">${esc(p.name)}</div>
         ${p.stageName ? `<div style="font-size:11px;font-style:italic;color:#58a6ff;margin-bottom:2px;">${esc(p.stageName)}</div>` : ''}
@@ -309,7 +309,7 @@ function hideAddForm() {
 }
 
 let _fPhotoData = ''; // base64 or URL of selected photo
-let _fPhotoPosition = '50% 50%'; // CSS object-position / background-position; updated by drag
+let _fPhotoPosition = '50% 15%'; // CSS object-position / background-position; updated by drag
 
 function clearForm() {
   ['fName','fRole','fStageName','fPhone','fEmail'].forEach(id => document.getElementById(id).value = '');
@@ -317,7 +317,7 @@ function clearForm() {
   document.getElementById('addFormError').style.display = 'none';
   document.getElementById('fPhotoFile').value = '';
   _fPhotoData = '';
-  _fPhotoPosition = '50% 50%';
+  _fPhotoPosition = '50% 15%';
   setFormPhoto('', '');
 }
 
@@ -353,7 +353,7 @@ function photoDragStart(e) {
   if (!hasPhoto) return; // no photo loaded → fall through, click opens picker
   e.preventDefault();
   const point = e.touches ? e.touches[0] : e;
-  const [px, py] = (_fPhotoPosition || '50% 50%').split(' ').map(s => parseFloat(s) || 50);
+  const [px, py] = (_fPhotoPosition || '50% 15%').split(' ').map(s => parseFloat(s) || 50);
   _photoDrag = { startX: point.clientX, startY: point.clientY, startPx: px, startPy: py, moved: false };
   document.addEventListener('mousemove', photoDragMove);
   document.addEventListener('mouseup', photoDragEnd);
@@ -467,7 +467,7 @@ function editPerson(id) {
   document.getElementById('addFormError').style.display = 'none';
   document.getElementById('fPhotoFile').value = '';
   _fPhotoData = p.photo || '';
-  _fPhotoPosition = p.photoPosition || '50% 50%';
+  _fPhotoPosition = p.photoPosition || '50% 15%';
   setFormPhoto(p.photo || '', p.name || '', _fPhotoPosition);
   document.getElementById('addFormTitle').textContent = 'Edit Person';
   document.getElementById('addFormSaveBtn').textContent = 'Save Changes';
