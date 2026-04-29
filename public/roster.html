@@ -163,18 +163,19 @@
       <!-- Photo -->
       <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;">
         <div id="fPhotoPreview"
-          style="width:80px;height:80px;border-radius:50%;background:var(--surface-2);border:2px dashed var(--border-2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color 0.15s,background 0.15s;position:relative;"
-          onclick="openPhotoPicker()"
+          style="width:120px;height:120px;border-radius:50%;background:var(--surface-2);border:2px dashed var(--border-2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:border-color 0.15s,background 0.15s;position:relative;touch-action:none;user-select:none;"
+          onmousedown="photoDragStart(event)"
+          ontouchstart="photoDragStart(event)"
           onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border-2)'"
           ondragover="event.preventDefault();this.style.borderColor='#58a6ff';this.style.background='rgba(88,166,255,0.1)'"
           ondragleave="this.style.borderColor='var(--border-2)';this.style.background='var(--surface-2)'"
           ondrop="event.preventDefault();this.style.borderColor='var(--border-2)';this.style.background='var(--surface-2)';dropRosterPhoto(event)">
-          <span id="fPhotoInitials" style="font-size:22px;font-weight:800;color:var(--text-3);">?</span>
-          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);opacity:0;transition:opacity 0.15s;" id="fPhotoOverlay">📷</div>
+          <span id="fPhotoInitials" style="font-size:30px;font-weight:800;color:var(--text-3);">?</span>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);opacity:0;transition:opacity 0.15s;font-size:18px;" id="fPhotoOverlay">📷</div>
         </div>
         <input type="file" id="fPhotoFile" accept="image/*" style="display:none;" onchange="previewRosterPhoto(this)">
         <button type="button" onclick="openPhotoPicker()" style="font-size:11px;font-weight:600;color:var(--text-3);background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:inherit;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-2)'" onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">Choose Photo</button>
-        <span style="font-size:9px;color:var(--text-3);text-align:center;">or drag from Finder</span>
+        <span id="fPhotoHint" style="font-size:9px;color:var(--text-3);text-align:center;">or drag from Finder</span>
       </div>
 
       <!-- Fields -->
@@ -271,7 +272,7 @@ function renderRoster() {
       <div class="roster-card">
         <button class="roster-remove" onclick="removePerson('${p.id}')" title="Remove">×</button>
         <div class="roster-avatar">
-          ${p.photo ? `<img src="${esc(p.photo)}" alt="">` : `<span>${initials||'?'}</span>`}
+          ${p.photo ? `<img src="${esc(p.photo)}" alt="" style="object-position:${esc(p.photoPosition || '50% 50%')};">` : `<span>${initials||'?'}</span>`}
         </div>
         <div class="roster-name">${esc(p.name)}</div>
         ${p.stageName ? `<div style="font-size:11px;font-style:italic;color:#58a6ff;margin-bottom:2px;">${esc(p.stageName)}</div>` : ''}
@@ -308,6 +309,7 @@ function hideAddForm() {
 }
 
 let _fPhotoData = ''; // base64 or URL of selected photo
+let _fPhotoPosition = '50% 50%'; // CSS object-position / background-position; updated by drag
 
 function clearForm() {
   ['fName','fRole','fStageName','fPhone','fEmail'].forEach(id => document.getElementById(id).value = '');
@@ -315,25 +317,76 @@ function clearForm() {
   document.getElementById('addFormError').style.display = 'none';
   document.getElementById('fPhotoFile').value = '';
   _fPhotoData = '';
+  _fPhotoPosition = '50% 50%';
   setFormPhoto('', '');
 }
 
-function setFormPhoto(url, name) {
+function setFormPhoto(url, name, position) {
   const preview = document.getElementById('fPhotoPreview');
   const initials = document.getElementById('fPhotoInitials');
   const overlay  = document.getElementById('fPhotoOverlay');
+  const hint     = document.getElementById('fPhotoHint');
+  if (position) _fPhotoPosition = position;
   if (url) {
     preview.style.backgroundImage = `url(${url})`;
     preview.style.backgroundSize = 'cover';
-    preview.style.backgroundPosition = 'center';
+    preview.style.backgroundPosition = _fPhotoPosition;
+    preview.style.cursor = 'grab';
     initials.style.display = 'none';
-    overlay.style.display = 'flex';
+    overlay.style.display = 'none';
+    if (hint) hint.textContent = 'Drag the photo to reposition';
   } else {
     preview.style.backgroundImage = '';
+    preview.style.cursor = 'pointer';
     initials.style.display = '';
     initials.textContent = name ? name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('') : '?';
     overlay.style.display = 'flex';
+    if (hint) hint.textContent = 'or drag from Finder';
   }
+}
+
+// Drag-to-reposition (click vs drag is decided by movement threshold).
+let _photoDrag = null;
+function photoDragStart(e) {
+  const preview = document.getElementById('fPhotoPreview');
+  const hasPhoto = !!preview.style.backgroundImage && preview.style.backgroundImage !== 'none';
+  if (!hasPhoto) return; // no photo loaded → fall through, click opens picker
+  e.preventDefault();
+  const point = e.touches ? e.touches[0] : e;
+  const [px, py] = (_fPhotoPosition || '50% 50%').split(' ').map(s => parseFloat(s) || 50);
+  _photoDrag = { startX: point.clientX, startY: point.clientY, startPx: px, startPy: py, moved: false };
+  document.addEventListener('mousemove', photoDragMove);
+  document.addEventListener('mouseup', photoDragEnd);
+  document.addEventListener('touchmove', photoDragMove, { passive: false });
+  document.addEventListener('touchend', photoDragEnd);
+}
+function photoDragMove(e) {
+  if (!_photoDrag) return;
+  e.preventDefault();
+  const point = e.touches ? e.touches[0] : e;
+  const dx = point.clientX - _photoDrag.startX;
+  const dy = point.clientY - _photoDrag.startY;
+  if (Math.abs(dx) + Math.abs(dy) > 4) _photoDrag.moved = true;
+  const preview = document.getElementById('fPhotoPreview');
+  const w = preview.clientWidth || 120;
+  const h = preview.clientHeight || 120;
+  // Drag right → reveal more of left side of image, so subtract dx
+  const newX = Math.max(0, Math.min(100, _photoDrag.startPx - (dx / w) * 100));
+  const newY = Math.max(0, Math.min(100, _photoDrag.startPy - (dy / h) * 100));
+  _fPhotoPosition = `${newX.toFixed(1)}% ${newY.toFixed(1)}%`;
+  preview.style.backgroundPosition = _fPhotoPosition;
+  preview.style.cursor = 'grabbing';
+}
+function photoDragEnd() {
+  document.removeEventListener('mousemove', photoDragMove);
+  document.removeEventListener('mouseup', photoDragEnd);
+  document.removeEventListener('touchmove', photoDragMove);
+  document.removeEventListener('touchend', photoDragEnd);
+  const preview = document.getElementById('fPhotoPreview');
+  preview.style.cursor = 'grab';
+  // No movement → treat as a click and open the photo picker
+  if (_photoDrag && !_photoDrag.moved) openPhotoPicker();
+  _photoDrag = null;
 }
 
 function updateFormInitials() {
@@ -414,7 +467,8 @@ function editPerson(id) {
   document.getElementById('addFormError').style.display = 'none';
   document.getElementById('fPhotoFile').value = '';
   _fPhotoData = p.photo || '';
-  setFormPhoto(p.photo || '', p.name || '');
+  _fPhotoPosition = p.photoPosition || '50% 50%';
+  setFormPhoto(p.photo || '', p.name || '', _fPhotoPosition);
   document.getElementById('addFormTitle').textContent = 'Edit Person';
   document.getElementById('addFormSaveBtn').textContent = 'Save Changes';
   document.getElementById('addForm').style.display = '';
@@ -442,7 +496,7 @@ async function savePerson() {
   try {
     const url    = _editId ? `/api/roster/${_editId}` : '/api/roster';
     const method = _editId ? 'PUT' : 'POST';
-    const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, role, stageName, phone, email, category, photo: _fPhotoData }) });
+    const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, role, stageName, phone, email, category, photo: _fPhotoData, photoPosition: _fPhotoPosition }) });
     const data   = await res.json();
     if (!res.ok) throw new Error(data.error || 'Save failed');
 
