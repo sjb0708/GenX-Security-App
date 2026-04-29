@@ -128,7 +128,7 @@
     <button class="filter-btn active" data-cat="all" onclick="setFilter('all')">All</button>
     <button class="filter-btn" data-cat="talent" onclick="setFilter('talent')">Talent</button>
     <button class="filter-btn" data-cat="crew" onclick="setFilter('crew')">Crew</button>
-    <button class="filter-btn" data-cat="staff" onclick="setFilter('staff')">Staff</button>
+    <button class="filter-btn" data-cat="staff" onclick="setFilter('staff')">Security</button>
   </div>
 
   <!-- Roster grid -->
@@ -189,7 +189,7 @@
           <select id="fCategory">
             <option value="talent">Talent</option>
             <option value="crew" selected>Crew</option>
-            <option value="staff">Staff</option>
+            <option value="staff">Security</option>
           </select>
         </div>
         <div class="f">
@@ -267,7 +267,7 @@ function renderRoster() {
 
   grid.innerHTML = filtered.map(p => {
     const initials = getInitials(p.name);
-    const catLabel = { talent: 'Talent', crew: 'Crew', staff: 'Staff' }[p.category] || p.category;
+    const catLabel = { talent: 'Talent', crew: 'Crew', staff: 'Security' }[p.category] || p.category;
     return `
       <div class="roster-card">
         <button class="roster-remove" onclick="removePerson('${p.id}')" title="Remove">×</button>
