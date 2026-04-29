@@ -198,13 +198,21 @@ function renderDashboard(briefs) {
       statusBadge = `<span style="display:inline-flex;align-items:center;gap:4px;align-self:flex-start;padding:2px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:${color};background:${color}1f;border:1px solid ${color}55;border-radius:4px;">${label}</span>`;
     }
 
+    // Published pill — at-a-glance signal that Talent/Crew can see this brief.
+    const publishedPill = b.status === 'finalized'
+      ? `<span title="Visible to Talent/Crew" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#22c55e;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);border-radius:4px;">✓ Published</span>`
+      : `<span title="Draft — Talent/Crew cannot see this yet" style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);background:var(--surface-2);border:1px solid var(--border);border-radius:4px;">Draft</span>`;
+
     card.innerHTML = `
       <div class="brief-card-top"></div>
       <div class="brief-card-body" onclick="window.location='/brief?id=${esc(b.id)}'">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
           <div style="display:flex;flex-direction:column;gap:6px;min-width:0;">
             <div class="brief-card-venue" style="margin-bottom:0;">${esc(b.venueName || 'Untitled Brief')}</div>
-            ${statusBadge}
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              ${statusBadge}
+              ${publishedPill}
+            </div>
           </div>
           ${b.showDate ? `<div style="text-align:right;flex-shrink:0;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">Venue Date</div><div style="font-size:12px;font-weight:700;color:${dateColor};">${esc(formatDate(b.showDate))}</div></div>` : ''}
         </div>
@@ -805,12 +813,14 @@ function updateFinalizeBtn(status) {
   if (!btn) return;
   btn.style.display = '';
   if (_briefStatus === 'finalized') {
-    btn.textContent = '✓ Finalized';
+    btn.textContent = '✓ Published';
+    btn.title = 'This brief is visible to Talent/Crew. Click to unpublish.';
     btn.style.background = 'rgba(34,197,94,0.15)';
     btn.style.color = '#22c55e';
     btn.style.borderColor = 'rgba(34,197,94,0.4)';
   } else {
-    btn.textContent = 'Mark Finalized';
+    btn.textContent = 'Publish to Talent/Crew';
+    btn.title = 'Make this brief visible to Talent/Crew portal users.';
     btn.style.background = '';
     btn.style.color = '';
     btn.style.borderColor = '';
@@ -830,7 +840,7 @@ async function toggleFinalized() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(brief)
     });
-    toast(_briefStatus === 'finalized' ? 'Brief finalized' : 'Marked as draft', 'success');
+    toast(_briefStatus === 'finalized' ? 'Published — visible to Talent/Crew' : 'Unpublished — back to draft', 'success');
   } catch (e) {
     toast('Failed to update status', 'error');
   }
