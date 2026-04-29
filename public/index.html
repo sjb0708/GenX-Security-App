@@ -119,10 +119,10 @@
 
 <div class="toast-container" id="toastContainer"></div>
 <script>
-  // Block talent/crew from the admin dashboard
+  // Block talent/crew from the admin dashboard — only security users see it.
   fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(user => {
-    if (user && user.role === 'talent') {
-      window.location.href = user.briefId ? `/view?id=${user.briefId}` : '/login';
+    if (user && user.role !== 'security') {
+      window.location.href = user.briefId ? `/view?id=${user.briefId}` : '/portal';
     }
   }).catch(() => {});
 </script>

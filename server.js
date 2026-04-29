@@ -478,32 +478,39 @@ app.get('/api/auth/me', requirePortalAuth, (req, res) => {
 });
 
 // ── Portal routes (for logged-in team members) ────────────────────────────────
+// Talent/Crew see only finalized briefs (drafts are admin work-in-progress).
+// Security sees everything regardless of status.
 app.get('/api/portal/brief', requirePortalAuth, async (req, res, next) => {
   try {
     const user = req.portalUser;
+    const isAdmin = user.role === 'security';
     let brief = null;
     if (user.briefId) {
       brief = await db.getBrief(user.briefId);
+      if (brief && !isAdmin && brief.status !== 'finalized') brief = null;
     } else {
       const all = await db.listBriefs();
-      brief = all.find(b => b.status === 'finalized') || all[0] || null;
+      const visible = isAdmin ? all : all.filter(b => b.status === 'finalized');
+      // Sort by updatedAt desc so the latest finalized is returned for talent/crew
+      visible.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      brief = visible[0] || null;
     }
-    if (!brief) return res.status(404).json({ error: 'No brief available' });
-    if (user.role === 'security') return res.json(brief);
-    const { riskAssessment, ...briefWithoutRisk } = brief;
-    res.json(briefWithoutRisk);
+    if (!brief) return res.status(404).json({ error: 'No brief available yet — check back once a plan is published.' });
+    res.json(brief);
   } catch (err) { next(err); }
 });
 
 app.get('/api/portal/briefs', requirePortalAuth, async (req, res, next) => {
   try {
     const user = req.portalUser;
+    const isAdmin = user.role === 'security';
     let list = [];
     if (user.briefId) {
       const b = await db.getBrief(user.briefId);
-      if (b) list = [b];
+      if (b && (isAdmin || b.status === 'finalized')) list = [b];
     } else {
       list = await db.listBriefs();
+      if (!isAdmin) list = list.filter(b => b.status === 'finalized');
     }
     res.json(list.map(b => ({ id: b.id, venueName: b.venue?.name, city: b.venue?.city, state: b.venue?.state, showDate: b.timeline?.showDate, status: b.status })));
   } catch (err) { next(err); }
@@ -585,10 +592,16 @@ app.post('/api/briefs', requireAdmin, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-app.get('/api/briefs/:id', requireAdmin, async (req, res, next) => {
+// Read-access for any authenticated user; talent/crew can only see finalized briefs
+// they're assigned to (or any finalized if their account isn't pinned to one).
+app.get('/api/briefs/:id', requirePortalAuth, async (req, res, next) => {
   try {
     const b = await db.getBrief(req.params.id);
     if (!b) return res.status(404).json({ error: 'Not found' });
+    if (req.portalUser.role !== 'security') {
+      if (b.status !== 'finalized') return res.status(403).json({ error: 'This brief has not been published yet.' });
+      if (req.portalUser.briefId && req.portalUser.briefId !== b.id) return res.status(403).json({ error: 'Not assigned to this brief.' });
+    }
     res.json(b);
   } catch (err) { next(err); }
 });

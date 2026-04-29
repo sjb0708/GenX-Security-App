@@ -350,9 +350,8 @@
               <div>
                 <label class="field-label">Role</label>
                 <select class="field-input" id="newUserRole" style="width:100%;">
-                  <option value="talent">Talent / Cast</option>
-                  <option value="crew">Crew</option>
-                  <option value="security">GenX Security</option>
+                  <option value="talent">Talent / Crew</option>
+                  <option value="security">Security (full admin)</option>
                 </select>
               </div>
               <div style="grid-column:1/-1;">
@@ -841,7 +840,7 @@
           <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
             <div>
               <div style="font-size:13px;font-weight:600;color:var(--text);">${u.name}</div>
-              <div style="font-size:11px;color:var(--text-2);">${u.email} · <span style="color:var(--red);text-transform:capitalize;">${u.role}</span></div>
+              <div style="font-size:11px;color:var(--text-2);">${u.email} · <span style="color:var(--red);">${u.role === 'security' ? 'Security' : 'Talent / Crew'}</span></div>
             </div>
             <button onclick="deleteUser('${u.id}')" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">Remove</button>
           </div>

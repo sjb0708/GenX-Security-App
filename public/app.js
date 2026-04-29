@@ -1617,6 +1617,40 @@ function renderBriefView(b, id) {
   const co = b.communications || {};
   const ac = b.access      || {};
   const li = b.loadinout   || {};
+  const ra = b.riskAssessment || null;
+
+  // Compact risk panel — shown inline so talent/crew see it without leaving the brief.
+  const riskPanel = ra ? (() => {
+    const lvl   = ra.riskLevel || 'Unknown';
+    const color = lvl === 'Critical' ? '#e63946' : lvl === 'High' ? '#f4845f' : lvl === 'Medium' ? '#e9c46a' : '#57cc99';
+    const crits = (ra.criticalFindings || []).slice(0, 4);
+    const cats  = ra.categoryScores || {};
+    const catRow = (key, label) => cats[key] != null
+      ? `<div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:${cats[key] >= 80 ? '#57cc99' : cats[key] >= 60 ? '#e9c46a' : '#e63946'};">${cats[key]}</div><div style="font-size:9px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-top:2px;">${label}</div></div>`
+      : '';
+    return `<div class="view-panel" style="margin-bottom:20px;border:1px solid ${color}55;background:${color}0a;">
+      <div class="view-panel-head">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:18px;">⚡</span>
+          <span class="view-panel-title">Risk Assessment</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;background:${color}1f;border:1px solid ${color}55;color:${color};font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">
+            <span style="font-size:14px;">${ra.overallScore ?? '—'}</span> ${esc(lvl)}
+          </span>
+        </div>
+        ${ra.generatedAt ? `<div style="font-size:11px;color:var(--text-3);">Generated ${formatDate(ra.generatedAt.slice(0,10))}</div>` : ''}
+      </div>
+      <div class="view-panel-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:12px;margin-bottom:16px;padding:12px;background:var(--surface-2);border-radius:8px;">
+          ${catRow('staffing','Staffing')}${catRow('medical','Medical')}${catRow('evacuation','Evac')}${catRow('accessControl','Access')}${catRow('communications','Comms')}${catRow('ingress','Ingress')}
+        </div>
+        ${crits.length ? `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#e63946;margin-bottom:8px;">Critical Findings</div>
+          <ul style="margin:0;padding-left:18px;font-size:13px;color:var(--text);line-height:1.6;">
+            ${crits.map(f => `<li style="margin-bottom:6px;"><strong>${esc(f.title || '')}</strong>${f.detail ? ` — <span style="color:var(--text-2);">${esc(f.detail)}</span>` : ''}</li>`).join('')}
+          </ul>` : '<div style="font-size:13px;color:var(--text-2);">No critical findings.</div>'}
+        ${ra.crimeSummary ? `<div style="margin-top:14px;padding:12px;background:var(--surface-2);border-radius:8px;font-size:13px;color:var(--text-2);line-height:1.6;"><strong style="color:var(--text);">Area context:</strong> ${esc(ra.crimeSummary)}</div>` : ''}
+      </div>
+    </div>`;
+  })() : '';
 
   const doc = document.getElementById('briefDocument');
   if (!doc) return;
@@ -1643,6 +1677,8 @@ function renderBriefView(b, id) {
         </div>
       </div>
     </div>
+
+    ${riskPanel}
 
     <!-- Venue + Hotel -->
     <div class="grid-2" style="margin-bottom:20px;">

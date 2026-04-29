@@ -66,9 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('briefDocument').innerHTML =
       '<div style="text-align:center;padding:80px;color:var(--text-2);">No brief ID specified.</div>';
   }
-  // Hide admin controls for talent/crew portal users
+  // Hide admin controls for talent/crew portal users (anyone who isn't security)
   fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(user => {
-    if (user && user.role === 'talent') {
+    if (user && user.role !== 'security') {
       // Hide edit and print buttons
       const editBtn = document.getElementById('editBtn');
       if (editBtn) editBtn.style.display = 'none';
