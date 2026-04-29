@@ -65,6 +65,18 @@ function isPastShow(ds) {
   } catch (_) { return false; }
 }
 
+// Whole days from today until the show date. 0 = today, negative = past, null = unknown.
+function daysUntilShow(ds) {
+  if (!ds) return null;
+  try {
+    const show = new Date(ds.includes('T') ? ds : ds + 'T12:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const showMidnight = new Date(show); showMidnight.setHours(0, 0, 0, 0);
+    return Math.round((showMidnight.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  } catch (_) { return null; }
+}
+
 function timeAgo(iso) {
   if (!iso) return '';
   const diff = Date.now() - new Date(iso).getTime();
@@ -166,17 +178,33 @@ function renderDashboard(briefs) {
 
   briefs.forEach((b, i) => {
     const past = isPastShow(b.showDate);
+    const days = daysUntilShow(b.showDate);
     const card = document.createElement('div');
     card.className = `brief-card fade-in-up stagger-${Math.min(i + 1, 5)}${past ? ' brief-card-past' : ''}`;
     if (past) card.style.opacity = '0.78';
     const dateColor = past ? 'var(--green, #3fb950)' : 'var(--red)';
+
+    // Status badge: green "Show Complete" if past, otherwise countdown coloured by urgency.
+    let statusBadge = '';
+    if (past) {
+      statusBadge = `<span style="display:inline-flex;align-items:center;gap:4px;align-self:flex-start;padding:2px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#3fb950;background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.3);border-radius:4px;">✓ Show Complete</span>`;
+    } else if (days !== null) {
+      let label, color;
+      if (days === 0)      { label = '🔴 Show Day';        color = '#e63946'; }
+      else if (days === 1) { label = '⚡ 1 Day to Go';      color = '#f4845f'; }
+      else if (days <= 7)  { label = `⚡ ${days} Days to Go`; color = '#f4845f'; }
+      else if (days <= 30) { label = `${days} Days to Go`;   color = '#58a6ff'; }
+      else                 { label = `${days} Days to Go`;   color = '#8b949e'; }
+      statusBadge = `<span style="display:inline-flex;align-items:center;gap:4px;align-self:flex-start;padding:2px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:${color};background:${color}1f;border:1px solid ${color}55;border-radius:4px;">${label}</span>`;
+    }
+
     card.innerHTML = `
       <div class="brief-card-top"></div>
       <div class="brief-card-body" onclick="window.location='/brief?id=${esc(b.id)}'">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
           <div style="display:flex;flex-direction:column;gap:6px;min-width:0;">
             <div class="brief-card-venue" style="margin-bottom:0;">${esc(b.venueName || 'Untitled Brief')}</div>
-            ${past ? `<span style="display:inline-flex;align-items:center;gap:4px;align-self:flex-start;padding:2px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#3fb950;background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.3);border-radius:4px;">✓ Show Complete</span>` : ''}
+            ${statusBadge}
           </div>
           ${b.showDate ? `<div style="text-align:right;flex-shrink:0;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">Venue Date</div><div style="font-size:12px;font-weight:700;color:${dateColor};">${esc(formatDate(b.showDate))}</div></div>` : ''}
         </div>
