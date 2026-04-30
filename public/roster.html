@@ -445,13 +445,36 @@ function dropRosterPhoto(event) {
   readPhotoFile(file);
 }
 
-function readPhotoFile(file) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    _fPhotoData = e.target.result;
-    setFormPhoto(_fPhotoData, '');
-  };
-  reader.readAsDataURL(file);
+// Resize to max 600px JPEG @ q=0.8 so a 12-megapixel iPhone shot becomes ~50KB
+// instead of ~5MB. Massive base64 photos break Vercel saves on briefs.
+async function _shrinkPhotoToDataUrl(file, maxDim = 600, quality = 0.8) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url;
+    });
+    let nw = img.width, nh = img.height;
+    if (nw > maxDim || nh > maxDim) {
+      if (nw >= nh) { nh = Math.round(nh * maxDim / nw); nw = maxDim; }
+      else          { nw = Math.round(nw * maxDim / nh); nh = maxDim; }
+    }
+    const c = document.createElement('canvas');
+    c.width = nw; c.height = nh;
+    c.getContext('2d').drawImage(img, 0, 0, nw, nh);
+    return c.toDataURL('image/jpeg', quality);
+  } finally { URL.revokeObjectURL(url); }
+}
+
+async function readPhotoFile(file) {
+  try {
+    _fPhotoData = await _shrinkPhotoToDataUrl(file);
+  } catch (_) {
+    // Fall back to raw FileReader if canvas resize fails
+    _fPhotoData = await new Promise(res => {
+      const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(file);
+    });
+  }
+  setFormPhoto(_fPhotoData, '');
 }
 
 function editPerson(id) {
