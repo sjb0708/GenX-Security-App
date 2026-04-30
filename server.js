@@ -916,7 +916,7 @@ As part of our pre-event planning process, we ask that your venue security team 
     </td></tr>
   </table>
   <p style="margin:0 0 4px;font-size:13px;color:#e6edf3;font-weight:600;">Thank you for your cooperation.</p>
-  <p style="margin:0;font-size:12px;color:#484f58;">— ${orgEsc} Security Operations</p>
+  <p style="margin:0;font-size:12px;color:#484f58;">— ${orgEsc} Operations</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
 }
