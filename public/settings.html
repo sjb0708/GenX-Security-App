@@ -826,26 +826,120 @@
       } catch (_) {}
     }
 
+    let _editingUserId = null;
+    let _usersCache = [];
+    let _briefsCache = [];
+
     async function loadUsers() {
       try {
         const res = await fetch('/api/admin/users');
-        const users = await res.json();
-        const el = document.getElementById('usersList');
-        if (!el) return;
-        if (!users.length) {
-          el.innerHTML = '<div style="font-size:12px;color:var(--text-3);padding:12px 0;">No team members yet. Add one below.</div>';
-          return;
+        _usersCache = await res.json();
+        // Cache briefs once for the edit form's brief dropdown
+        if (!_briefsCache.length) {
+          try { const br = await fetch('/api/briefs'); if (br.ok) _briefsCache = await br.json(); } catch (_) {}
         }
-        el.innerHTML = users.map(u => `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
-            <div>
-              <div style="font-size:13px;font-weight:600;color:var(--text);">${u.name}</div>
-              <div style="font-size:11px;color:var(--text-2);">${u.email} · <span style="color:var(--red);">${u.role === 'security' ? 'Security' : 'Talent / Crew'}</span></div>
-            </div>
+        renderUsersList();
+      } catch (_) {}
+    }
+
+    function renderUsersList() {
+      const el = document.getElementById('usersList');
+      if (!el) return;
+      if (!_usersCache.length) {
+        el.innerHTML = '<div style="font-size:12px;color:var(--text-3);padding:12px 0;">No team members yet. Add one below.</div>';
+        return;
+      }
+      el.innerHTML = _usersCache.map(u => u.id === _editingUserId ? renderUserEditRow(u) : renderUserRow(u)).join('');
+    }
+
+    function renderUserRow(u) {
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);">${esc(u.name)}</div>
+            <div style="font-size:11px;color:var(--text-2);">${esc(u.email)} · <span style="color:var(--red);">${u.role === 'security' ? 'Security' : 'Talent / Crew'}</span></div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="startEditUser('${u.id}')" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;" onmouseover="this.style.borderColor='#58a6ff';this.style.color='#58a6ff'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">Edit</button>
             <button onclick="deleteUser('${u.id}')" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">Remove</button>
           </div>
-        `).join('');
-      } catch (_) {}
+        </div>`;
+    }
+
+    function renderUserEditRow(u) {
+      const briefOptions = `<option value="">All Briefs</option>` +
+        _briefsCache.map(b => `<option value="${esc(b.id)}" ${u.briefId === b.id ? 'selected' : ''}>${esc(b.venueName || 'Untitled')} — ${esc(b.showDate || 'No date')}</option>`).join('');
+      return `
+        <div style="padding:14px;border-bottom:1px solid var(--border);background:var(--surface-2);border-radius:8px;margin:6px 0;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);display:block;margin-bottom:4px;">Full Name</label>
+              <input id="ed_name_${u.id}" class="field-input" value="${esc(u.name)}">
+            </div>
+            <div>
+              <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);display:block;margin-bottom:4px;">Email</label>
+              <input id="ed_email_${u.id}" class="field-input" type="email" value="${esc(u.email)}">
+            </div>
+            <div>
+              <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);display:block;margin-bottom:4px;">New Password (leave blank to keep)</label>
+              <input id="ed_password_${u.id}" class="field-input" type="password" placeholder="Unchanged">
+            </div>
+            <div>
+              <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);display:block;margin-bottom:4px;">Role</label>
+              <select id="ed_role_${u.id}" class="field-input">
+                <option value="talent" ${u.role !== 'security' ? 'selected' : ''}>Talent / Crew</option>
+                <option value="security" ${u.role === 'security' ? 'selected' : ''}>Security (full admin)</option>
+              </select>
+            </div>
+            <div style="grid-column:1/-1;">
+              <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);display:block;margin-bottom:4px;">Assign to Brief (optional)</label>
+              <select id="ed_brief_${u.id}" class="field-input">${briefOptions}</select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-primary btn-sm" onclick="saveUserEdit('${u.id}')">Save Changes</button>
+            <button class="btn btn-ghost btn-sm" onclick="cancelUserEdit()">Cancel</button>
+            <span id="ed_msg_${u.id}" style="font-size:11px;margin-left:8px;"></span>
+          </div>
+        </div>`;
+    }
+
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    function startEditUser(id) {
+      _editingUserId = id;
+      renderUsersList();
+    }
+
+    function cancelUserEdit() {
+      _editingUserId = null;
+      renderUsersList();
+    }
+
+    async function saveUserEdit(id) {
+      const name     = document.getElementById(`ed_name_${id}`)?.value.trim();
+      const email    = document.getElementById(`ed_email_${id}`)?.value.trim();
+      const password = document.getElementById(`ed_password_${id}`)?.value;
+      const role     = document.getElementById(`ed_role_${id}`)?.value;
+      const briefId  = document.getElementById(`ed_brief_${id}`)?.value || null;
+      const msg      = document.getElementById(`ed_msg_${id}`);
+      if (!name || !email || !role) { if (msg) { msg.style.color='var(--red)'; msg.textContent = 'Name, email, and role are required.'; } return; }
+      const body = { name, email, role, briefId };
+      if (password) body.password = password;
+      try {
+        const res = await fetch(`/api/admin/users/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) { if (msg) { msg.style.color='var(--red)'; msg.textContent = data.error || 'Save failed'; } return; }
+        _editingUserId = null;
+        await loadUsers();
+        toast('Profile updated', 'success');
+      } catch (e) {
+        if (msg) { msg.style.color='var(--red)'; msg.textContent = 'Error saving'; }
+      }
     }
 
     async function addUser() {
