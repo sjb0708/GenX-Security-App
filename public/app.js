@@ -768,21 +768,61 @@ function scheduleSave() {
   saveTimer = setTimeout(doSave, 900);
 }
 
+// Recursively shrink any base64 photos in the brief so the PUT stays under
+// Vercel's serverless body limit (~4.5MB). Photos under 200KB are passed through.
+async function _shrinkDataUrl(value, maxDim = 600, quality = 0.8) {
+  if (typeof value !== 'string' || !value.startsWith('data:image/')) return value;
+  if (value.length < 200 * 1024) return value; // already small enough
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = value;
+    });
+    let nw = img.width, nh = img.height;
+    if (nw > maxDim || nh > maxDim) {
+      if (nw >= nh) { nh = Math.round(nh * maxDim / nw); nw = maxDim; }
+      else          { nw = Math.round(nw * maxDim / nh); nh = maxDim; }
+    }
+    const c = document.createElement('canvas');
+    c.width = nw; c.height = nh;
+    c.getContext('2d').drawImage(img, 0, 0, nw, nh);
+    return c.toDataURL('image/jpeg', quality);
+  } catch (_) { return value; }
+}
+async function _shrinkPhotosDeep(obj) {
+  if (obj == null || typeof obj === 'boolean' || typeof obj === 'number') return obj;
+  if (typeof obj === 'string') return _shrinkDataUrl(obj);
+  if (Array.isArray(obj)) {
+    const out = []; for (const v of obj) out.push(await _shrinkPhotosDeep(v)); return out;
+  }
+  if (typeof obj === 'object') {
+    const out = {}; for (const k of Object.keys(obj)) out[k] = await _shrinkPhotosDeep(obj[k]); return out;
+  }
+  return obj;
+}
+
 async function doSave() {
   if (!currentBriefId) return;
   setStatus('Saving…', false);
   try {
-    const data = collectBrief();
+    const data = await _shrinkPhotosDeep(collectBrief());
     const res = await fetch(`${API}/api/briefs/${currentBriefId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error('Save failed');
+    if (!res.ok) {
+      let msg = 'Save failed';
+      try { const j = await res.json(); if (j.error) msg = `Save failed — ${j.error}`; } catch (_) {}
+      if (res.status === 413) msg = 'Save failed — payload too large. Try fewer/smaller photos.';
+      throw new Error(msg);
+    }
     setStatus('Saved ✓', true);
     updateDots();
   } catch (e) {
-    setStatus('Save failed', false);
+    setStatus(e.message || 'Save failed', false);
   }
 }
 
