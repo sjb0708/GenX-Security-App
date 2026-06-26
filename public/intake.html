@@ -22,16 +22,90 @@
     .header-sub { font-size: 11px; color: var(--text-2); margin-top: 1px; }
     .header-badge { margin-left: auto; background: var(--red-dim); border: 1px solid rgba(230,57,70,0.3); color: var(--red); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
 
-    .wrap { max-width: 680px; margin: 0 auto; padding: 36px 20px 80px; }
-    .page-title { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
-    .page-sub { font-size: 13px; color: var(--text-2); line-height: 1.65; margin-bottom: 6px; }
-    .expires-note { font-size: 12px; color: var(--text-3); margin-bottom: 32px; }
-    .expires-note strong { color: var(--text-2); }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 36px 20px 80px; }
+
+    /* Hero cover */
+    .hero { background: linear-gradient(155deg, #1a1f2e 0%, var(--surface) 60%); border: 1px solid var(--border); border-radius: 14px; padding: 28px 28px 24px; margin-bottom: 22px; position: relative; overflow: hidden; }
+    .hero::before { content:''; position:absolute; inset:0; background: radial-gradient(circle at 100% 0%, rgba(230,57,70,0.08), transparent 50%); pointer-events:none; }
+    .hero-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--red); background: var(--red-dim); padding: 4px 10px; border-radius: 20px; margin-bottom: 14px; }
+    .hero-eyebrow::before { content:''; width:6px; height:6px; background: var(--red); border-radius: 50%; box-shadow: 0 0 8px var(--red); }
+    .hero h1 { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; line-height: 1.2; margin-bottom: 12px; }
+    .hero-event { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin: 14px 0 16px; display: flex; align-items: center; gap: 12px; }
+    .hero-event-icon { width: 36px; height: 36px; background: var(--red-dim); border-radius: 8px; display:flex; align-items:center; justify-content:center; flex-shrink: 0; }
+    .hero-event-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); }
+    .hero-event-value { font-size: 14px; font-weight: 700; color: var(--text); margin-top: 2px; }
+    .hero-body { font-size: 13px; color: var(--text-2); line-height: 1.7; }
+    .hero-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+    @media (max-width: 540px) { .hero-meta { grid-template-columns: 1fr; } }
+    .hero-meta-item { display: flex; align-items: flex-start; gap: 8px; }
+    .hero-meta-icon { font-size: 14px; line-height: 1; margin-top: 2px; }
+    .hero-meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); }
+    .hero-meta-value { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 2px; }
+
+    /* Sender card */
+    .sender-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; display: flex; align-items: center; gap: 14px; }
+    .sender-avatar { width: 40px; height: 40px; background: linear-gradient(135deg, var(--red), #c1121f); border-radius: 50%; display: flex; align-items: center; justify-content: center; color:#fff; font-weight: 800; font-size: 14px; flex-shrink: 0; }
+    .sender-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); }
+    .sender-name { font-size: 13px; font-weight: 700; color: var(--text); margin-top: 1px; }
+    .sender-contact { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+    .sender-contact a { color: var(--blue); text-decoration: none; }
+    .sender-contact a:hover { text-decoration: underline; }
+
+    /* Footer */
+    .form-footer { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); text-align: center; font-size: 11px; color: var(--text-3); line-height: 1.7; }
+    .form-footer strong { color: var(--text-2); }
+
+    /* Last-saved badge in top header */
+    .saved-badge { font-size: 11px; color: var(--text-3); margin-right: 12px; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+    .saved-badge::before { content:''; width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); display: inline-block; }
+    .saved-badge.saved::before { background: var(--green); box-shadow: 0 0 6px rgba(63,185,80,0.5); }
+
+    /* Sticky progress bar */
+    .progress-strip { position: sticky; top: 64px; z-index: 90; background: var(--bg); border-bottom: 1px solid var(--border); padding: 10px 24px; }
+    .progress-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+    .progress-track { flex: 1; height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; position: relative; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--red), #ff6b78); width: 0%; transition: width 0.4s ease; border-radius: 2px; }
+    .progress-pct { font-size: 11px; font-weight: 700; color: var(--text-2); min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+    .progress-dots { display: flex; gap: 5px; }
+    .progress-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border-2); transition: all 0.2s; cursor: pointer; }
+    .progress-dot.done { background: var(--green); border-color: var(--green); box-shadow: 0 0 6px rgba(63,185,80,0.4); }
+    .progress-dot:hover { transform: scale(1.3); }
+    @media (max-width: 540px) { .progress-dots { display: none; } }
+
+    /* Section completion pill in panel header */
+    .section-status { margin-left: auto; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 9px; border-radius: 20px; background: var(--surface-2); color: var(--text-3); border: 1px solid var(--border); white-space: nowrap; transition: all 0.25s; }
+    .section-status.done { background: rgba(63,185,80,0.12); color: var(--green); border-color: rgba(63,185,80,0.3); }
+    .section-status.done::before { content:'✓ '; }
+
+    /* SOP attach slot */
+    .sop-attach { background: var(--surface-2); border: 1px dashed var(--border-2); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; transition: border-color 0.15s; }
+    .sop-attach:hover { border-color: var(--red); }
+    .sop-attach.has-file { border-style: solid; border-color: var(--green); background: rgba(63,185,80,0.06); }
+    .sop-attach-icon { width: 38px; height: 38px; background: var(--red-dim); border-radius: 8px; display:flex; align-items:center; justify-content:center; flex-shrink: 0; }
+    .sop-attach-icon svg { width: 18px; height: 18px; stroke: var(--red); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .sop-attach.has-file .sop-attach-icon { background: rgba(63,185,80,0.15); }
+    .sop-attach.has-file .sop-attach-icon svg { stroke: var(--green); }
+    .sop-attach-body { flex: 1; min-width: 0; }
+    .sop-attach-title { font-size: 13px; font-weight: 700; color: var(--text); }
+    .sop-attach-desc { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+    .sop-attach input { display: none; }
+    .sop-attach-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 12px; font-weight: 600; padding: 8px 14px; cursor: pointer; flex-shrink: 0; transition: all 0.15s; }
+    .sop-attach-btn:hover { border-color: var(--red); color: var(--red); }
+    .sop-attach-clear { background: none; border: none; color: var(--text-3); font-size: 18px; cursor: pointer; padding: 4px 8px; }
+    .sop-attach-clear:hover { color: var(--red); }
+
+    /* Email-me-a-copy at submit */
+    .copy-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; }
+    .copy-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--red); cursor: pointer; flex-shrink: 0; }
+    .copy-row label { font-size: 12px; color: var(--text); cursor: pointer; flex: 1; }
+    .copy-row input[type="email"] { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 12px; padding: 6px 10px; outline: none; min-width: 220px; }
+    .copy-row input[type="email"]:focus { border-color: var(--red); }
 
     /* Panels */
     .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 18px; }
-    .panel-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-    .panel-icon { font-size: 17px; width: 28px; text-align: center; }
+    .panel-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+    .panel-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--red-dim); border: 1px solid rgba(230,57,70,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .panel-icon svg { width: 16px; height: 16px; stroke: var(--red); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
     .panel-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text); }
     .panel-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 
@@ -113,7 +187,17 @@
     <div class="header-org" id="orgName">GenX Takeover Security</div>
     <div class="header-sub">Venue Security Questionnaire</div>
   </div>
+  <div class="saved-badge" id="savedBadge" style="display:none;"><span id="savedText">Not saved yet</span></div>
   <div class="header-badge">Secure · 7-Day Link</div>
+</div>
+
+<!-- Sticky progress strip -->
+<div class="progress-strip" id="progressStrip" style="display:none;">
+  <div class="progress-inner">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-pct" id="progressPct">0%</div>
+    <div class="progress-dots" id="progressDots"></div>
+  </div>
 </div>
 
 <!-- Loading -->
@@ -138,32 +222,79 @@
 
 <!-- Form -->
 <div class="wrap" id="formWrap" style="display:none;">
-  <h1 class="page-title">Venue Questionnaire</h1>
-  <p class="page-sub" id="formSub">Please fill out as much as you can — no fields are required. Complete what you have available and submit when ready.</p>
-  <p class="expires-note" id="expiresNote"></p>
+
+  <!-- Hero cover -->
+  <div class="hero">
+    <div class="hero-eyebrow">Advance Security Planning</div>
+    <h1 id="heroTitle">Venue Security Questionnaire</h1>
+    <div id="heroEvent" style="display:none;" class="hero-event">
+      <div class="hero-event-icon">📅</div>
+      <div>
+        <div class="hero-event-label">Event Date</div>
+        <div class="hero-event-value" id="heroEventDate"></div>
+      </div>
+    </div>
+    <p class="hero-body" id="heroBody">
+      Your venue has been engaged for an upcoming event. To prepare a comprehensive security concept, our team needs to confirm a few specifics about your facility, staffing, and emergency protocols. Information you provide will be reviewed only by personnel directly assigned to this event.
+    </p>
+    <div class="hero-meta">
+      <div class="hero-meta-item">
+        <div class="hero-meta-icon">⏱️</div>
+        <div>
+          <div class="hero-meta-label">Time to Complete</div>
+          <div class="hero-meta-value">10–15 minutes</div>
+        </div>
+      </div>
+      <div class="hero-meta-item">
+        <div class="hero-meta-icon">💾</div>
+        <div>
+          <div class="hero-meta-label">Save &amp; Resume</div>
+          <div class="hero-meta-value">Progress auto-saves</div>
+        </div>
+      </div>
+      <div class="hero-meta-item">
+        <div class="hero-meta-icon">🔒</div>
+        <div>
+          <div class="hero-meta-label">Confidential</div>
+          <div class="hero-meta-value" id="heroExpires">Single-use secure link</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sender contact card -->
+  <div class="sender-card" id="senderCard" style="display:none;">
+    <div class="sender-avatar" id="senderInitials">GX</div>
+    <div style="flex:1;min-width:0;">
+      <div class="sender-label">Your point of contact</div>
+      <div class="sender-name" id="senderName">GenX Takeover Security</div>
+      <div class="sender-contact" id="senderContact"></div>
+    </div>
+  </div>
 
   <form id="intakeForm" onsubmit="submitForm(event)">
 
     <!-- 1. VENUE -->
-    <div class="panel">
+    <div class="panel" data-section="venue">
       <div class="panel-header">
-        <div class="panel-icon">🏛️</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M3 22h18M5 22V11M19 22V11M3 10l9-7 9 7M9 22v-6h6v6M9 14h.01M15 14h.01"/></svg></div>
         <div class="panel-title">Venue</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
         <div class="g2">
           <div class="f">
             <label>Venue Name</label>
-            <input type="text" name="venueName" placeholder="Venue Name">
+            <input type="text" name="venueName" placeholder="e.g., Aetos Center for the Performing Arts">
           </div>
           <div class="f">
             <label>Main Phone</label>
-            <input type="tel" name="venuePhone" placeholder="(555) 000-0000">
+            <input type="tel" name="venuePhone" placeholder="e.g., 555-555-1234">
           </div>
         </div>
         <div class="f">
           <label>Street Address</label>
-          <input type="text" name="venueStreet" placeholder="Street Address">
+          <input type="text" name="venueStreet" placeholder="Street address">
         </div>
         <div class="g3">
           <div class="f">
@@ -185,48 +316,51 @@
             <select name="venueType">
               <option value="">Select…</option>
               <option>Performing Arts Center</option>
-              <option>Arena / Stadium</option>
-              <option>Amphitheater</option>
-              <option>Convention Center</option>
-              <option>Club / Nightclub</option>
-              <option>Fairgrounds / Outdoor</option>
               <option>Theater</option>
+              <option>Amphitheater</option>
+              <option>Bar</option>
+              <option>Casino</option>
               <option>Hotel Ballroom</option>
+              <option>Convention Center</option>
+              <option>Stadium</option>
+              <option>Arena</option>
+              <option>Club / Nightclub</option>
               <option>Other</option>
             </select>
           </div>
           <div class="f">
             <label>Total Capacity</label>
-            <input type="number" name="venueCapacity" placeholder="0" min="0">
+            <input type="number" name="venueCapacity" placeholder="—" min="0">
           </div>
         </div>
       </div>
     </div>
 
     <!-- 2. SECURITY CONTACTS -->
-    <div class="panel">
+    <div class="panel" data-section="contacts">
       <div class="panel-header">
-        <div class="panel-icon">🛡️</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3v8z"/><path d="m9 12 2 2 4-4"/></svg></div>
         <div class="panel-title">Security Contacts</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
         <p style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Primary Contact</p>
         <div class="g2">
           <div class="f">
             <label>Name</label>
-            <input type="text" name="secChiefName" placeholder="Full Name">
+            <input type="text" name="secChiefName" placeholder="e.g., Maria Chen">
           </div>
           <div class="f">
             <label>Title</label>
-            <input type="text" name="secChiefTitle" placeholder="Title / Role">
+            <input type="text" name="secChiefTitle" placeholder="e.g., Director of Security">
           </div>
           <div class="f">
             <label>Phone</label>
-            <input type="tel" name="secChiefPhone" placeholder="(555) 000-0000">
+            <input type="tel" name="secChiefPhone" placeholder="e.g., 555-555-1234">
           </div>
           <div class="f">
             <label>Email</label>
-            <input type="email" name="secChiefEmail" placeholder="Email">
+            <input type="email" name="secChiefEmail" placeholder="name@domain.com">
           </div>
         </div>
         <hr class="divider" style="margin-top:4px;">
@@ -234,25 +368,26 @@
         <div class="g2">
           <div class="f">
             <label>Name</label>
-            <input type="text" name="facilityName" placeholder="Name or Department">
+            <input type="text" name="facilityName" placeholder="e.g., Operations Manager">
           </div>
           <div class="f">
             <label>Phone</label>
-            <input type="tel" name="facilityPhone" placeholder="(555) 000-0000">
+            <input type="tel" name="facilityPhone" placeholder="e.g., 555-555-1234">
           </div>
           <div class="f" style="grid-column:1/-1;">
             <label>Email</label>
-            <input type="email" name="facilityEmail" placeholder="Email">
+            <input type="email" name="facilityEmail" placeholder="name@domain.com">
           </div>
         </div>
       </div>
     </div>
 
     <!-- 3. INGRESS -->
-    <div class="panel">
+    <div class="panel" data-section="ingress">
       <div class="panel-header">
-        <div class="panel-icon">🚪</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10"/></svg></div>
         <div class="panel-title">Ingress &amp; Screening</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
         <div class="f">
@@ -280,7 +415,7 @@
           </div>
           <div class="f">
             <label>Total Screening Entry Points</label>
-            <input type="number" name="gateCount" placeholder="0" min="0">
+            <input type="number" name="gateCount" placeholder="—" min="0">
           </div>
           <div class="f">
             <label>Gate Open Time</label>
@@ -289,35 +424,32 @@
         </div>
         <div class="f">
           <label>Notes</label>
-          <textarea name="ingressNotes" placeholder="VIP entry procedures, gate assignments, special instructions…"></textarea>
+          <textarea name="ingressNotes" placeholder=""></textarea>
         </div>
       </div>
     </div>
 
     <!-- 4. STAFFING -->
-    <div class="panel">
+    <div class="panel" data-section="staffing">
       <div class="panel-header">
-        <div class="panel-icon">👮</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <div class="panel-title">Staffing</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
         <p style="font-size:12px;color:var(--text-2);">Provide counts for staff <em>your venue / production is providing</em>. GenX Security personnel are handled internally.</p>
         <div class="g4">
           <div class="f">
             <label>Total Security</label>
-            <input type="number" name="totalSecurity" placeholder="0" min="0">
-          </div>
-          <div class="f">
-            <label>Ushers</label>
-            <input type="number" name="ushers" placeholder="0" min="0">
+            <input type="number" name="totalSecurity" placeholder="—" min="0">
           </div>
           <div class="f">
             <label>LEO Officers</label>
-            <input type="number" name="leoCount" placeholder="0" min="0">
+            <input type="number" name="leoCount" placeholder="—" min="0">
           </div>
           <div class="f">
             <label>Security Backstage</label>
-            <input type="number" name="backstageSecurity" placeholder="0" min="0">
+            <input type="number" name="backstageSecurity" placeholder="—" min="0">
           </div>
         </div>
         <div class="toggle-row" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
@@ -333,18 +465,28 @@
         </div>
         <div class="f">
           <label>Staffing Notes</label>
-          <textarea name="staffingNotes" placeholder="Briefing times, position assignments, special instructions…"></textarea>
+          <textarea name="staffingNotes" placeholder=""></textarea>
         </div>
       </div>
     </div>
 
     <!-- 5. MEDICAL -->
-    <div class="panel">
+    <div class="panel" data-section="medical">
       <div class="panel-header">
-        <div class="panel-icon">⚕️</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
         <div class="panel-title">Medical &amp; Emergency</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
+        <label class="sop-attach" id="sopMedicalSlot">
+          <input type="file" name="sopMedical" accept=".pdf,.doc,.docx,image/*" onchange="handleSopAttach(this,'sopMedicalSlot')">
+          <div class="sop-attach-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></div>
+          <div class="sop-attach-body">
+            <div class="sop-attach-title">Have an Emergency Action Plan?</div>
+            <div class="sop-attach-desc">If you have an Emergency Action Plan you would like to share with us, you can post it here. PDF, Word, or image.</div>
+          </div>
+          <span class="sop-attach-btn">Choose File</span>
+        </label>
         <div class="toggle-row" style="border-top:none;padding-top:0;">
           <div>
             <div class="toggle-label">Trained Medical Staff On-Site</div>
@@ -354,7 +496,7 @@
         </div>
         <div class="f" style="max-width:200px;">
           <label>First Responder Count</label>
-          <input type="number" name="firstResponderCount" placeholder="0" min="0">
+          <input type="number" name="firstResponderCount" placeholder="—" min="0">
         </div>
         <div style="display:flex;gap:32px;flex-wrap:wrap;">
           <div class="toggle-row" style="border:none;padding:0;flex:1;min-width:200px;">
@@ -372,31 +514,33 @@
         </div>
         <div class="f">
           <label>Emergency Protocol</label>
-          <textarea name="emergencyProtocol" placeholder="Response procedures, code words, radio channels…"></textarea>
+          <textarea name="emergencyProtocol" placeholder=""></textarea>
         </div>
       </div>
     </div>
 
     <!-- 6. EVACUATION -->
-    <div class="panel">
+    <div class="panel" data-section="evac">
       <div class="panel-header">
-        <div class="panel-icon">🚨</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4M12 17h.01"/></svg></div>
         <div class="panel-title">Evacuation Plan</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
+        <p style="font-size:12px;color:var(--text-2);line-height:1.6;margin-bottom:4px;">Any information you can share about evacuation procedures is helpful — exits, rally points, lockdown steps, announcement language. Fill in what you have.</p>
         <div class="g2">
           <div class="f">
             <label>Primary Exit Route</label>
-            <textarea name="primaryExit" placeholder="e.g., Main lobby doors, north entrance to street"></textarea>
+            <textarea name="primaryExit" placeholder=""></textarea>
           </div>
           <div class="f">
             <label>Secondary Exit Route</label>
-            <textarea name="secondaryExit" placeholder="Stage door (west side) to loading dock"></textarea>
+            <textarea name="secondaryExit" placeholder=""></textarea>
           </div>
         </div>
         <div class="f">
           <label>Safe Rooms (one per line)</label>
-          <textarea name="safeRooms" placeholder="Green Room&#10;Main Office&#10;Loading Dock"></textarea>
+          <textarea name="safeRooms" placeholder=""></textarea>
         </div>
         <div class="f">
           <label>Rally Point</label>
@@ -414,44 +558,50 @@
         </div>
         <div class="f">
           <label>EAP Additional Notes</label>
-          <textarea name="eapNotes" placeholder="Exact announcement language for evacuation…"></textarea>
+          <textarea name="eapNotes" placeholder=""></textarea>
         </div>
         <div class="f">
           <label>Lockdown Protocol</label>
-          <textarea name="lockdownProtocol" placeholder="Steps to initiate and maintain lockdown…"></textarea>
+          <textarea name="lockdownProtocol" placeholder=""></textarea>
         </div>
       </div>
     </div>
 
     <!-- 7. MEET & GREET -->
-    <div class="panel">
+    <div class="panel" data-section="mg">
       <div class="panel-header">
-        <div class="panel-icon">🤝</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4M4 6v12c0 1.1.9 2 2 2h14v-4M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></div>
         <div class="panel-title">Meet &amp; Greet / Gift Policy</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
         <div class="f">
           <label>M&amp;G Protocol</label>
-          <textarea name="mgProtocol" placeholder="Escort procedures, interaction rules, fan flow…"></textarea>
+          <div style="padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.55;color:var(--text-2);">
+            Protocol is determined day-of by the <strong>tour manager</strong> and <strong>Lead Security</strong> during the on-site security walkthrough.
+          </div>
         </div>
         <div class="f">
           <label>Gift Policy</label>
-          <textarea name="giftPolicy" placeholder="Inspection requirements, prohibited items, storage…"></textarea>
+          <div style="padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.55;color:var(--text-2);">
+            Gift policy is finalized by the <strong>tour manager</strong> and <strong>Lead Security</strong> during the on-site security walkthrough.
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 8. COMMUNICATIONS -->
-    <div class="panel">
+    <div class="panel" data-section="comms">
       <div class="panel-header">
-        <div class="panel-icon">📻</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M2 12h2M22 12h-2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M5.5 18.5l1.4-1.4M17.1 6.9l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg></div>
         <div class="panel-title">Communications</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
         <div class="toggle-row" style="border-top:none;padding-top:0;">
           <div>
-            <div class="toggle-label">Does Venue Security Need to Share Radio Channels?</div>
-            <div class="toggle-desc">Select Yes if your venue security team will share their radio channel assignments with GenX Security during the event.</div>
+            <div class="toggle-label">Is there a need for Venue and GenX Security to share radios?</div>
+            <div class="toggle-desc">Select Yes if your venue security team and GenX Security will operate on shared radio channels during the event.</div>
           </div>
           <div class="toggle-wrap"><label class="toggle"><input type="checkbox" name="venueShareComms"><span class="toggle-track"></span></label><span class="toggle-yn">No</span></div>
         </div>
@@ -462,7 +612,7 @@
           </div>
           <div class="f">
             <label>Security Operations Phone</label>
-            <input type="tel" name="securityOpsPhone" placeholder="(555) 000-0000">
+            <input type="tel" name="securityOpsPhone" placeholder="e.g., 555-555-1234">
           </div>
         </div>
         <div class="toggle-row">
@@ -473,16 +623,17 @@
         </div>
         <div class="f">
           <label>Notes</label>
-          <textarea name="commsNotes" placeholder="Radio restrictions, dead zones, interference concerns…"></textarea>
+          <textarea name="commsNotes" placeholder=""></textarea>
         </div>
       </div>
     </div>
 
     <!-- 9. ACCESS CONTROL -->
-    <div class="panel">
+    <div class="panel" data-section="access">
       <div class="panel-header">
-        <div class="panel-icon">🔑</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></svg></div>
         <div class="panel-title">Access Control</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
         <div class="f">
@@ -498,20 +649,21 @@
         </div>
         <div class="f">
           <label>Additional Venue-Required Credentials (name, color, access level)</label>
-          <textarea name="additionalCredentials" placeholder="e.g. Venue All Access — Red lanyard — All areas&#10;House Staff — White badge — Front of house only"></textarea>
+          <textarea name="additionalCredentials" placeholder=""></textarea>
         </div>
         <div class="f">
           <label>Parking Notes</label>
-          <textarea name="parkingNotes" placeholder="e.g., Artist/Crew: loading dock, Security: Lot A, General: Lots B & C…"></textarea>
+          <textarea name="parkingNotes" placeholder=""></textarea>
         </div>
       </div>
     </div>
 
     <!-- 10. LOAD IN / LOAD OUT -->
-    <div class="panel">
+    <div class="panel" data-section="load">
       <div class="panel-header">
-        <div class="panel-icon">🚚</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg></div>
         <div class="panel-title">Load In / Load Out</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
         <div class="f">
@@ -538,20 +690,21 @@
         </div>
         <div class="f">
           <label>Load-In Notes</label>
-          <textarea name="loadinNotes" placeholder="Vendor requirements, union rules, no-tailgate policy…"></textarea>
+          <textarea name="loadinNotes" placeholder=""></textarea>
         </div>
         <div class="f">
           <label>Load-Out Notes</label>
-          <textarea name="loadoutNotes" placeholder="Post-show procedures, sweep requirements…"></textarea>
+          <textarea name="loadoutNotes" placeholder=""></textarea>
         </div>
       </div>
     </div>
 
     <!-- 11. EMERGENCY CONTACTS -->
-    <div class="panel">
+    <div class="panel" data-section="ec">
       <div class="panel-header">
-        <div class="panel-icon">🆘</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
         <div class="panel-title">Emergency Contacts</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
         <p style="font-size:12px;color:var(--text-2);">Add any key contacts the security team should have on file — venue managers, local PD liaisons, medical coordinators, etc.</p>
@@ -561,10 +714,11 @@
     </div>
 
     <!-- 12. MAPS -->
-    <div class="panel">
+    <div class="panel" data-section="maps">
       <div class="panel-header">
-        <div class="panel-icon">🗺️</div>
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3z"/><path d="M9 3v15M15 6v15"/></svg></div>
         <div class="panel-title">Maps</div>
+        <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
         <p style="font-size:12px;color:var(--text-2);">Upload venue maps so the security team can include them in the brief. JPG, PNG, or PDF accepted.</p>
@@ -602,9 +756,19 @@
     </div>
 
     <div class="submit-bar">
+      <div class="copy-row">
+        <input type="checkbox" id="sendCopyChk" onchange="toggleCopyEmail(this)">
+        <label for="sendCopyChk">Email me a copy of this submission</label>
+        <input type="email" id="sendCopyEmail" name="sendCopyEmail" placeholder="name@domain.com" style="display:none;">
+      </div>
       <button type="button" class="btn-save" id="saveBtn" onclick="saveProgress()">💾 Save Progress</button>
       <button type="submit" class="btn-submit" id="submitBtn">Submit Questionnaire</button>
       <div id="saveMsg" style="display:none;text-align:center;font-size:12px;color:var(--green);margin-top:8px;font-weight:600;">✓ Progress saved — you can safely close this tab and return later.</div>
+    </div>
+
+    <div class="form-footer">
+      Submitted responses are routed only to <strong id="footerOrg">GenX Takeover Security</strong> personnel assigned to this event.<br>
+      Questions about this request? Reply to the email you received or contact us using the details above.
     </div>
 
   </form>
@@ -620,8 +784,10 @@
       const data = await res.json();
       if (!res.ok) { showError(data.error || 'This link is unavailable.'); return; }
 
-      document.getElementById('orgName').textContent = data.orgName || 'GenX Takeover Security';
-      document.title = `Venue Questionnaire — ${data.orgName || 'GenX Security'}`;
+      const orgName = data.orgName || 'GenX Takeover Security';
+      document.getElementById('orgName').textContent = orgName;
+      document.getElementById('footerOrg').textContent = orgName;
+      document.title = `Venue Questionnaire — ${orgName}`;
 
       const f = document.getElementById('intakeForm');
       if (data.venueName)   f.venueName.value   = data.venueName;
@@ -630,25 +796,52 @@
       if (data.venueState)  f.venueState.value   = data.venueState;
       if (data.venueZip)    f.venueZip.value     = data.venueZip;
 
-      const eventStr = data.eventDate ? ` for the event on <strong>${fmtDate(data.eventDate)}</strong>` : '';
-      document.getElementById('formSub').innerHTML =
-        `${data.orgName || 'The security team'} is preparing the security operations plan${eventStr}. Fill out as much as you can — no fields are required.`;
-
+      // Hero — title + event date
+      const venueLabel = data.venueName ? ` — ${data.venueName}` : '';
+      document.getElementById('heroTitle').textContent = `Venue Security Questionnaire${venueLabel}`;
+      if (data.eventDate) {
+        document.getElementById('heroEvent').style.display = '';
+        document.getElementById('heroEventDate').textContent = fmtDate(data.eventDate);
+      }
+      document.getElementById('heroBody').innerHTML =
+        `${orgName} is preparing the security concept for your upcoming event. ` +
+        `Confirm a few specifics about your facility, staffing, and emergency protocols. ` +
+        `Information you provide is reviewed only by personnel directly assigned to this event.`;
       if (data.expiresAt) {
-        const exp = new Date(data.expiresAt).toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
-        document.getElementById('expiresNote').innerHTML = `<strong>Link expires:</strong> ${exp}`;
+        const exp = new Date(data.expiresAt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+        document.getElementById('heroExpires').textContent = `Link expires ${exp}`;
+      }
+
+      // Sender card
+      const sender = data.orgContact || orgName;
+      const initials = sender.split(/\s+/).map(s => s[0]).filter(Boolean).slice(0,2).join('').toUpperCase() || 'GX';
+      document.getElementById('senderInitials').textContent = initials;
+      document.getElementById('senderName').textContent = sender;
+      const contactBits = [];
+      if (data.orgEmail) contactBits.push(`<a href="mailto:${data.orgEmail}">${data.orgEmail}</a>`);
+      if (data.orgPhone) contactBits.push(`<a href="tel:${data.orgPhone.replace(/[^\d+]/g,'')}">${data.orgPhone}</a>`);
+      if (contactBits.length) {
+        document.getElementById('senderContact').innerHTML = contactBits.join(' &nbsp;·&nbsp; ');
+        document.getElementById('senderCard').style.display = '';
+      } else if (data.orgContact) {
+        document.getElementById('senderCard').style.display = '';
       }
 
       document.getElementById('stateLoading').style.display = 'none';
       document.getElementById('formWrap').style.display = '';
+      document.getElementById('progressStrip').style.display = '';
+      document.getElementById('savedBadge').style.display = '';
       initToggles();
+      buildProgressDots();
 
-      // Restore saved draft if one exists
+      // Restore saved draft if one exists; otherwise seed one Emergency Contacts row
+      let restored = false;
       try {
         const saved = localStorage.getItem(STORE_KEY);
         if (saved) {
           const draft = JSON.parse(saved);
           restoreDraft(draft);
+          restored = true;
           const msg = document.getElementById('saveMsg');
           msg.style.display = '';
           msg.style.color = 'var(--blue)';
@@ -656,11 +849,101 @@
           setTimeout(() => { msg.style.display = 'none'; msg.style.color = 'var(--green)'; msg.textContent = '✓ Progress saved — you can safely close this tab and return later.'; }, 5000);
         }
       } catch (_) {}
+      if (!restored) addEcRow();
+      updateProgress();
 
       initAutoSave();
     } catch (e) {
       showError('Unable to load the questionnaire. Please try again or contact the security team.');
     }
+  }
+
+  // ── Progress bar / section completion ────────────────────────────────────────
+  function getSectionPanels() {
+    return [...document.querySelectorAll('.panel[data-section]')];
+  }
+  function buildProgressDots() {
+    const dotsEl = document.getElementById('progressDots');
+    if (!dotsEl) return;
+    dotsEl.innerHTML = '';
+    getSectionPanels().forEach(panel => {
+      const dot = document.createElement('div');
+      dot.className = 'progress-dot';
+      dot.dataset.section = panel.dataset.section;
+      const title = panel.querySelector('.panel-title')?.textContent || '';
+      dot.title = title;
+      dot.addEventListener('click', () => panel.scrollIntoView({ behavior:'smooth', block:'start' }));
+      dotsEl.appendChild(dot);
+    });
+  }
+  function isSectionFilled(panel) {
+    // A section is "filled" if any input/select/textarea has a non-empty value or any checkbox is checked
+    const els = panel.querySelectorAll('input, select, textarea');
+    for (const el of els) {
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        if (el.checked) return true;
+      } else if (el.type === 'file') {
+        if (el.files && el.files.length) return true;
+      } else {
+        if (el.value && el.value.trim()) return true;
+      }
+    }
+    return false;
+  }
+  function updateProgress() {
+    const panels = getSectionPanels();
+    let filled = 0;
+    panels.forEach(panel => {
+      const done = isSectionFilled(panel);
+      if (done) filled++;
+      const pill = panel.querySelector('.section-status');
+      if (pill) {
+        pill.classList.toggle('done', done);
+        pill.textContent = done ? 'Complete' : 'Not started';
+      }
+      const dot = document.querySelector(`.progress-dot[data-section="${panel.dataset.section}"]`);
+      if (dot) dot.classList.toggle('done', done);
+    });
+    const pct = panels.length ? Math.round((filled / panels.length) * 100) : 0;
+    const fillEl = document.getElementById('progressFill');
+    const pctEl  = document.getElementById('progressPct');
+    if (fillEl) fillEl.style.width = pct + '%';
+    if (pctEl)  pctEl.textContent  = pct + '%';
+  }
+
+  // ── SOP attach handler ───────────────────────────────────────────────────────
+  function handleSopAttach(input, slotId) {
+    const slot = document.getElementById(slotId);
+    if (!slot) return;
+    const file = input.files?.[0];
+    const body = slot.querySelector('.sop-attach-body');
+    const btn  = slot.querySelector('.sop-attach-btn');
+    const existingClear = slot.querySelector('.sop-attach-clear');
+    if (existingClear) existingClear.remove();
+    if (file) {
+      slot.classList.add('has-file');
+      body.querySelector('.sop-attach-title').textContent = file.name;
+      body.querySelector('.sop-attach-desc').textContent  = `${(file.size/1024).toFixed(0)} KB — attached`;
+      btn.textContent = 'Replace';
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'sop-attach-clear';
+      clear.innerHTML = '×';
+      clear.title = 'Remove';
+      clear.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); input.value=''; slot.classList.remove('has-file'); btn.textContent='Choose File'; clear.remove(); /* reset titles via reload of section copy is fine */ scheduleAutoSave(); updateProgress(); };
+      slot.appendChild(clear);
+    }
+    scheduleAutoSave();
+    updateProgress();
+  }
+
+  // ── Copy-email toggle ────────────────────────────────────────────────────────
+  function toggleCopyEmail(cb) {
+    const input = document.getElementById('sendCopyEmail');
+    if (!input) return;
+    input.style.display = cb.checked ? '' : 'none';
+    if (cb.checked) input.focus();
+    else input.value = '';
   }
 
   function fmtDate(ds) {
@@ -684,7 +967,7 @@
     row.innerHTML = `
       <div class="f"><label>Role / Title</label><input type="text" name="ecRole_${id}" placeholder="Venue Manager" value="${data.role||''}"></div>
       <div class="f"><label>Name</label><input type="text" name="ecName_${id}" placeholder="Jane Smith" value="${data.name||''}"></div>
-      <div class="f"><label>Phone</label><input type="tel" name="ecPhone_${id}" placeholder="(555) 000-0000" value="${data.phone||''}"></div>
+      <div class="f"><label>Phone</label><input type="tel" name="ecPhone_${id}" placeholder="e.g., 555-555-1234" value="${data.phone||''}"></div>
       <div class="f"><label>Email</label><input type="email" name="ecEmail_${id}" placeholder="jane@venue.com" value="${data.email||''}"></div>
       <button type="button" onclick="removeEcRow(${id})" style="background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-2);font-size:18px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Remove">×</button>
     `;
@@ -747,9 +1030,8 @@
      'secChiefName','secChiefTitle','secChiefPhone','secChiefEmail',
      'facilityName','facilityPhone','facilityEmail','localPdPhone',
      'ticketingType','gateCount','gateOpenTime','prohibitedItems','ingressNotes',
-     'totalSecurity','ushers','leoCount','backstageSecurity','uniformDesc','staffingNotes',
+     'totalSecurity','leoCount','backstageSecurity','uniformDesc','staffingNotes',
      'firstResponderCount','firstAidLocations','emergencyProtocol',
-     'hospitalName','hospitalAddress','hospitalPhone',
      'primaryExit','secondaryExit','safeRooms','rallyPoint',
      'announcementMethod','eapNotes','lockdownProtocol',
      'mgTime','mgDuration','mgLocation','mgTotalVips','mgStaff','mgProtocol','giftPolicy',
@@ -775,10 +1057,10 @@
     // Emergency contacts
     body.emergencyContacts = collectEcRows();
 
-    // Map uploads — convert to base64
-    btn.textContent = 'Uploading maps…';
-    const mapFields = ['mapFloor','mapBackstage','mapParking'];
-    for (const name of mapFields) {
+    // Map + SOP uploads — convert to base64
+    btn.textContent = 'Uploading attachments…';
+    const fileFields = ['mapFloor','mapBackstage','mapParking','sopMedical'];
+    for (const name of fileFields) {
       const el   = form.elements[name];
       const file = el?.files?.[0];
       if (file) {
@@ -786,6 +1068,13 @@
         body[name + 'Name'] = file.name;
         body[name + 'Type'] = file.type;
       }
+    }
+
+    // Copy-of-submission email
+    const sendCopyChk = document.getElementById('sendCopyChk');
+    const sendCopyEmail = document.getElementById('sendCopyEmail');
+    if (sendCopyChk?.checked && sendCopyEmail?.value?.trim()) {
+      body.sendCopyEmail = sendCopyEmail.value.trim();
     }
 
     btn.textContent = 'Submitting…';
@@ -839,9 +1128,8 @@
      'secChiefName','secChiefTitle','secChiefPhone','secChiefEmail',
      'facilityName','facilityPhone','facilityEmail','localPdPhone',
      'ticketingType','gateCount','gateOpenTime','prohibitedItems','ingressNotes',
-     'totalSecurity','ushers','leoCount','backstageSecurity','uniformDesc','staffingNotes',
+     'totalSecurity','leoCount','backstageSecurity','uniformDesc','staffingNotes',
      'firstResponderCount','firstAidLocations','emergencyProtocol',
-     'hospitalName','hospitalAddress','hospitalPhone',
      'primaryExit','secondaryExit','safeRooms','rallyPoint',
      'announcementMethod','eapNotes','lockdownProtocol',
      'mgTime','mgDuration','mgLocation','mgTotalVips','mgStaff','mgProtocol','giftPolicy',
@@ -875,6 +1163,8 @@
     });
     if (Array.isArray(draft._ec) && draft._ec.length) {
       draft._ec.forEach(row => addEcRow(row));
+    } else {
+      addEcRow();
     }
     initToggles();
   }
@@ -882,6 +1172,14 @@
   function saveProgress(silent = false) {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(collectDraft()));
+      const badge = document.getElementById('savedBadge');
+      const txt   = document.getElementById('savedText');
+      if (badge && txt) {
+        const now = new Date();
+        const t = now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+        txt.textContent = `Saved ${t}`;
+        badge.classList.add('saved');
+      }
       if (!silent) {
         const msg = document.getElementById('saveMsg');
         msg.style.display = '';
@@ -902,8 +1200,9 @@
   }
 
   function initAutoSave() {
-    document.getElementById('intakeForm').addEventListener('input', scheduleAutoSave);
-    document.getElementById('intakeForm').addEventListener('change', scheduleAutoSave);
+    const form = document.getElementById('intakeForm');
+    form.addEventListener('input',  () => { scheduleAutoSave(); updateProgress(); });
+    form.addEventListener('change', () => { scheduleAutoSave(); updateProgress(); });
     setInterval(() => saveProgress(true), 30000);
   }
 
