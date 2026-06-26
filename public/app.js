@@ -4,6 +4,9 @@
 const API = '';
 let currentBriefId = null;
 let saveTimer = null;
+let briefLoaded = false;
+let _saveInFlight = false;
+let _savePending = false;
 let allBriefs = [];
 
 // ── Mobile sidebar toggle ──────────────────────────────────────────────────────
@@ -100,7 +103,27 @@ function setVal(id, v) {
   if (!el) return;
   if (el.type === 'checkbox') { el.checked = !!v; }
   else { el.value = v || ''; }
+  if (el.type === 'date' || el.type === 'time') el.classList.toggle('is-empty', !el.value);
 }
+
+function syncDateTimeEmptyClasses() {
+  document.querySelectorAll('input[type="date"], input[type="time"]').forEach(inp => {
+    inp.classList.toggle('is-empty', !inp.value);
+  });
+}
+
+// Keep is-empty class fresh whenever the user edits a date/time anywhere
+function _maybeToggleEmpty(t) {
+  if (t && (t.type === 'date' || t.type === 'time')) {
+    t.classList.toggle('is-empty', !t.value);
+  }
+}
+document.addEventListener('input',  (e) => _maybeToggleEmpty(e.target), true);
+document.addEventListener('change', (e) => _maybeToggleEmpty(e.target), true);
+document.addEventListener('blur',   (e) => _maybeToggleEmpty(e.target), true);
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof syncDateTimeEmptyClasses === 'function') syncDateTimeEmptyClasses();
+});
 
 function toggleTBD(fieldId) {
   const cb = document.getElementById(fieldId + 'TBD');
@@ -175,6 +198,20 @@ function renderDashboard(briefs) {
     return;
   }
   if (empty) empty.classList.add('hidden');
+
+  // Sort: upcoming shows first (soonest first), then past shows (most recent first).
+  // Briefs without a show date sink to the bottom of their group.
+  briefs = briefs.slice().sort((a, b) => {
+    const aPast = isPastShow(a.showDate);
+    const bPast = isPastShow(b.showDate);
+    if (aPast !== bPast) return aPast ? 1 : -1;       // upcoming before past
+    if (!a.showDate && !b.showDate) return 0;
+    if (!a.showDate) return 1;
+    if (!b.showDate) return -1;
+    return aPast
+      ? b.showDate.localeCompare(a.showDate)           // past: newest first
+      : a.showDate.localeCompare(b.showDate);          // upcoming: soonest first
+  });
 
   briefs.forEach((b, i) => {
     const past = isPastShow(b.showDate);
@@ -261,12 +298,16 @@ function renderDashboard(briefs) {
 }
 
 function intakeBadgeHtml(b) {
+  const printBtn = `<button onclick="event.stopPropagation();printBlankIntake('${esc(b.venueName || '')}','${esc(b.showDate || '')}','${esc(b.id || '')}')" title="Open a printable questionnaire pre-filled with this brief's data (use as email backup)" style="font-size:11px;font-weight:700;color:var(--text-3);background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;cursor:pointer;font-family:inherit;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-2)'" onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">🖨 Print</button>`;
   if (!b.intakeStatus) {
     return `<div style="padding:8px 20px 12px;border-top:1px solid var(--border);">
       <div style="display:flex;align-items:center;gap:6px;">
         <span style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">Venue Intake</span>
         <span style="font-size:11px;color:var(--text-3);">— Not sent</span>
-        <a href="/brief?id=${esc(b.id)}" onclick="event.stopPropagation();" style="margin-left:auto;font-size:11px;font-weight:700;color:var(--text-3);text-decoration:none;padding:3px 8px;border:1px solid var(--border);border-radius:5px;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-2)'" onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">Send →</a>
+        <div style="display:flex;gap:6px;margin-left:auto;">
+          ${printBtn}
+          <a href="/brief?id=${esc(b.id)}" onclick="event.stopPropagation();" style="font-size:11px;font-weight:700;color:var(--text-3);text-decoration:none;padding:3px 8px;border:1px solid var(--border);border-radius:5px;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-2)'" onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">Send →</a>
+        </div>
       </div>
     </div>`;
   }
@@ -295,6 +336,15 @@ function intakeBadgeHtml(b) {
     </div>`;
   }
   return '';
+}
+
+function printBlankIntake(venueName, showDate, briefId) {
+  const params = new URLSearchParams();
+  if (briefId)   params.set('briefId', briefId);
+  if (venueName) params.set('venue', venueName);
+  if (showDate)  params.set('date',  showDate);
+  const qs = params.toString();
+  window.open('/intake-blank.html' + (qs ? '?' + qs : ''), '_blank', 'noopener');
 }
 
 async function resendIntake(briefId) {
@@ -387,6 +437,8 @@ async function duplicateBrief(id) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 async function initBriefBuilder(id) {
+  briefLoaded = false;
+  let ok = true;
   if (id) {
     currentBriefId = id;
     try {
@@ -400,12 +452,14 @@ async function initBriefBuilder(id) {
       if (typeof initVenueIntakeUI  === 'function') initVenueIntakeUI(brief);
       if (typeof initTravelSection  === 'function') initTravelSection(brief);
     } catch (e) {
+      ok = false;
       toast('Failed to load brief', 'error');
     }
   } else {
     initBlankROSAndPeople();
   }
   initSidebarSpy();
+  if (ok) briefLoaded = true;
 }
 
 function populateBrief(b) {
@@ -430,31 +484,25 @@ function populateBrief(b) {
   setVal('hotelZip',         b.hotel?.zip);
   setVal('hotelPhone',       b.hotel?.phone);
   setVal('hotelCheckin',     b.hotel?.checkin);
-  setVal('hotelCheckinTime', b.hotel?.checkinTime);
   setVal('hotelCheckout',    b.hotel?.checkout);
-  setVal('hotelCheckoutTime',b.hotel?.checkoutTime);
 
   // Timeline
   setVal('arrivalDate',   b.timeline?.arrivalDate);
-  setVal('arrivalTime',   b.timeline?.arrivalTime);
   setVal('mediaDate',     b.timeline?.mediaDate);
   setVal('mediaTime',     b.timeline?.mediaTime);
   setVal('showDate',      b.timeline?.showDate);
   setVal('doorsTime',     b.timeline?.doorsTime);
   setVal('showTime',      b.timeline?.showTime);
   setVal('departureDate', b.timeline?.departureDate);
-  setVal('departureTime', b.timeline?.departureTime);
   setVal('timelineNotes', b.timeline?.notes);
   // Restore TBD states
   applyTBDState('arrivalDate',   b.timeline?.arrivalDateTBD);
-  applyTBDState('arrivalTime',   b.timeline?.arrivalTimeTBD);
   applyTBDState('mediaDate',     b.timeline?.mediaDateTBD);
   applyTBDState('mediaTime',     b.timeline?.mediaTimeTBD);
   applyTBDState('showDate',      b.timeline?.showDateTBD);
   applyTBDState('doorsTime',     b.timeline?.doorsTimeTBD);
   applyTBDState('showTime',      b.timeline?.showTimeTBD);
   applyTBDState('departureDate', b.timeline?.departureDateTBD);
-  applyTBDState('departureTime', b.timeline?.departureTimeTBD);
   renderTimeline();
 
   // Contacts
@@ -488,9 +536,9 @@ function populateBrief(b) {
   // Staffing
   const st = b.staffing || {};
   setVal('totalSecurity',    st.totalSecurity);
-  setVal('ushers',           st.ushers);
   setVal('leoCount',         st.leo);
   setVal('backstageSecurity',st.backstageSecurity);
+  enforceBackstageCap();
   setVal('uniformed',        st.uniformed);
   setVal('uniformDesc',      st.uniformDesc);
   setVal('staffingNotes',    st.notes);
@@ -504,9 +552,6 @@ function populateBrief(b) {
   setVal('aedNearStage',         med.aedNearStage);
   setVal('firstAidLocations',    med.firstAidLocations);
   setVal('emergencyProtocol',    med.emergencyProtocol);
-  setVal('hospitalName',         med.hospitalName);
-  setVal('hospitalAddress',      med.hospitalAddress);
-  setVal('hospitalPhone',        med.hospitalPhone);
   setVal('announcementMethod',   med.announcementMethod);
 
   // Evacuation
@@ -518,17 +563,9 @@ function populateBrief(b) {
   setVal('lockdownProtocol', evac.lockdownProtocol);
   if (evac.safeRooms?.length) document.getElementById('safeRoomInput').value = Array.isArray(evac.safeRooms) ? evac.safeRooms.join('\n') : evac.safeRooms;
 
-  // Meet & Greet
+  // Meet & Greet — protocol & gift policy are permanent canned text (read from hidden inputs in brief.html)
   const mg = b.meetgreet || {};
-  setVal('mgScheduled', mg.scheduled);
-  setVal('mgTime',      mg.time);
-  setVal('mgDuration',  mg.duration);
-  setVal('mgLocation',  mg.location);
-  setVal('mgTotalVips', mg.totalVips);
-  setVal('mgStaff',     mg.staffAssigned);
   setVal('mgGenxStaff', mg.genxStaff);
-  setVal('mgProtocol',  mg.protocol);
-  setVal('giftPolicy',  mg.giftPolicy);
 
   // Communications
   const comms = b.communications || {};
@@ -584,8 +621,32 @@ function populateBrief(b) {
   // Maps
   renderMaps(b.maps || []);
 
+  // Defensive: re-sync every TBD-pair so an input is only disabled if its
+  // checkbox is actually checked. Catches any stale .tbd-active state.
+  ['arrivalDate','mediaDate','mediaTime','showDate','doorsTime','showTime','departureDate'].forEach(id => {
+    const inp = document.getElementById(id);
+    const cb  = document.getElementById(id + 'TBD');
+    if (!inp) return;
+    const tbd = !!(cb && cb.checked);
+    inp.classList.toggle('tbd-active', tbd);
+    inp.disabled = tbd;
+  });
+  // Hotel date fields have no TBD — guarantee they're editable
+  ['hotelCheckin','hotelCheckout'].forEach(id => {
+    const inp = document.getElementById(id);
+    if (!inp) return;
+    inp.classList.remove('tbd-active');
+    inp.disabled = false;
+  });
+
   // Status bar
   updateStatusBar(b.venue?.name);
+
+  // Refresh empty-state class on every date/time input so blue placeholders disappear
+  syncDateTimeEmptyClasses();
+
+  // Light up the green section-ready dots based on what's already filled in
+  updateDots();
 }
 
 function initBlankROSAndPeople() {
@@ -598,6 +659,7 @@ function initBlankROSAndPeople() {
   renderChannels([]);
   renderCredentials([]);
   renderGenxCredentials([]);
+  syncDateTimeEmptyClasses();
 }
 
 // ── Collect all form data ─────────────────────────────────────────────────────
@@ -624,15 +686,11 @@ function collectBrief() {
       zip:         val('hotelZip'),
       phone:       val('hotelPhone'),
       checkin:     val('hotelCheckin'),
-      checkinTime: val('hotelCheckinTime'),
-      checkout:    val('hotelCheckout'),
-      checkoutTime:val('hotelCheckoutTime')
+      checkout:    val('hotelCheckout')
     },
     timeline: {
       arrivalDate:      val('arrivalDate'),
       arrivalDateTBD:   val('arrivalDateTBD'),
-      arrivalTime:      val('arrivalTime'),
-      arrivalTimeTBD:   val('arrivalTimeTBD'),
       mediaDate:        val('mediaDate'),
       mediaDateTBD:     val('mediaDateTBD'),
       mediaTime:        val('mediaTime'),
@@ -645,8 +703,6 @@ function collectBrief() {
       showTimeTBD:      val('showTimeTBD'),
       departureDate:    val('departureDate'),
       departureDateTBD: val('departureDateTBD'),
-      departureTime:    val('departureTime'),
-      departureTimeTBD: val('departureTimeTBD'),
       notes:            val('timelineNotes')
     },
     contacts: {
@@ -680,7 +736,6 @@ function collectBrief() {
     },
     staffing: {
       totalSecurity:    val('totalSecurity'),
-      ushers:           val('ushers'),
       leo:              val('leoCount'),
       backstageSecurity:val('backstageSecurity'),
       genxSecurity:     val('genxSecurity'),
@@ -695,9 +750,6 @@ function collectBrief() {
       aedNearStage:        val('aedNearStage'),
       firstAidLocations:   val('firstAidLocations'),
       emergencyProtocol:   val('emergencyProtocol'),
-      hospitalName:        val('hospitalName'),
-      hospitalAddress:     val('hospitalAddress'),
-      hospitalPhone:       val('hospitalPhone'),
       announcementMethod:  val('announcementMethod')
     },
     evacuation: {
@@ -709,12 +761,7 @@ function collectBrief() {
       lockdownProtocol: val('lockdownProtocol')
     },
     meetgreet: {
-      scheduled:    val('mgScheduled'),
-      time:         val('mgTime'),
-      duration:     val('mgDuration'),
-      location:     val('mgLocation'),
-      totalVips:    val('mgTotalVips'),
-      staffAssigned:val('mgStaff'),
+      scheduled:    true,
       genxStaff:    val('mgGenxStaff'),
       protocol:     val('mgProtocol'),
       giftPolicy:   val('giftPolicy')
@@ -763,6 +810,11 @@ function collectBrief() {
 // ── Auto-save ─────────────────────────────────────────────────────────────────
 
 function scheduleSave() {
+  // Block saves until populateBrief has finished hydrating the form.
+  // Without this, a slow Vercel cold-start fetch could let user typing land
+  // before the server response, then populateBrief would clear those inputs
+  // and the queued save would PUT empty values over the typed data.
+  if (!briefLoaded) return;
   setStatus('Unsaved…', false);
   clearTimeout(saveTimer);
   saveTimer = setTimeout(doSave, 900);
@@ -805,6 +857,9 @@ async function _shrinkPhotosDeep(obj) {
 
 async function doSave() {
   if (!currentBriefId) return;
+  // Serialize PUTs so out-of-order Vercel responses can't clobber fresh data.
+  if (_saveInFlight) { _savePending = true; return; }
+  _saveInFlight = true;
   setStatus('Saving…', false);
   try {
     const data = await _shrinkPhotosDeep(collectBrief());
@@ -823,6 +878,12 @@ async function doSave() {
     updateDots();
   } catch (e) {
     setStatus(e.message || 'Save failed', false);
+  } finally {
+    _saveInFlight = false;
+    if (_savePending) {
+      _savePending = false;
+      doSave();
+    }
   }
 }
 
@@ -901,6 +962,29 @@ function updateMapsButtons() {
   if (wz) wz.href = `https://waze.com/ul?q=${enc}`;
 }
 
+// ── Copy venue address into hotel ─────────────────────────────────────────────
+
+function copyVenueToHotel() {
+  const map = {
+    hotelStreet: 'venueStreet',
+    hotelCity:   'venueCity',
+    hotelState:  'venueState',
+    hotelZip:    'venueZip'
+  };
+  let copied = 0;
+  for (const [hotelId, venueId] of Object.entries(map)) {
+    const src = document.getElementById(venueId);
+    const dst = document.getElementById(hotelId);
+    if (!src || !dst) continue;
+    dst.value = src.value || '';
+    copied++;
+  }
+  if (copied) {
+    syncDateTimeEmptyClasses();
+    scheduleSave();
+  }
+}
+
 // ── Uniform toggle ────────────────────────────────────────────────────────────
 
 function toggleUniformDesc() {
@@ -917,10 +1001,10 @@ function renderTimeline() {
 
   const isTBD = id => { const el = document.getElementById(id + 'TBD'); return el && el.checked; };
   const events = [
-    { label: 'Arrival',   date: val('arrivalDate'),   time: val('arrivalTime'),   dateTBD: isTBD('arrivalDate'),   timeTBD: isTBD('arrivalTime')   },
-    { label: 'Media Day', date: val('mediaDate'),     time: val('mediaTime'),     dateTBD: isTBD('mediaDate'),     timeTBD: isTBD('mediaTime')     },
-    { label: 'Show Day',  date: val('showDate'),      time: val('showTime'),      dateTBD: isTBD('showDate'),      timeTBD: isTBD('showTime')      },
-    { label: 'Departure', date: val('departureDate'), time: val('departureTime'), dateTBD: isTBD('departureDate'), timeTBD: isTBD('departureTime') }
+    { label: 'Arrival',   date: val('arrivalDate'),   time: '',               dateTBD: isTBD('arrivalDate'),   timeTBD: false                  },
+    { label: 'Media Day', date: val('mediaDate'),     time: val('mediaTime'), dateTBD: isTBD('mediaDate'),     timeTBD: isTBD('mediaTime')     },
+    { label: 'Show Day',  date: val('showDate'),      time: val('showTime'),  dateTBD: isTBD('showDate'),      timeTBD: isTBD('showTime')      },
+    { label: 'Departure', date: val('departureDate'), time: '',               dateTBD: isTBD('departureDate'), timeTBD: false                  }
   ].filter(e => e.date || e.dateTBD);
 
   if (events.length < 2) { wrap.style.display = 'none'; return; }
@@ -1113,7 +1197,7 @@ function addROSRow(r = {}) {
   tr.draggable = true;
   tr.innerHTML = `
     <td><span class="drag-handle" title="Drag to reorder">⠿</span></td>
-    <td><input class="ros-time-input" type="time" value="${esc(r.time || '')}" oninput="scheduleSave()"></td>
+    <td><input class="ros-time-input" type="time" value="${esc(r.time || '')}" oninput="scheduleSave()" onchange="sortROSByTime();scheduleSave()"></td>
     <td><input class="ros-text-input" value="${esc(r.activity || '')}" placeholder="Activity description…" oninput="scheduleSave()"></td>
     <td><input class="ros-text-input" value="${esc(r.notes || '')}" placeholder="Security notes…" oninput="scheduleSave()"></td>
     <td style="text-align:center;">
@@ -1125,6 +1209,21 @@ function addROSRow(r = {}) {
     <td><button class="btn btn-icon btn-ghost btn-xs" onclick="this.closest('tr').remove();scheduleSave()" title="Delete row">×</button></td>`;
   body.appendChild(tr);
   initROSDrag(tr);
+}
+
+function sortROSByTime() {
+  const body = document.getElementById('rosBody');
+  if (!body) return;
+  [...body.querySelectorAll('tr.ros-row')]
+    .map((tr, idx) => ({ tr, idx, time: tr.querySelector('.ros-time-input')?.value || '' }))
+    .sort((a, b) => {
+      if (!a.time && !b.time) return a.idx - b.idx;
+      if (!a.time) return 1;
+      if (!b.time) return -1;
+      if (a.time === b.time) return a.idx - b.idx;
+      return a.time < b.time ? -1 : 1;
+    })
+    .forEach(({ tr }) => body.appendChild(tr));
 }
 
 function collectROS() {
@@ -1191,8 +1290,9 @@ function addPersonCard(p = {}, type) {
   div.dataset.type = type;
 
   const initials = getInitials(p.name || '');
+  const pos = p.photoPosition || '50% 15%';
   const photoHtml = p.photo
-    ? `<img src="${esc(p.photo)}" alt="">`
+    ? `<img src="${esc(p.photo)}" alt="" style="object-position:${esc(pos)};">`
     : `<span>${initials || '?'}</span>`;
 
   const isTalent = type === 'talent';
@@ -1200,7 +1300,7 @@ function addPersonCard(p = {}, type) {
   div.innerHTML = `
     <button class="person-card-remove" onclick="this.closest('.person-card').remove();scheduleSave()" title="Remove">×</button>
     <div class="person-photo-wrap">
-      <div class="person-photo" onclick="event.stopPropagation();openPhotoPicker(this)">
+      <div class="person-photo" data-photo-position="${esc(pos)}" onclick="event.stopPropagation();openPhotoPicker(this)">
         ${photoHtml}
         <div class="person-photo-overlay">📷</div>
       </div>
@@ -1292,7 +1392,8 @@ function selectPickerPhoto(id, url) {
     _credSlotDivId = null;
     _credSlotUrlId  = null;
   } else if (_pickerTarget) {
-    _pickerTarget.innerHTML = `<img src="${esc(url)}" alt=""><div class="person-photo-overlay">📷</div>`;
+    _pickerTarget.dataset.photoPosition = '50% 15%';
+    _pickerTarget.innerHTML = `<img src="${esc(url)}" alt="" style="object-position:50% 15%;"><div class="person-photo-overlay">📷</div>`;
   }
   closePhotoPicker();
   scheduleSave();
@@ -1320,12 +1421,14 @@ function collectPersonGrid(gridId) {
     const stageInput = card.querySelector('.person-stage-input');
     const roleInputs = [...card.querySelectorAll('.person-role-input')];
     const textarea   = card.querySelector('textarea');
-    const img        = card.querySelector('.person-photo img');
+    const photoDiv   = card.querySelector('.person-photo');
+    const img        = photoDiv?.querySelector('img');
+    const photoPosition = photoDiv?.dataset.photoPosition || img?.style.objectPosition || '';
     const type       = card.dataset.type;
     if (type === 'talent') {
-      return { name: nameInput?.value || '', stageName: stageInput?.value || '', role: roleInputs[0]?.value || '', notes: textarea?.value || '', photo: img?.getAttribute('src') || '' };
+      return { name: nameInput?.value || '', stageName: stageInput?.value || '', role: roleInputs[0]?.value || '', notes: textarea?.value || '', photo: img?.getAttribute('src') || '', photoPosition };
     } else {
-      return { name: nameInput?.value || '', function: roleInputs[0]?.value || '', phone: roleInputs[1]?.value || '', notes: textarea?.value || '', photo: img?.getAttribute('src') || '' };
+      return { name: nameInput?.value || '', function: roleInputs[0]?.value || '', phone: roleInputs[1]?.value || '', notes: textarea?.value || '', photo: img?.getAttribute('src') || '', photoPosition };
     }
   });
 }
@@ -1382,14 +1485,15 @@ function addGenxStaffCard(p = {}) {
   div.className = 'person-card genx-staff-card';
 
   const initials = getInitials(p.name || '');
+  const pos = p.photoPosition || '50% 15%';
   const photoHtml = p.photo
-    ? `<img src="${esc(p.photo)}" alt="">`
+    ? `<img src="${esc(p.photo)}" alt="" style="object-position:${esc(pos)};">`
     : `<span>${initials || '?'}</span>`;
 
   div.innerHTML = `
     <button class="person-card-remove" onclick="this.closest('.genx-staff-card').remove();updateGenxStaffCount();scheduleSave()" title="Remove">×</button>
     <div class="person-photo-wrap">
-      <div class="person-photo" onclick="event.stopPropagation();openPhotoPicker(this)">
+      <div class="person-photo" data-photo-position="${esc(pos)}" onclick="event.stopPropagation();openPhotoPicker(this)">
         ${photoHtml}
         <div class="person-photo-overlay">📷</div>
       </div>
@@ -1422,12 +1526,24 @@ function addCertTag(select) {
   scheduleSave();
 }
 
+function enforceBackstageCap() {
+  const totalEl = document.getElementById('totalSecurity');
+  const backEl  = document.getElementById('backstageSecurity');
+  if (!totalEl || !backEl) return;
+  const total = Number(totalEl.value) || 0;
+  const back  = Number(backEl.value) || 0;
+  backEl.max = total > 0 ? total : '';
+  if (total > 0 && back > total) backEl.value = total;
+}
+
 function updateGenxStaffCount() {
   const grid = document.getElementById('genxStaffGrid');
-  const countEl = document.getElementById('genxSecurity');
-  if (!grid || !countEl) return;
+  if (!grid) return;
   const count = grid.querySelectorAll('.genx-staff-card').length;
-  countEl.value = count > 0 ? count : '';
+  const countEl = document.getElementById('genxSecurity');
+  if (countEl) countEl.value = count > 0 ? count : '';
+  const mgEl = document.getElementById('mgGenxStaff');
+  if (mgEl) mgEl.value = count > 0 ? count : '';
 }
 
 function collectGenxStaff() {
@@ -1436,14 +1552,17 @@ function collectGenxStaff() {
   return [...grid.querySelectorAll('.genx-staff-card')].map(card => {
     const inputs  = [...card.querySelectorAll('input:not(.photo-input):not([type=hidden])')];
     const selects = [...card.querySelectorAll('select')];
-    const img = card.querySelector('.person-photo img');
+    const photoDiv = card.querySelector('.person-photo');
+    const img = photoDiv?.querySelector('img');
+    const photoPosition = photoDiv?.dataset.photoPosition || img?.style.objectPosition || '';
     return {
       name:  inputs[0]?.value || '',
       role:  selects[0]?.value || '',
       phone: inputs[1]?.value || '',
       email: inputs[2]?.value || '',
       certs: [...card.querySelectorAll('.cert-tag input[type=hidden]')].map(i => i.value).filter(Boolean),
-      photo: img?.getAttribute('src') || ''
+      photo: img?.getAttribute('src') || '',
+      photoPosition
     };
   });
 }
@@ -1591,9 +1710,9 @@ function updateDots() {
     contacts:   () => val('primaryName'),
     ingress:    () => val('gateCount'),
     staffing:   () => val('totalSecurity'),
-    medical:    () => val('hospitalName'),
+    medical:    () => val('firstResponderCount') || val('firstAidLocations') || val('emergencyProtocol'),
     evacuation: () => val('primaryExit'),
-    meetgreet:  () => val('mgTime'),
+    meetgreet:  () => val('mgProtocol') || val('giftPolicy'),
     comms:      () => val('securityOps'),
     access:     () => collectDoorSystems().length > 0,
     genxstaff:  () => document.querySelectorAll('#genxStaffGrid .genx-staff-card').length > 0,
@@ -1636,6 +1755,128 @@ function initSidebarSpy() {
 // BRIEF VIEW
 // ══════════════════════════════════════════════════════════════════════════════
 
+// ── Email-friendly PDF export ────────────────────────────────────────────────
+// Uses the browser's print pipeline (which is the only thing that renders the
+// brief layout correctly) and pre-shrinks every photo to ~800px JPEG before
+// opening the print dialog. Three lessons baked in: (1) wait for every image
+// to fully load before measuring — otherwise huge maps with `naturalWidth=0`
+// get skipped and print at full resolution; (2) after swapping in a shrunk
+// data URI, wait for the swap to actually load — revert that specific image
+// if it doesn't, so a corrupted shrink never blanks a photo; (3) no timeout
+// fallback on restore — only afterprint — so a slow Save dialog never reverts
+// to full-res originals mid-print.
+async function downloadEmailPDF() {
+  const btn   = document.getElementById('downloadPdfBtn');
+  const label = document.getElementById('downloadPdfBtnLabel');
+  const doc   = document.getElementById('briefDocument');
+  if (!doc) return;
+  const prevLabel = label?.textContent;
+  const resetButton = () => {
+    if (btn)   btn.disabled = false;
+    if (label) label.textContent = prevLabel || 'Print / Export PDF';
+  };
+  if (btn)   btn.disabled = true;
+  if (label) label.textContent = 'Loading images…';
+
+  const MAX_DIM = 800;
+  const JPEG_Q  = 0.72;
+  const imgs    = [...doc.querySelectorAll('img')];
+  const originals = new Map();
+
+  const restore = () => {
+    for (const [img, src] of originals) img.src = src;
+    originals.clear();
+  };
+
+  try {
+    // 1. Wait for every image to finish loading. Large embedded maps in
+    //    particular can still be decoding when the user clicks the button.
+    await Promise.all(imgs.map(img => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise(resolve => {
+        const done = () => resolve();
+        img.addEventListener('load',  done, { once: true });
+        img.addEventListener('error', done, { once: true });
+        setTimeout(done, 10000);
+      });
+    }));
+
+    if (label) label.textContent = 'Compressing…';
+
+    // 2. Pre-validate each shrunk JPEG with a throwaway <Image> *before*
+    //    swapping the live element's src. That way the live element only ever
+    //    holds an src we know decodes to a non-blank image — no risk of a
+    //    silently-broken JPEG replacing a working photo.
+    for (const img of imgs) {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h) continue;
+      if (Math.max(w, h) <= MAX_DIM && !/^data:image\/png/i.test(img.src || '')) continue;
+
+      const scale = Math.min(1, MAX_DIM / Math.max(w, h));
+      const cw = Math.max(1, Math.round(w * scale));
+      const ch = Math.max(1, Math.round(h * scale));
+      const c  = document.createElement('canvas');
+      c.width = cw; c.height = ch;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cw, ch);
+
+      let shrunk;
+      try {
+        ctx.drawImage(img, 0, 0, cw, ch);
+        shrunk = c.toDataURL('image/jpeg', JPEG_Q);
+      } catch (_) {
+        continue; // Tainted canvas — leave original
+      }
+      if (!shrunk || shrunk.length < 200) continue;
+
+      // Verify the shrunk URI actually decodes back to a real image.
+      const verified = await new Promise(resolve => {
+        const test = new Image();
+        let done = false;
+        const finish = ok => { if (!done) { done = true; resolve(ok); } };
+        test.onload  = () => finish(test.naturalWidth > 0 && test.naturalHeight > 0);
+        test.onerror = () => finish(false);
+        setTimeout(() => finish(false), 4000);
+        test.src = shrunk;
+      });
+      if (!verified) continue;
+
+      originals.set(img, img.src);
+      img.src = shrunk;
+    }
+
+    // 3. After all swaps, make sure every <img> in the brief is in a
+    //    fully-loaded state before triggering the print dialog. This catches
+    //    any in-flight decode of a freshly-set src — the print would otherwise
+    //    capture a half-painted image as blank.
+    await Promise.all(imgs.map(img => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise(resolve => {
+        img.addEventListener('load',  resolve, { once: true });
+        img.addEventListener('error', resolve, { once: true });
+        setTimeout(resolve, 5000);
+      });
+    }));
+    // One more rAF for layout to settle.
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    if (label) label.textContent = 'Print dialog…';
+
+    // 3. Restore on afterprint only. If it never fires, the on-screen view
+    //    stays slightly downscaled until reload — small price to pay vs.
+    //    risking a mid-print revert that re-bloats the PDF.
+    window.addEventListener('afterprint', () => { restore(); resetButton(); }, { once: true });
+    window.print();
+    resetButton();
+  } catch (e) {
+    console.error('[PDF export]', e);
+    alert('Could not prepare PDF — see console.');
+    restore();
+    resetButton();
+  }
+}
+
 async function initBriefView(id) {
   try {
     const res = await fetch(`${API}/api/briefs/${id}`);
@@ -1649,6 +1890,7 @@ async function initBriefView(id) {
 }
 
 function renderBriefView(b, id) {
+  window._viewBrief = b;
   const editBtn = document.getElementById('editBtn');
   if (editBtn) editBtn.href = `/brief?id=${id}`;
 
@@ -1705,7 +1947,17 @@ function renderBriefView(b, id) {
   const doc = document.getElementById('briefDocument');
   if (!doc) return;
 
+  const _preparedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const _footerVenue = (v.name || 'Security Brief').slice(0, 80);
+  const _footerDate  = tl.showDate ? formatDate(tl.showDate) : '';
   doc.innerHTML = `
+    <!-- Print-only running footer (repeats on every printed page) -->
+    <div class="brief-print-footer">
+      <span>CONFIDENTIAL · GenX Corporate Security</span>
+      <span>${esc(_footerVenue)}${_footerDate ? ' · ' + esc(_footerDate) : ''}</span>
+      <span>Prepared ${esc(_preparedDate)}</span>
+    </div>
+
     <!-- Header -->
     <div class="brief-header-block">
       <div class="brief-header-red"></div>
@@ -1720,6 +1972,7 @@ function renderBriefView(b, id) {
               ${tl.showTimeTBD ? `<span class="tag tag-gold">Show: TBD</span>` : (tl.showTime ? `<span class="tag tag-gold">Show: ${esc(formatTime(tl.showTime))}</span>` : '')}
               ${mg.scheduled && mg.totalVips ? `<span class="tag tag-gold">${esc(mg.totalVips)} VIPs</span>` : ''}
             </div>
+            <div style="margin-top:10px;font-size:10.5px;color:var(--text-3);letter-spacing:0.3px;">Prepared by GenX Corporate Security · ${esc(_preparedDate)}</div>
           </div>
           <div class="brief-header-logo">
             <img src="/genx-logo.png" alt="GenX Corporate Security" style="width:160px;height:160px;object-fit:contain;">
@@ -1731,8 +1984,12 @@ function renderBriefView(b, id) {
     ${riskPanel}
 
     <!-- Venue + Hotel -->
-    <div class="grid-2" style="margin-bottom:20px;">
-      ${viewPanel('🏛️', 'Venue', `
+    ${(() => {
+      const vAddr = [v.street, v.city, v.state, v.zip].filter(Boolean).join(', ').toLowerCase();
+      const hAddr = [h.street, h.city, h.state, h.zip].filter(Boolean).join(', ').toLowerCase();
+      const hasHotel = h.name || h.street || h.phone || h.checkin || h.checkout;
+      const sameAsVenue = hasHotel && vAddr && hAddr && vAddr === hAddr;
+      const venueCard = viewPanel('🏛️', 'Venue', `
         <div class="view-kv">
           ${kv('Name',     v.name)}
           ${kv('Address',  [v.street, v.city, v.state, v.zip].filter(Boolean).join(', '))}
@@ -1740,26 +1997,30 @@ function renderBriefView(b, id) {
           ${kv('Capacity',       v.capacity)}
           ${kv('Total Ticketed', v.totalTicketed)}
           ${kv('Type',           v.type)}
-        </div>`)}
-      ${viewPanel('🏨', 'Hotel', `
+        </div>
+        ${sameAsVenue ? `<div style="margin-top:12px;font-size:11px;color:var(--text-3);font-style:italic;">Talent lodging on-site at venue${h.checkin ? ` · Check-in ${formatDate(h.checkin)}` : ''}${h.checkout ? ` · Check-out ${formatDate(h.checkout)}` : ''}</div>` : ''}`);
+      const hotelCard = hasHotel && !sameAsVenue ? viewPanel('🏨', 'Hotel', `
         <div class="view-kv">
           ${kv('Name',      h.name)}
           ${kv('Address',   [h.street, h.city, h.state, h.zip].filter(Boolean).join(', '))}
           ${kv('Phone',     h.phone)}
-          ${kv('Check-In',  h.checkin ? formatDate(h.checkin) + (h.checkinTime ? ' ' + formatTime(h.checkinTime) : '') : '')}
-          ${kv('Check-Out', h.checkout ? formatDate(h.checkout) + (h.checkoutTime ? ' ' + formatTime(h.checkoutTime) : '') : '')}
-        </div>`)}
-    </div>
+          ${kv('Check-In',  h.checkin ? formatDate(h.checkin) : '')}
+          ${kv('Check-Out', h.checkout ? formatDate(h.checkout) : '')}
+        </div>`) : '';
+      return hotelCard
+        ? `<div class="grid-2" style="margin-bottom:20px;">${venueCard}${hotelCard}</div>`
+        : `<div style="margin-bottom:20px;">${venueCard}</div>`;
+    })()}
 
     <!-- Timeline -->
     ${viewPanel('📅', 'Event Timeline', `
       <div class="grid-4" style="margin-bottom:16px;">
-        ${miniStat('Arrival',   tl.arrivalDateTBD   ? 'TBD' : (tl.arrivalDate   ? formatDate(tl.arrivalDate)   : '—'), tl.arrivalTimeTBD   ? 'TBD' : (tl.arrivalTime   ? formatTime(tl.arrivalTime)   : ''))}
+        ${miniStat('Arrival',   tl.arrivalDateTBD   ? 'TBD' : (tl.arrivalDate   ? formatDate(tl.arrivalDate)   : '—'), '')}
         ${miniStat('Show Day',  tl.showDateTBD      ? 'TBD' : (tl.showDate      ? formatDate(tl.showDate)      : '—'), tl.showTimeTBD      ? 'TBD' : (tl.showTime      ? 'Show ' + formatTime(tl.showTime)      : ''))}
         ${miniStat('Doors',     tl.doorsTimeTBD     ? 'TBD' : (tl.doorsTime     ? formatTime(tl.doorsTime)     : '—'), '')}
-        ${miniStat('Departure', tl.departureDateTBD ? 'TBD' : (tl.departureDate ? formatDate(tl.departureDate) : '—'), tl.departureTimeTBD ? 'TBD' : (tl.departureTime ? formatTime(tl.departureTime) : ''))}
+        ${miniStat('Departure', tl.departureDateTBD ? 'TBD' : (tl.departureDate ? formatDate(tl.departureDate) : '—'), '')}
       </div>
-      ${tl.notes ? `<div style="font-size:13px;color:var(--text-2);padding:12px;background:var(--surface-2);border-radius:8px;">${esc(tl.notes)}</div>` : ''}`)}
+      ${isContentValue(tl.notes) ? `<div style="margin-top:6px;"><div class="freetext-label">Timeline Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(tl.notes)}</div></div>` : ''}`)}
 
     <!-- Security Contacts -->
     ${viewPanel('🛡️', 'Security Contacts', `
@@ -1796,17 +2057,16 @@ function renderBriefView(b, id) {
           ${kv('Gate Open', ing.gateOpenTime ? formatTime(ing.gateOpenTime) : '')}
         </div>
         ${ing.prohibitedItems?.length ? `<div style="margin-top:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">Prohibited Items</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${ing.prohibitedItems.map(t => `<span class="tag tag-red">${esc(t)}</span>`).join('')}</div></div>` : ''}
-        ${ing.notes ? `<div style="margin-top:12px;font-size:12px;color:var(--text-2);">${esc(ing.notes)}</div>` : ''}`)}
+        ${isContentValue(ing.notes) ? `<div style="margin-top:14px;"><div class="freetext-label">Prohibited Items / Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ing.notes)}</div></div>` : ''}`)}
       ${viewPanel('👮', 'Staffing', `
         <div class="grid-3" style="gap:8px;margin-bottom:12px;">
           ${miniStat('Security', st.totalSecurity || '—', '')}
-          ${miniStat('Ushers', st.ushers || '—', '')}
           ${miniStat('LEO', st.leo || '—', '')}
           ${miniStat('Backstage', st.backstageSecurity || '—', '')}
           ${st.genxSecurity ? miniStat('GenX Security', st.genxSecurity, '') : ''}
         </div>
-        ${st.uniformed && st.uniformDesc ? `<div style="font-size:12px;color:var(--text-2);padding:10px;background:var(--surface-2);border-radius:8px;">${esc(st.uniformDesc)}</div>` : ''}
-        ${st.notes ? `<div style="margin-top:8px;font-size:12px;color:var(--text-2);">${esc(st.notes)}</div>` : ''}`)}
+        ${st.uniformed && st.uniformDesc ? `<div style="margin-top:10px;"><div class="freetext-label">Uniform</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(st.uniformDesc)}</div></div>` : ''}
+        ${isContentValue(st.notes) ? `<div style="margin-top:10px;"><div class="freetext-label">Staffing Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(st.notes)}</div></div>` : ''}`)}
     </div>
 
     <!-- Medical & Evacuation -->
@@ -1818,10 +2078,8 @@ function renderBriefView(b, id) {
           ${kv('AED On Site', med.aedOnSite ? 'Yes' : 'No')}
           ${kv('AED Near Stage', med.aedNearStage ? 'Yes' : 'No')}
           ${kv('First Aid', med.firstAidLocations)}
-          ${kv('Hospital', med.hospitalName)}
-          ${kv('Hosp. Phone', med.hospitalPhone)}
         </div>
-        ${med.emergencyProtocol ? `<div style="margin-top:12px;font-size:12px;color:var(--text-2);padding:10px;background:var(--surface-2);border-radius:8px;">${esc(med.emergencyProtocol)}</div>` : ''}`)}
+        ${isContentValue(med.emergencyProtocol) ? `<div style="margin-top:10px;"><div class="freetext-label">Emergency Protocol</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(med.emergencyProtocol)}</div></div>` : ''}`)}
       ${viewPanel('🚨', 'Evacuation', `
         <div class="view-kv">
           ${kv('Primary Exit',   ev.primaryExit)}
@@ -1829,9 +2087,12 @@ function renderBriefView(b, id) {
           ${kv('Rally Point',    ev.rallyPoint)}
           ${kv('Evacuation Announcement', med.announcementMethod)}
         </div>
-        ${ev.safeRooms?.length ? `<div style="margin-top:10px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:5px;">Safe Rooms</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${ev.safeRooms.map(r => `<span class="tag tag-blue">${esc(r)}</span>`).join('')}</div></div>` : ''}
-        ${ev.eapNotes ? `<div style="margin-top:10px;font-size:12px;color:var(--text-2);padding:10px;background:var(--surface-2);border-radius:8px;">${esc(ev.eapNotes)}</div>` : ''}
-        ${ev.lockdownProtocol ? `<div style="margin-top:8px;font-size:12px;color:var(--red);padding:10px;background:var(--red-dim);border-radius:8px;border:1px solid rgba(230,57,70,0.2);">${esc(ev.lockdownProtocol)}</div>` : ''}`)}
+        ${(() => {
+          const sr = (ev.safeRooms || []).filter(isContentValue);
+          return sr.length ? `<div style="margin-top:10px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:5px;">Safe Rooms</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${sr.map(r => `<span class="tag tag-blue">${esc(r)}</span>`).join('')}</div></div>` : '';
+        })()}
+        ${isContentValue(ev.eapNotes) ? `<div style="margin-top:10px;"><div class="freetext-label">EAP Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ev.eapNotes)}</div></div>` : ''}
+        ${isContentValue(ev.lockdownProtocol) ? `<div style="margin-top:10px;"><div class="freetext-label" style="color:var(--red);">Lockdown Protocol</div><div class="freetext-body" style="color:var(--red);white-space:pre-wrap;line-height:1.6;">${esc(ev.lockdownProtocol)}</div></div>` : ''}`)}
     </div>
 
     <!-- Meet & Greet + Communications -->
@@ -1849,7 +2110,7 @@ function renderBriefView(b, id) {
           ${kv('Security Staff', mg.staffAssigned)}
           ${kv('GenX Staff', mg.genxStaff)}
         </div>
-        ${mg.protocol ? `<div style="margin-top:10px;font-size:12px;color:var(--text-2);padding:10px;background:var(--surface-2);border-radius:8px;">${esc(mg.protocol)}</div>` : ''}` :
+        ${isContentValue(mg.protocol) ? `<div style="margin-top:10px;"><div class="freetext-label">M&amp;G Protocol</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(mg.protocol)}</div></div>` : ''}` :
         '<div style="color:var(--text-3);font-size:13px;">No Meet &amp; Greet scheduled.</div>'}`)}
       ${viewPanel('📻', 'Communications', `
         <div class="view-kv">
@@ -1881,13 +2142,13 @@ function renderBriefView(b, id) {
             ${ac.genxCred.name ? `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">${esc(ac.genxCred.name)}</div>` : ''}
             ${ac.genxCred.issuedBy ? `<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Issued by: ${esc(ac.genxCred.issuedBy)}</div>` : ''}
             <div style="display:flex;gap:16px;flex-wrap:wrap;">
-              ${ac.genxCred.frontImage ? `<div style="flex:1;min-width:120px;max-width:200px;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">Front</div><img src="${esc(ac.genxCred.frontImage)}" style="width:100%;border-radius:8px;aspect-ratio:0.63;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.4);"></div>` : ''}
-              ${ac.genxCred.backImage  ? `<div style="flex:1;min-width:120px;max-width:200px;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">Back</div><img src="${esc(ac.genxCred.backImage)}" style="width:100%;border-radius:8px;aspect-ratio:0.63;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.4);"></div>` : ''}
+              ${ac.genxCred.frontImage ? `<div style="flex:1;min-width:120px;max-width:200px;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">Front</div><img class="brief-cred-img" src="${esc(ac.genxCred.frontImage)}" style="width:100%;border-radius:8px;aspect-ratio:0.63;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.4);"></div>` : ''}
+              ${ac.genxCred.backImage  ? `<div style="flex:1;min-width:120px;max-width:200px;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">Back</div><img class="brief-cred-img" src="${esc(ac.genxCred.backImage)}" style="width:100%;border-radius:8px;aspect-ratio:0.63;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.4);"></div>` : ''}
             </div>
             ${ac.genxCred.notes ? `<div style="margin-top:10px;font-size:12px;color:var(--text-2);">${esc(ac.genxCred.notes)}</div>` : ''}
           </div>
         </div>` : ''}
-      ${ac.parkingNotes ? `<div style="margin-top:12px;font-size:12px;color:var(--text-2);">${esc(ac.parkingNotes)}</div>` : ''}`)}
+      ${isContentValue(ac.parkingNotes) ? `<div style="margin-top:12px;"><div class="freetext-label">Parking Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.parkingNotes)}</div></div>` : ''}`)}
 
     <!-- Load In/Out -->
     ${viewPanel('🚚', 'Load In / Load Out', `
@@ -1899,7 +2160,7 @@ function renderBriefView(b, id) {
             ${kv('Time', li.loadinTime ? formatTime(li.loadinTime) : '')}
             ${kv('Dock', li.dockLocation)}
           </div>
-          ${li.loadinNotes ? `<div style="margin-top:8px;font-size:12px;color:var(--text-2);">${esc(li.loadinNotes)}</div>` : ''}
+          ${isContentValue(li.loadinNotes) ? `<div style="margin-top:8px;"><div class="freetext-label">Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(li.loadinNotes)}</div></div>` : ''}
         </div>
         <div>
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">Load Out</div>
@@ -1908,40 +2169,42 @@ function renderBriefView(b, id) {
             ${kv('Time', li.loadoutTime ? formatTime(li.loadoutTime) : '')}
             ${kv('Vehicles', li.vehicleCount)}
           </div>
-          ${li.loadoutNotes ? `<div style="margin-top:8px;font-size:12px;color:var(--text-2);">${esc(li.loadoutNotes)}</div>` : ''}
+          ${isContentValue(li.loadoutNotes) ? `<div style="margin-top:8px;"><div class="freetext-label">Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(li.loadoutNotes)}</div></div>` : ''}
         </div>
       </div>`)}
 
     <!-- Run of Show -->
     ${(b.runofshow || []).length ? viewPanel('📋', 'Run of Show', `
       <div style="overflow-x:auto;">
-        <table class="ros-table">
-          <thead><tr><th>Time</th><th>Activity</th><th>Security Notes</th><th style="width:70px;">Critical</th></tr></thead>
+        <table class="ros-table ros-view">
+          <thead><tr><th style="width:14%;">Time</th><th style="width:43%;">Activity</th><th style="width:43%;">Security Notes</th></tr></thead>
           <tbody>
             ${(b.runofshow || []).map(r => `
               <tr class="${r.critical ? 'ros-row-critical' : ''}">
                 <td style="font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;">${esc(r.time ? formatTime(r.time) : r.time)}</td>
                 <td style="font-weight:${r.critical ? '700' : '500'};">${esc(r.activity)}</td>
                 <td style="color:var(--text-2);">${esc(r.notes)}</td>
-                <td style="text-align:center;">${r.critical ? '<span class="tag tag-red" style="font-size:9px;">CRITICAL</span>' : ''}</td>
               </tr>`).join('')}
           </tbody>
         </table>
-      </div>`) : ''}
+      </div>`, 'ros-panel') : ''}
 
     <!-- Talent -->
     ${(b.talent || []).length ? viewPanel('🎤', 'Talent', `
       <div class="person-grid">
-        ${(b.talent || []).map(p => `
+        ${(b.talent || []).map(p => {
+          const showStage = p.stageName && p.stageName.trim().toLowerCase() !== (p.name || '').trim().toLowerCase();
+          return `
           <div class="person-card">
             <div class="person-photo" style="margin:0 auto 12px;cursor:default;">
-              ${p.photo ? `<img src="${esc(p.photo)}" alt="">` : `<span>${esc(getInitials(p.name))}</span>`}
+              ${p.photo ? `<img src="${esc(p.photo)}" alt="" style="object-position:${esc(p.photoPosition || '50% 5%')};">` : `<span>${esc(getInitials(p.name))}</span>`}
             </div>
             <div class="person-name">${esc(p.name)}</div>
-            ${p.stageName ? `<div class="person-stage">${esc(p.stageName)}</div>` : ''}
+            ${showStage ? `<div class="person-stage">${esc(p.stageName)}</div>` : ''}
             <div class="person-role">${esc(p.role)}</div>
-            ${p.notes ? `<div class="person-notes" style="margin-top:8px;">${esc(p.notes)}</div>` : ''}
-          </div>`).join('')}
+            ${p.notes ? `<div class="person-notes" style="margin-top:8px;white-space:pre-wrap;">${esc(p.notes)}</div>` : ''}
+          </div>`;
+        }).join('')}
       </div>`) : ''}
 
     <!-- Crew -->
@@ -1950,7 +2213,7 @@ function renderBriefView(b, id) {
         ${(b.crew || []).map(p => `
           <div class="person-card">
             <div class="person-photo" style="margin:0 auto 12px;cursor:default;">
-              ${p.photo ? `<img src="${esc(p.photo)}" alt="">` : `<span>${esc(getInitials(p.name))}</span>`}
+              ${p.photo ? `<img src="${esc(p.photo)}" alt="" style="object-position:${esc(p.photoPosition || '50% 5%')};">` : `<span>${esc(getInitials(p.name))}</span>`}
             </div>
             <div class="person-name">${esc(p.name)}</div>
             <div class="person-role">${esc(p.function)}</div>
@@ -1965,7 +2228,7 @@ function renderBriefView(b, id) {
         ${(b.genxstaff || []).map(p => `
           <div class="person-card">
             <div class="person-photo" style="margin:0 auto 12px;cursor:default;">
-              ${p.photo ? `<img src="${esc(p.photo)}" alt="">` : `<span>${esc(getInitials(p.name))}</span>`}
+              ${p.photo ? `<img src="${esc(p.photo)}" alt="" style="object-position:${esc(p.photoPosition || '50% 5%')};">` : `<span>${esc(getInitials(p.name))}</span>`}
             </div>
             <div class="person-name">${esc(p.name)}</div>
             <div class="person-role">${esc(p.role)}</div>
@@ -1994,14 +2257,14 @@ function renderBriefView(b, id) {
     ${(b.maps || []).some(m => m.image) ? viewPanel('🗺️', 'Venue Maps & Diagrams', `
       <div style="display:flex;flex-direction:column;gap:24px;">
         ${(b.maps || []).filter(m => m.image).map(m => `
-          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <div class="map-card" style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
             <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
               <div style="font-size:13px;font-weight:700;color:var(--text);">${esc(m.title)}</div>
               ${m.description ? `<div style="font-size:11px;color:var(--text-2);margin-top:2px;">${esc(m.description)}</div>` : ''}
             </div>
             <img src="${esc(m.image)}" alt="${esc(m.title)}" style="display:block;width:100%;height:auto;object-fit:contain;max-height:600px;background:#000;">
           </div>`).join('')}
-      </div>`) : ''}
+      </div>`, 'maps-panel') : ''}
 
     <div style="text-align:center;padding:32px 0 16px;color:var(--text-3);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">
       — GenX Security Brief System — Confidential Document —
@@ -2011,19 +2274,29 @@ function renderBriefView(b, id) {
 
 // ── View helpers ──────────────────────────────────────────────────────────────
 
-function viewPanel(icon, title, content) {
+function viewPanel(icon, title, content, extraClass = '') {
   return `
-    <div class="view-panel">
+    <div class="view-panel${extraClass ? ' ' + extraClass : ''}">
       <div class="view-panel-header">
-        <span style="font-size:16px;">${icon}</span>
+        <span class="section-icon" style="font-size:16px;">${icon}</span>
         <h3>${esc(title)}</h3>
       </div>
       <div class="view-panel-body">${content}</div>
     </div>`;
 }
 
+// Treat "None" / "N/A" / dashes as missing content so the brief view doesn't
+// render them as if they were real entries (e.g. red callouts or blue chips).
+function isContentValue(v) {
+  if (v == null) return false;
+  const s = String(v).trim().toLowerCase();
+  if (!s) return false;
+  if (s === 'none' || s === 'n/a' || s === 'na' || s === '—' || s === '-' || s === 'tbd') return false;
+  return true;
+}
+
 function kv(key, value) {
-  if (!value) return '';
+  if (!isContentValue(value)) return '';
   return `<div class="view-key">${esc(key)}</div><div class="view-val">${esc(String(value))}</div>`;
 }
 

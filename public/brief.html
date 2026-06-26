@@ -1,3 +1,4 @@
+<!-- v: 2026-05-28-no-extra-times -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -145,12 +146,18 @@
       </div>
       <div id="venueIntakeError" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:8px;font-size:12px;color:var(--red);"></div>
     </div>
-    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;">
-      <button class="btn btn-ghost btn-sm" onclick="closeVenueIntakeModal()">Cancel</button>
-      <button class="btn btn-primary btn-sm" id="sendVenueIntakeConfirm" onclick="sendVenueIntake()">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l12-6-6 12V9L2 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-        Send Email
+    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+      <button type="button" onclick="openBlankIntakePdf()" style="background:none;border:none;color:#58a6ff;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:6px 4px;display:inline-flex;align-items:center;gap:6px;" title="Open a printable blank questionnaire — use when email is unreliable">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6z" stroke="currentColor" stroke-width="1.4"/><path d="M14 6h-4V2M8 11h2M8 8h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Download blank PDF (backup)
       </button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost btn-sm" onclick="closeVenueIntakeModal()">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="sendVenueIntakeConfirm" onclick="sendVenueIntake()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l12-6-6 12V9L2 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          Send Email
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -323,9 +330,12 @@
 
   <!-- 2. Hotel -->
   <section class="panel fade-in-up stagger-1" id="sec-hotel">
-    <div class="panel-header">
-      <div class="section-icon">🏨</div>
-      <h2>Hotel Information</h2>
+    <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="section-icon">🏨</div>
+        <h2>Hotel Information</h2>
+      </div>
+      <button type="button" class="btn btn-sm btn-ghost" onclick="copyVenueToHotel()" title="Copy venue address into hotel fields">Same as Venue</button>
     </div>
     <div class="panel-body">
       <div class="grid-2">
@@ -356,22 +366,14 @@
         <label class="field-label">Phone</label>
         <input class="field-input" id="hotelPhone" placeholder="(555) 000-0000" oninput="scheduleSave()">
       </div>
-      <div class="grid-4">
+      <div class="grid-2">
         <div class="field-group">
           <label class="field-label">Check-In Date</label>
           <input class="field-input" type="date" id="hotelCheckin" oninput="scheduleSave()">
         </div>
         <div class="field-group">
-          <label class="field-label">Check-In Time</label>
-          <input class="field-input" type="time" id="hotelCheckinTime" oninput="scheduleSave()">
-        </div>
-        <div class="field-group">
           <label class="field-label">Check-Out Date</label>
           <input class="field-input" type="date" id="hotelCheckout" oninput="scheduleSave()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Check-Out Time</label>
-          <input class="field-input" type="time" id="hotelCheckoutTime" oninput="scheduleSave()">
         </div>
       </div>
     </div>
@@ -384,20 +386,13 @@
       <h2>Event Timeline</h2>
     </div>
     <div class="panel-body">
-      <div class="grid-4">
+      <div class="grid-3">
         <div class="field-group">
           <div style="display:flex;align-items:center;justify-content:space-between;">
             <label class="field-label" style="margin-bottom:0;">Arrival Date</label>
             <label class="tbd-toggle"><input type="checkbox" id="arrivalDateTBD" onchange="toggleTBD('arrivalDate');scheduleSave();renderTimeline()"> TBD</label>
           </div>
           <input class="field-input" type="date" id="arrivalDate" oninput="scheduleSave();renderTimeline()">
-        </div>
-        <div class="field-group">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <label class="field-label" style="margin-bottom:0;">Arrival Time</label>
-            <label class="tbd-toggle"><input type="checkbox" id="arrivalTimeTBD" onchange="toggleTBD('arrivalTime');scheduleSave()"> TBD</label>
-          </div>
-          <input class="field-input" type="time" id="arrivalTime" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -443,13 +438,6 @@
           </div>
           <input class="field-input" type="date" id="departureDate" oninput="scheduleSave();renderTimeline()">
         </div>
-      </div>
-      <div class="field-group">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <label class="field-label" style="margin-bottom:0;">Departure Time</label>
-          <label class="tbd-toggle"><input type="checkbox" id="departureTimeTBD" onchange="toggleTBD('departureTime');scheduleSave()"> TBD</label>
-        </div>
-        <input class="field-input" type="time" id="departureTime" style="max-width:200px;" oninput="scheduleSave()">
       </div>
       <div class="field-group">
         <label class="field-label">Notes</label>
@@ -587,22 +575,21 @@
       <h2>Staffing</h2>
     </div>
     <div class="panel-body">
-      <div class="grid-4">
+      <div class="grid-3">
         <div class="field-group">
           <label class="field-label">Total Security</label>
-          <input class="field-input" type="number" id="totalSecurity" placeholder="0" oninput="scheduleSave()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Ushers</label>
-          <input class="field-input" type="number" id="ushers" placeholder="0" oninput="scheduleSave()">
+          <input class="field-input" type="number" min="0" id="totalSecurity" placeholder="0" oninput="enforceBackstageCap();scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Law Enforcement Officers (LEO)</label>
-          <input class="field-input" type="number" id="leoCount" placeholder="0" oninput="scheduleSave()">
+          <input class="field-input" type="number" min="0" id="leoCount" placeholder="0" oninput="scheduleSave()">
         </div>
         <div class="field-group">
-          <label class="field-label">Backstage Security</label>
-          <input class="field-input" type="number" id="backstageSecurity" placeholder="0" oninput="scheduleSave()">
+          <label class="field-label" style="display:flex;align-items:center;gap:8px;">
+            Backstage Security
+            <span style="font-size:10px;font-weight:500;color:var(--text-3);text-transform:none;letter-spacing:0;">(included in Total)</span>
+          </label>
+          <input class="field-input" type="number" min="0" id="backstageSecurity" placeholder="0" oninput="enforceBackstageCap();scheduleSave()">
         </div>
       </div>
       <div class="field-group" style="max-width:200px;margin-top:4px;">
@@ -684,20 +671,6 @@
         <label class="field-label">Emergency Protocol</label>
         <textarea class="field-input" id="emergencyProtocol" placeholder="Response procedures, code words, radio channels…" oninput="scheduleSave()"></textarea>
       </div>
-      <div class="grid-3">
-        <div class="field-group">
-          <label class="field-label">Nearest Hospital</label>
-          <input class="field-input" id="hospitalName" oninput="scheduleSave()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Hospital Address</label>
-          <input class="field-input" id="hospitalAddress" oninput="scheduleSave()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Hospital Phone</label>
-          <input class="field-input" id="hospitalPhone" oninput="scheduleSave()">
-        </div>
-      </div>
     </div>
   </section>
 
@@ -754,51 +727,29 @@
       <h2>Meet &amp; Greet / Gift Policy</h2>
     </div>
     <div class="panel-body">
-      <div class="toggle-row" style="margin-bottom:16px;">
-        <div class="toggle-info">
-          <div class="toggle-label">Meet &amp; Greet Scheduled</div>
-          <div class="toggle-desc">Fan meet and greet session included in this event</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="mgScheduled" onchange="scheduleSave()">
-          <span class="toggle-slider"></span>
-        </label>
+      <div style="margin-bottom:16px;padding:12px 14px;background:rgba(88,166,255,0.05);border:1px solid rgba(88,166,255,0.2);border-left:3px solid #58a6ff;border-radius:8px;font-size:12px;line-height:1.55;color:var(--text-2);">
+        <div style="font-weight:700;color:#58a6ff;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">Day-of Coordination</div>
+        Meet &amp; greets occur <strong>after the show</strong>, so the time cannot be pre-scheduled. The <strong>tour manager</strong> determines the meet &amp; greet location on the day of show, and the <strong>venue</strong> determines the post-show timing. Once the location is set, <strong>Lead Security</strong> is responsible for arranging a walkthrough with venue security to review on-site security and M&amp;G protocols.
       </div>
-      <div class="grid-4">
+      <div class="grid-2" style="max-width:480px;">
         <div class="field-group">
-          <label class="field-label">Time</label>
-          <input class="field-input" type="time" id="mgTime" oninput="scheduleSave()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Duration (min)</label>
-          <input class="field-input" type="number" id="mgDuration" placeholder="0" oninput="scheduleSave()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Location</label>
-          <input class="field-input" id="mgLocation" placeholder="e.g., VIP Lounge, Backstage Room…" oninput="scheduleSave()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Total VIPs</label>
-          <input class="field-input" type="number" id="mgTotalVips" placeholder="0" oninput="scheduleSave()">
-        </div>
-      </div>
-      <div class="grid-2" style="max-width:420px;">
-        <div class="field-group">
-          <label class="field-label">Security Staff Assigned</label>
-          <input class="field-input" type="number" id="mgStaff" placeholder="0" oninput="scheduleSave()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Total GenX Security Staff</label>
-          <input class="field-input" type="number" id="mgGenxStaff" placeholder="0" oninput="scheduleSave()">
+          <label class="field-label">Total GenX Security Staff <span style="font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:0;font-size:10px;">· auto from team</span></label>
+          <input class="field-input" type="number" id="mgGenxStaff" placeholder="0" readonly style="opacity:0.75;cursor:not-allowed;">
         </div>
       </div>
       <div class="field-group">
         <label class="field-label">M&amp;G Protocol</label>
-        <textarea class="field-input" id="mgProtocol" oninput="scheduleSave()"></textarea>
+        <div style="padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.55;color:var(--text-2);">
+          Protocol is determined day-of by the <strong>tour manager</strong> and <strong>Lead Security</strong> during the on-site security walkthrough.
+        </div>
+        <input type="hidden" id="mgProtocol" value="Protocol determined day-of by tour manager and lead security during on-site security walkthrough.">
       </div>
       <div class="field-group">
         <label class="field-label">Gift Policy</label>
-        <textarea class="field-input" id="giftPolicy" placeholder="Inspection requirements, prohibited items, storage…" oninput="scheduleSave()"></textarea>
+        <div style="padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.55;color:var(--text-2);">
+          Gift policy is finalized by the <strong>tour manager</strong> and <strong>Lead Security</strong> during the on-site security walkthrough.
+        </div>
+        <input type="hidden" id="giftPolicy" value="Policy finalized by tour manager and lead security during on-site security walkthrough.">
       </div>
     </div>
   </section>
@@ -1373,7 +1324,7 @@
 
 <div class="toast-container" id="toastContainer"></div>
 
-<script src="/app.js?v=1774745000"></script>
+<script src="/app.js?v=1780001000"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
@@ -1702,6 +1653,18 @@ function closeVenueIntakeModal() {
   document.getElementById('venueIntakeModal').style.display = 'none';
 }
 
+function openBlankIntakePdf() {
+  const venue   = document.getElementById('venueName')?.value?.trim() || '';
+  const date    = document.getElementById('showDate')?.value || '';
+  const briefId = new URLSearchParams(location.search).get('id') || '';
+  const params  = new URLSearchParams();
+  if (briefId) params.set('briefId', briefId);
+  if (venue)   params.set('venue', venue);
+  if (date)    params.set('date',  date);
+  const qs = params.toString();
+  window.open('/intake-blank.html' + (qs ? '?' + qs : ''), '_blank', 'noopener');
+}
+
 // Close modal on backdrop click
 document.getElementById('venueIntakeModal').addEventListener('click', function(e) {
   if (e.target === this) closeVenueIntakeModal();
@@ -1791,19 +1754,17 @@ function renderIntakeResponses(data) {
     ticketingType:'Ticketing Type', gateCount:'Gate Count', gateOpenTime:'Gate Open Time',
     prohibitedItems:'Prohibited Items', ingressNotes:'Ingress Notes',
     // Staffing
-    totalSecurity:'Total Security', ushers:'Ushers', leoCount:'LEO Officers', backstageSecurity:'Backstage Security',
+    totalSecurity:'Total Security', leoCount:'LEO Officers', backstageSecurity:'Backstage Security',
     uniformed:'Uniformed Staff', uniformDesc:'Uniform Description', staffingNotes:'Staffing Notes',
     // Medical
     medicalOnSite:'Medical Staff On-Site', firstResponderCount:'First Responder Count',
     aedOnSite:'AED On Site', aedNearStage:'AED Near Stage/Backstage',
     firstAidLocations:'First Aid Locations', emergencyProtocol:'Emergency Protocol',
-    hospitalName:'Nearest Hospital', hospitalAddress:'Hospital Address', hospitalPhone:'Hospital Phone',
     // Evacuation
     primaryExit:'Primary Exit Route', secondaryExit:'Secondary Exit Route', safeRooms:'Safe Rooms',
     rallyPoint:'Rally Point', announcementMethod:'Announcement Method', eapNotes:'EAP Notes', lockdownProtocol:'Lockdown Protocol',
     // Meet & Greet
-    mgScheduled:'M&G Scheduled', mgTime:'M&G Time', mgDuration:'M&G Duration (min)', mgLocation:'M&G Location',
-    mgTotalVips:'Total VIPs', mgStaff:'Security Staff Assigned', mgProtocol:'M&G Protocol', giftPolicy:'Gift Policy',
+    mgGenxStaff:'Total GenX Security Staff', mgProtocol:'M&G Protocol', giftPolicy:'Gift Policy',
     // Communications
     venueShareComms:'Venue Sharing Communications', securityOps:'Security Operations Location',
     securityOpsPhone:'Security Operations Phone', cellOk:'GenX Radios Permitted', commsNotes:'Comms Notes',
@@ -1965,15 +1926,16 @@ function addFromRoster() {
 
   people.forEach(p => {
     if (_rosterPickerType === 'staff') {
-      addGenxStaffCard({ name: p.name, role: p.role || '', phone: p.phone || '', email: p.email || '', photo: p.photo || '', certs: [] });
+      addGenxStaffCard({ name: p.name, role: p.role || '', phone: p.phone || '', email: p.email || '', photo: p.photo || '', photoPosition: p.photoPosition || '', certs: [] });
     } else {
       addPersonCard({
-        name:      p.name,
-        photo:     p.photo || '',
-        stageName: p.stageName || '',
-        role:      _rosterPickerType === 'talent' ? (p.role || '') : '',
-        function:  _rosterPickerType === 'crew'   ? (p.role || '') : '',
-        phone:     p.phone || ''
+        name:          p.name,
+        photo:         p.photo || '',
+        photoPosition: p.photoPosition || '',
+        stageName:     p.stageName || '',
+        role:          _rosterPickerType === 'talent' ? (p.role || '') : '',
+        function:      _rosterPickerType === 'crew'   ? (p.role || '') : '',
+        phone:         p.phone || ''
       }, _rosterPickerType);
     }
   });
