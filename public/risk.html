@@ -147,6 +147,23 @@
     .pass-item { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-2); padding: 8px 10px; background: var(--surface-2); border-radius: 6px; line-height: 1.4; }
     .pass-check { color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
 
+    /* Insurance */
+    .ins-summary { font-size: 12px; color: var(--text-2); line-height: 1.65; padding: 12px; background: var(--surface-2); border-radius: 8px; margin-bottom: 14px; }
+    .ins-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); margin: 16px 0 8px; }
+    .ins-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .ins-table thead th { padding: 8px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); border-bottom: 1px solid var(--border); text-align: left; }
+    .ins-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .ins-table tbody tr:hover { background: var(--surface-2); }
+    .ins-table tbody td { padding: 10px; color: var(--text-2); vertical-align: top; line-height: 1.5; }
+    .ins-table td.ins-cov { font-weight: 700; color: var(--text); white-space: nowrap; }
+    .ins-table td.ins-limit { white-space: nowrap; font-weight: 600; }
+    .doc-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .doc-item:last-child { border-bottom: none; }
+    .doc-icon { flex-shrink: 0; font-size: 14px; margin-top: 1px; }
+    .doc-body { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+    .doc-body strong { color: var(--text); display: block; margin-bottom: 2px; font-size: 12px; }
+    .ins-disclaimer { font-size: 10px; color: var(--text-3); margin-top: 12px; line-height: 1.5; }
+
     /* Priority actions */
     .action-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
     .action-item:last-child { border-bottom: none; }
@@ -273,15 +290,16 @@
       const steps = [
         { text: 'Reading security brief data...', delay: 0 },
         { text: 'Fetching local crime statistics...', delay: 1200 },
-        { text: 'Analyzing staffing & coverage...', delay: 2800 },
-        { text: 'Running AI risk analysis...', delay: 4500 },
-        { text: 'Compiling findings & recommendations...', delay: 7000 }
+        { text: 'Analyzing staffing & coverage...', delay: 8000 },
+        { text: 'Running AI risk analysis...', delay: 18000 },
+        { text: 'Evaluating insurance & coverage needs...', delay: 32000 },
+        { text: 'Compiling findings & recommendations...', delay: 45000 }
       ];
       document.getElementById('raContent').innerHTML = `
         <div class="ra-loading">
           <div class="ra-loading-spinner"></div>
           <div class="ra-loading-title">Generating Risk Assessment</div>
-          <div class="ra-loading-sub">Analyzing your brief with AI — this takes about 15–20 seconds</div>
+          <div class="ra-loading-sub">Deep analysis with AI — this can take 1–2 minutes for a thorough assessment</div>
           <div class="ra-loading-steps">
             ${steps.map((s, i) => `<div class="ra-loading-step" id="lstep${i}"><div class="step-dot"></div>${s.text}</div>`).join('')}
           </div>
@@ -645,6 +663,70 @@
             <div class="pass-grid">
               ${d.passingChecks.map(c => `<div class="pass-item"><span class="pass-check">✓</span>${c}</div>`).join('')}
             </div>
+          </div>
+        </div>`;
+      }
+
+      // Insurance & Coverage
+      if (d.insurance) {
+        const ins = d.insurance;
+        const rs = ins.readinessScore;
+        const rsBadge = rs != null
+          ? `<span class="severity-badge ${rs >= 80 ? 'sev-pass' : rs >= 60 ? 'sev-medium' : 'sev-critical'}">READINESS: ${rs}</span>`
+          : '<span class="severity-badge sev-info">INSURANCE</span>';
+        html += `
+        <div class="ra-panel">
+          <div class="ra-panel-header" onclick="togglePanel(this)">
+            <div class="ra-panel-left">
+              <span class="ra-panel-icon">🛡️</span>
+              <div>
+                <div class="ra-panel-title">Insurance &amp; Coverage</div>
+                <div class="ra-panel-sub">Recommended policies, underwriting concerns &amp; documentation for the show's broker</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              ${rsBadge}
+              <span class="ra-panel-chevron">▼</span>
+            </div>
+          </div>
+          <div class="ra-panel-body">
+            ${ins.summary ? `<div class="ins-summary" style="margin-top:14px;">${ins.summary}</div>` : ''}
+
+            ${(ins.recommendedCoverages || []).length > 0 ? `
+              <div class="ins-section-title">Recommended Coverages</div>
+              <table class="ins-table">
+                <thead><tr><th>Coverage</th><th>Limit</th><th>Priority</th><th>Why</th></tr></thead>
+                <tbody>
+                  ${ins.recommendedCoverages.map(c => `<tr>
+                    <td class="ins-cov">${c.coverage}</td>
+                    <td class="ins-limit">${c.recommendedLimit}</td>
+                    <td><span class="severity-badge ${c.priority === 'Essential' ? 'sev-critical' : c.priority === 'Recommended' ? 'sev-medium' : 'sev-low'}">${(c.priority || '').toUpperCase()}</span></td>
+                    <td>${c.rationale}</td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>` : ''}
+
+            ${(ins.underwritingConcerns || []).length > 0 ? `
+              <div class="ins-section-title">Underwriting Concerns</div>
+              ${ins.underwritingConcerns.map(u => `
+                <div class="finding">
+                  <div class="finding-icon-wrap fi-medium">⚖️</div>
+                  <div class="finding-body">
+                    <div class="finding-title">${u.title}</div>
+                    <div class="finding-detail">${u.detail}${u.impact ? ` <strong style="color:var(--text);">Impact:</strong> ${u.impact}` : ''}</div>
+                    ${u.mitigation ? `<div class="finding-rec">✔ ${u.mitigation}</div>` : ''}
+                  </div>
+                </div>`).join('')}` : ''}
+
+            ${(ins.documentationChecklist || []).length > 0 ? `
+              <div class="ins-section-title">Documentation Checklist</div>
+              ${ins.documentationChecklist.map(doc => `
+                <div class="doc-item">
+                  <span class="doc-icon">📄</span>
+                  <div class="doc-body"><strong>${doc.item}</strong>${doc.detail}</div>
+                </div>`).join('')}` : ''}
+
+            <div class="ins-disclaimer">⚠️ AI-generated operational risk guidance — not legal or brokerage advice. Confirm all coverage decisions with the show's licensed insurance broker.</div>
           </div>
         </div>`;
       }

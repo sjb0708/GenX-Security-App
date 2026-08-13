@@ -2,58 +2,62 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Venue Security Questionnaire — Pre-filled Form</title>
+<title>Venue Security Advance Questionnaire</title>
 <style>
+  /* ── Professional document palette: ink / slate / navy. No brand red — this is
+     a formal security-operations document, not marketing collateral. ─────────── */
+  :root { --ink: #1b2430; --muted: #5a6472; --faint: #8b94a1; --rule: #b8c0ca; --navy: #1f3a5f; --fill: #eef2f6; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  html, body { background: #fff; color: #111; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.35; }
+  html, body { background: #f3f4f6; color: var(--ink); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.35; }
 
   body { padding: 24px; }
-  .doc { max-width: 7.4in; margin: 0 auto; background: #fff; border: 1px solid #ddd; padding: 0.5in; box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+  .doc { max-width: 7.4in; margin: 0 auto; background: #fff; border: 1px solid #d7dbe0; padding: 0.5in; box-shadow: 0 8px 32px rgba(27,36,48,0.10); }
 
   .toolbar { max-width: 7.4in; margin: 0 auto 16px; display: flex; align-items: center; gap: 12px; }
-  .toolbar h1 { font-size: 14px; font-weight: 700; color: #111; }
+  .toolbar h1 { font-size: 14px; font-weight: 700; color: var(--ink); }
   .toolbar .spacer { flex: 1; }
   .toolbar button {
-    background: #c1121f; color: #fff; border: none; border-radius: 6px;
+    background: var(--navy); color: #fff; border: none; border-radius: 6px;
     padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
   }
-  .toolbar button:hover { background: #a30f1a; }
-  .toolbar .hint { font-size: 11px; color: #555; }
-  .toolbar .legend { font-size: 11px; color: #555; display: inline-flex; align-items: center; gap: 6px; }
-  .toolbar .legend .sw { width: 16px; height: 10pt; border: 0.6pt solid #999; background: #fffbe6; border-left: 2pt solid #c1121f; }
+  .toolbar button:hover { background: #16293f; }
+  .toolbar .legend { font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .toolbar .legend .sw { width: 16px; height: 10pt; border: 0.6pt solid var(--rule); background: var(--fill); border-left: 2pt solid var(--navy); }
 
-  /* Brand header */
-  .brand-bar { border-top: 3pt solid #c1121f; padding-top: 8pt; margin-bottom: 12pt; display: flex; justify-content: space-between; align-items: flex-end; gap: 16pt; }
-  .brand-left .eyebrow { color: #c1121f; font-size: 8.5pt; font-weight: 800; letter-spacing: 1.5pt; text-transform: uppercase; }
-  .brand-left h1 { font-size: 22pt; font-weight: 800; color: #111; letter-spacing: -0.3pt; margin-top: 2pt; line-height: 1.05; }
-  .brand-left .sub { color: #555; font-size: 9pt; margin-top: 4pt; }
-  .brand-right { text-align: right; color: #555; font-size: 8.5pt; line-height: 1.5; }
-  .brand-right strong { color: #111; font-size: 9.5pt; }
+  /* Document header — formal letterhead block */
+  .brand-bar { border-bottom: 2.5pt solid var(--navy); padding-bottom: 10pt; margin-bottom: 10pt; display: flex; justify-content: space-between; align-items: flex-end; gap: 16pt; }
+  .brand-left .eyebrow { color: var(--navy); font-size: 8pt; font-weight: 700; letter-spacing: 2pt; text-transform: uppercase; }
+  .brand-left h1 { font-size: 19pt; font-weight: 800; color: var(--ink); letter-spacing: -0.2pt; margin-top: 3pt; line-height: 1.1; }
+  .brand-left .sub { color: var(--muted); font-size: 9pt; margin-top: 4pt; max-width: 4.6in; }
+  .brand-right { text-align: right; color: var(--muted); font-size: 8.5pt; line-height: 1.5; }
+  .brand-right strong { color: var(--ink); font-size: 10pt; }
 
-  /* Return-to box */
-  .return-box {
-    border: 1pt solid #c1121f; background: #fff;
-    border-radius: 5pt; padding: 8pt 12pt; margin-bottom: 14pt;
-    display: grid; grid-template-columns: auto 1fr 1fr; gap: 10pt; align-items: center;
-  }
-  .return-box .return-label {
-    color: #c1121f; font-size: 8.5pt; font-weight: 800; letter-spacing: 1.2pt; text-transform: uppercase;
-  }
-  .return-box .return-field { font-size: 9.5pt; color: #111; }
-  .return-box .return-field .k { color: #555; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.5pt; font-weight: 700; }
-  .return-box .return-field .v { font-weight: 700; margin-top: 2pt; word-break: break-word; }
+  /* Document control block — event / return-to metadata as a clean ruled table */
+  .return-box { border: 0.8pt solid var(--rule); margin-bottom: 12pt; display: grid; grid-template-columns: 1fr 1fr; }
+  .return-box .return-field { padding: 6pt 10pt; border-bottom: 0.5pt solid #dde2e8; font-size: 9.5pt; color: var(--ink); }
+  .return-box .return-field:nth-child(odd) { border-right: 0.5pt solid #dde2e8; }
+  .return-box .return-field:nth-last-child(-n+2) { border-bottom: none; }
+  .return-box .k { color: var(--faint); font-size: 7pt; text-transform: uppercase; letter-spacing: 0.8pt; font-weight: 700; }
+  .return-box .v { font-weight: 600; margin-top: 2pt; word-break: break-word; min-height: 11pt; }
+  .return-box .v:empty::after { content: ''; display: block; border-bottom: 0.6pt solid var(--rule); width: 85%; height: 10pt; }
 
-  .intro { font-size: 9pt; color: #333; line-height: 1.55; margin-bottom: 14pt; }
-  .intro .legend-inline { display: inline-flex; align-items: center; gap: 5pt; margin-left: 4pt; padding: 1pt 5pt; background: #fffbe6; border: 0.6pt solid #999; border-left: 2pt solid #c1121f; font-size: 8pt; }
+  .intro { font-size: 8.5pt; color: #3a4350; line-height: 1.6; margin-bottom: 14pt; padding: 7pt 10pt; background: var(--fill); border-left: 2pt solid var(--navy); }
+  .intro .legend-inline { display: inline-flex; align-items: center; gap: 5pt; margin: 0 2pt; padding: 0.5pt 5pt; background: #fff; border: 0.6pt solid var(--rule); border-left: 2pt solid var(--navy); font-size: 8pt; }
 
-  .section { break-inside: avoid; page-break-inside: avoid; margin-bottom: 14pt; }
+  /* NOTE (WebKit print): break-inside:avoid on an element TALLER than one page
+     silently drops the overflow. Sections can exceed a page now, so they must
+     be allowed to break — only the small atomic units below stay unbreakable. */
+  .section { margin-bottom: 15pt; }
+  .row, .toggle-row, .person-block, .field-solo { break-inside: avoid; page-break-inside: avoid; }
   .section-header {
-    border-bottom: 1.5pt solid #c1121f;
+    border-bottom: 1pt solid var(--navy);
     padding-bottom: 3pt;
-    margin-bottom: 8pt;
-    color: #c1121f; font-size: 10pt; font-weight: 800; letter-spacing: 1.2pt; text-transform: uppercase;
+    margin-bottom: 3pt;
+    color: var(--navy); font-size: 9.5pt; font-weight: 800; letter-spacing: 1.4pt; text-transform: uppercase;
     break-after: avoid; page-break-after: avoid;
   }
+  /* Rationale line — tells the venue WHY the section matters. Keeps the ask professional. */
+  .section-why { font-size: 8pt; color: var(--muted); font-style: italic; line-height: 1.5; margin-bottom: 7pt; break-inside: avoid; page-break-inside: avoid; break-after: avoid; page-break-after: avoid; }
 
   .row { display: grid; gap: 10pt; margin-bottom: 7pt; }
   .row.c2 { grid-template-columns: 1fr 1fr; }
@@ -61,54 +65,59 @@
   .row.c4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
 
   .field { display: flex; flex-direction: column; gap: 2pt; min-width: 0; }
-  .field label { font-size: 7.5pt; color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4pt; }
+  .field label { font-size: 7.5pt; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4pt; }
 
   /* Empty line — blank box for the venue to fill */
   .line {
-    border: 0.6pt solid #999; border-radius: 3pt;
+    border: 0.6pt solid var(--rule); border-radius: 2pt;
     min-height: 16pt; background: #fff;
-    padding: 2pt 6pt; font-size: 9.5pt; color: #111; line-height: 1.4;
+    padding: 2pt 6pt; font-size: 9.5pt; color: var(--ink); line-height: 1.4;
     white-space: pre-wrap; word-break: break-word;
   }
   .line.tall { min-height: 38pt; }
   .line.xtall { min-height: 60pt; }
-  /* Pre-filled line — values from the brief; faint amber so reader sees GenX provided them */
+  /* Pre-filled line — values from our records; subtle slate fill, navy edge */
   .line.filled {
-    background: #fffbe6;
-    border-color: #999;
-    border-left: 2pt solid #c1121f;
+    background: var(--fill);
+    border-color: var(--rule);
+    border-left: 2pt solid var(--navy);
     font-weight: 600;
   }
 
-  .check-row { display: flex; flex-wrap: wrap; gap: 14pt 18pt; padding: 4pt 0 2pt; }
-  .chk { display: inline-flex; align-items: center; gap: 5pt; font-size: 9pt; color: #111; }
+  .check-row { display: flex; flex-wrap: wrap; gap: 12pt 16pt; padding: 4pt 0 2pt; }
+  .chk { display: inline-flex; align-items: center; gap: 5pt; font-size: 9pt; color: var(--ink); }
   .chk .box, .yn .box, .box {
-    width: 10pt; height: 10pt; border: 0.8pt solid #555; display: inline-block; border-radius: 1pt;
-    position: relative; text-align: center; line-height: 9pt; font-size: 10pt; font-weight: 800; color: #111;
+    width: 10pt; height: 10pt; border: 0.8pt solid var(--muted); display: inline-block; border-radius: 1pt;
+    position: relative; text-align: center; line-height: 9pt; font-size: 10pt; font-weight: 800; color: var(--ink);
   }
-  .box.checked { background: #fffbe6; border-color: #c1121f; }
-  .box.checked::after { content: '✓'; position: absolute; inset: 0; line-height: 9pt; color: #c1121f; font-weight: 900; }
+  .box.checked { background: var(--fill); border-color: var(--navy); }
+  .box.checked::after { content: '✓'; position: absolute; inset: 0; line-height: 9pt; color: var(--navy); font-weight: 900; }
 
   .yn { display: inline-flex; align-items: center; gap: 12pt; padding-top: 2pt; }
   .yn .opt { display: inline-flex; align-items: center; gap: 5pt; font-size: 9pt; }
 
-  .toggle-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12pt; padding: 5pt 0; border-bottom: 0.4pt dotted #ccc; }
+  .toggle-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12pt; padding: 5pt 0; border-bottom: 0.4pt dotted #ccd2d9; }
   .toggle-row:last-child { border-bottom: none; }
-  .toggle-row .t-label { font-size: 9.5pt; color: #111; font-weight: 600; }
-  .toggle-row .t-desc { font-size: 8pt; color: #666; margin-top: 1pt; }
+  .toggle-row .t-label { font-size: 9.5pt; color: var(--ink); font-weight: 600; }
+  .toggle-row .t-desc { font-size: 8pt; color: var(--muted); margin-top: 1pt; }
 
   .person-block {
-    border: 0.6pt solid #ccc; border-radius: 4pt; padding: 8pt 10pt;
+    border: 0.6pt solid #ccd2d9; border-radius: 3pt; padding: 8pt 10pt;
     margin-bottom: 6pt; break-inside: avoid; page-break-inside: avoid;
   }
-  .person-block .person-tag { font-size: 7.5pt; color: #c1121f; font-weight: 800; letter-spacing: 0.8pt; text-transform: uppercase; margin-bottom: 4pt; }
+  .person-block .person-tag { font-size: 7.5pt; color: var(--navy); font-weight: 800; letter-spacing: 0.8pt; text-transform: uppercase; margin-bottom: 4pt; }
 
-  .doc-footer { margin-top: 18pt; padding-top: 8pt; border-top: 0.6pt solid #ddd; font-size: 8pt; color: #777; text-align: center; line-height: 1.5; }
-  .doc-footer strong { color: #555; }
+  /* Maps requirements callout — deliberately prominent */
+  .maps-callout { border: 1pt solid var(--navy); border-radius: 3pt; padding: 9pt 12pt; background: var(--fill); margin-bottom: 8pt; break-inside: avoid; page-break-inside: avoid; }
+  .maps-callout .mc-title { font-size: 9pt; font-weight: 800; color: var(--navy); text-transform: uppercase; letter-spacing: 0.6pt; margin-bottom: 5pt; }
+  .maps-callout ul { margin: 0 0 0 14pt; font-size: 9pt; color: var(--ink); line-height: 1.65; }
+
+  .doc-footer { margin-top: 18pt; padding-top: 8pt; border-top: 1pt solid var(--navy); font-size: 7.5pt; color: var(--muted); text-align: center; line-height: 1.6; }
+  .doc-footer strong { color: var(--ink); letter-spacing: 0.4pt; }
 
   @page { size: letter portrait; margin: 0.5in 0.55in 0.55in 0.55in; }
   @media print {
-    body { padding: 0; background: #fff; }
+    html, body { padding: 0; background: #fff; }
     .toolbar { display: none !important; }
     .doc { max-width: none; margin: 0; padding: 0; border: none; box-shadow: none; }
   }
@@ -117,8 +126,8 @@
 <body>
 
 <div class="toolbar">
-  <h1>Venue Security Questionnaire</h1>
-  <span class="legend"><span class="sw"></span>Highlighted = pre-filled from this brief</span>
+  <h1>Venue Security Advance Questionnaire</h1>
+  <span class="legend"><span class="sw"></span>Shaded = pre-filled from our records</span>
   <div class="spacer"></div>
   <button onclick="window.print()">Print / Save as PDF</button>
 </div>
@@ -127,73 +136,55 @@
 
   <div class="brand-bar">
     <div class="brand-left">
-      <div class="eyebrow">Venue Security — Confidential</div>
-      <h1>Venue Security Questionnaire</h1>
-      <div class="sub">Please confirm pre-filled fields and complete any blank items. Return this form to the contact at right.</div>
+      <div class="eyebrow">Confidential — Security Sensitive</div>
+      <h1>Venue Security Advance Questionnaire</h1>
+      <div class="sub">Completed in advance of each engagement to support our documented event risk assessment and security operations plan.</div>
     </div>
     <div class="brand-right">
       <strong id="brandOrg">GenX Corporate Security</strong><br>
-      <span id="brandTagline">Pre-Event Security Coordination</span>
+      <span id="brandTagline">Event Security Advance &amp; Coordination</span>
     </div>
   </div>
 
   <div class="return-box">
-    <div class="return-label">Return<br>Form To</div>
-    <div class="return-field">
-      <div class="k">Contact</div>
-      <div class="v" id="retContact">_________________________________</div>
-      <div class="k" style="margin-top:5pt;">Phone</div>
-      <div class="v" id="retPhone">_________________________________</div>
-    </div>
-    <div class="return-field">
-      <div class="k">Email</div>
-      <div class="v" id="retEmail">_________________________________</div>
-      <div class="k" style="margin-top:5pt;">Event / Date</div>
-      <div class="v" id="retEvent">_________________________________</div>
-    </div>
+    <div class="return-field"><div class="k">Event / Venue</div><div class="v" id="retEvent"></div></div>
+    <div class="return-field"><div class="k">Event Date</div><div class="v" id="retDate"></div></div>
+    <div class="return-field"><div class="k">Planning Contact</div><div class="v" id="retPlanning">Steve — 864-293-9696</div></div>
+    <div class="return-field"><div class="k">On-Site Contact (Event Day)</div><div class="v" id="retOnsite">Ben — 636-262-9094</div></div>
+    <div class="return-field"><div class="k">Return Completed Form To (Email)</div><div class="v" id="retEmail"></div></div>
+    <div class="return-field"><div class="k">Return No Later Than</div><div class="v" id="retDue">One week before show day</div></div>
   </div>
 
   <div class="intro">
-    Fields with a <span class="legend-inline">highlighted background</span> have been pre-filled from our records — please review and correct anything that's out of date. Blank fields are for you to complete. Mark <strong>N/A</strong> if a section doesn't apply. Attach supplemental materials (EAP, floor plans) as separate PDFs.
+    <strong>Why we ask:</strong> this information is required for our event risk assessment and liability-insurance documentation, and it ensures cast, crew, and both security teams know exactly what to do on show day.
+    Fields with a <span class="legend-inline">shaded background</span> are pre-filled from our records; please correct anything out of date. Mark <strong>N/A</strong> where a section doesn't apply. We understand some details can't be shared for security reasons — just answer to the best of your ability.
+    <strong>To return:</strong> print and scan/photograph the pages (clear photos are fine) and email everything to the contact above, along with any attachments (EAP, floor plans). <strong>Please return no later than one week before show day.</strong><br>
+    <strong>What happens next:</strong> once received, GenX Security will return a completed event security package to the venue — including the run of show, cast &amp; crew credential photos, and day-of security contacts.
   </div>
 
   <!-- 1. VENUE -->
   <div class="section">
     <div class="section-header">1 · Venue</div>
+    <div class="section-why">Why we ask: baseline facility details anchor the written risk assessment we prepare for every engagement (ASIS General Security Risk Assessment methodology).</div>
     <div class="row c2">
-      <div class="field"><label>Venue Name</label><div class="line" data-fill="venue.name"></div></div>
+      <div class="field"><label>Venue Location</label><div class="line" data-fill="venue.name"></div></div>
       <div class="field"><label>Main Phone</label><div class="line" data-fill="venue.phone"></div></div>
     </div>
-    <div class="row"><div class="field"><label>Street Address</label><div class="line" data-fill="venue.street"></div></div></div>
-    <div class="row c3">
-      <div class="field"><label>City</label><div class="line" data-fill="venue.city"></div></div>
-      <div class="field"><label>State</label><div class="line" data-fill="venue.state"></div></div>
-      <div class="field"><label>Zip</label><div class="line" data-fill="venue.zip"></div></div>
+    <div class="row c2">
+      <div class="field"><label>Business Name</label><div class="line" data-fill="venue.businessName"></div></div>
+      <div class="field"><label>Street Address</label><div class="line" data-fill="venue.street"></div></div>
     </div>
     <div class="row c2">
-      <div class="field">
-        <label>Venue Type</label>
-        <div class="check-row" data-check-group="venue.type">
-          <span class="chk"><span class="box" data-check-value="Performing Arts Center"></span>Performing Arts Center</span>
-          <span class="chk"><span class="box" data-check-value="Theater"></span>Theater</span>
-          <span class="chk"><span class="box" data-check-value="Amphitheater"></span>Amphitheater</span>
-          <span class="chk"><span class="box" data-check-value="Bar"></span>Bar</span>
-          <span class="chk"><span class="box" data-check-value="Casino"></span>Casino</span>
-          <span class="chk"><span class="box" data-check-value="Hotel Ballroom"></span>Hotel Ballroom</span>
-          <span class="chk"><span class="box" data-check-value="Convention Center"></span>Convention Center</span>
-          <span class="chk"><span class="box" data-check-value="Stadium"></span>Stadium</span>
-          <span class="chk"><span class="box" data-check-value="Arena"></span>Arena</span>
-          <span class="chk"><span class="box" data-check-value="Club / Nightclub"></span>Club / Nightclub</span>
-          <span class="chk"><span class="box" data-check-value="Other"></span>Other</span>
-        </div>
-      </div>
       <div class="field"><label>Total Capacity</label><div class="line" data-fill="venue.capacity"></div></div>
+      <div class="field"></div>
     </div>
+    <div class="row"><div class="field"><label>Any Security Concerns in the Last 12 Months That Would Affect This Show (write "None" if none)</label><div class="line tall"></div></div></div>
   </div>
 
   <!-- 2. SECURITY CONTACTS -->
   <div class="section">
-    <div class="section-header">2 · Security Contacts</div>
+    <div class="section-header">2 · Contacts</div>
+    <div class="section-why">Why we ask: event-day coordination depends on reaching the right person immediately.</div>
 
     <div class="person-block">
       <div class="person-tag">Primary Contact</div>
@@ -207,17 +198,20 @@
 
     <div class="person-block">
       <div class="person-tag">Secondary Contact</div>
+      <div style="font-size:8pt;color:#5a6472;font-style:italic;margin-bottom:4pt;">In the event the primary is unavailable, do you have a designated secondary point of contact?</div>
       <div class="row c2">
         <div class="field"><label>Name</label><div class="line" data-fill="contacts.backup.name"></div></div>
         <div class="field"><label>Phone</label><div class="line" data-fill="contacts.backup.phone"></div></div>
       </div>
       <div class="row"><div class="field"><label>Email</label><div class="line" data-fill="contacts.backup.email"></div></div></div>
     </div>
+
   </div>
 
   <!-- 3. INGRESS & SCREENING -->
   <div class="section">
     <div class="section-header">3 · Ingress &amp; Screening</div>
+    <div class="section-why">Why we ask: screening posture drives our staffing plan and entry timeline, consistent with DHS/CISA guidance for publicly accessible venues.</div>
     <div class="field" style="margin-bottom:6pt;">
       <label>Screening Methods Available at This Venue</label>
       <div class="check-row">
@@ -243,16 +237,67 @@
       <div class="field"><label>Total Screening Entry Points</label><div class="line" data-fill="ingress.gateCount"></div></div>
       <div class="field"><label>Gate Open Time</label><div class="line" data-fill="ingress.gateOpenTime"></div></div>
     </div>
+    <div class="row"><div class="field"><label>Does Your Venue Have Any Prohibited Items? List Them (one per line, or attach your policy)</label><div class="line tall"></div></div></div>
     <div class="row"><div class="field"><label>Notes</label><div class="line tall" data-fill="ingress.notes"></div></div></div>
   </div>
 
-  <!-- 4. STAFFING -->
+  <!-- 4. CROWD & BARRICADE -->
   <div class="section">
-    <div class="section-header">4 · Staffing (Venue / Production-Provided)</div>
-    <div class="row c3">
-      <div class="field"><label>Total Security</label><div class="line" data-fill="staffing.totalSecurity"></div></div>
-      <div class="field"><label>LEO Officers</label><div class="line" data-fill="staffing.leo"></div></div>
-      <div class="field"><label>Security Backstage</label><div class="line" data-fill="staffing.backstageSecurity"></div></div>
+    <div class="section-header">4 · Crowd &amp; Barricade</div>
+    <div class="section-why">Why we ask: this section applies to concert-type events. Stage-line barricade is our primary crowd-management control — what you have available determines how many personnel we position at the stage and how.</div>
+    <div class="toggle-row">
+      <div><div class="t-label">Is there a need for crowd-control barricade for this event?</div><div class="t-desc">If No, skip the rest of this section.</div></div>
+      <div class="yn"><span class="opt"><span class="box"></span>Yes</span><span class="opt"><span class="box"></span>No</span></div>
+    </div>
+    <div class="row c2">
+      <div class="field">
+        <label>Audience Configuration</label>
+        <div class="check-row">
+          <span class="chk"><span class="box"></span>Fully seated</span>
+          <span class="chk"><span class="box"></span>GA standing</span>
+          <span class="chk"><span class="box"></span>Seated + GA pit</span>
+          <span class="chk"><span class="box"></span>Mixed</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Barricade Type Available</label>
+        <div class="check-row">
+          <span class="chk"><span class="box"></span>Concert (mojo)</span>
+          <span class="chk"><span class="box"></span>Bike rack</span>
+          <span class="chk"><span class="box"></span>Both</span>
+          <span class="chk"><span class="box"></span>None</span>
+        </div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div><div class="t-label">Barricade at the Stage for This Event?</div></div>
+      <div class="yn"><span class="opt"><span class="box"></span>Yes</span><span class="opt"><span class="box"></span>No</span></div>
+    </div>
+    <div class="row"><div class="field"><label>Barricade / Crowd Notes</label><div class="line tall"></div></div></div>
+  </div>
+
+  <!-- 5. CCTV & SURVEILLANCE -->
+  <div class="section">
+    <div class="section-header">5 · CCTV &amp; Surveillance</div>
+    <div class="section-why">Why we ask: our risk-assessment documentation and liability-insurance due diligence require us to record the venue&rsquo;s surveillance capability.</div>
+    <div class="toggle-row">
+      <div><div class="t-label">Venue has CCTV coverage</div><div class="t-desc">Entrances, FOH, and backstage areas</div></div>
+      <div class="yn"><span class="opt"><span class="box"></span>Yes</span><span class="opt"><span class="box"></span>No</span></div>
+    </div>
+    <div class="toggle-row">
+      <div><div class="t-label">Monitored live during events</div></div>
+      <div class="yn"><span class="opt"><span class="box"></span>Yes</span><span class="opt"><span class="box"></span>No</span></div>
+    </div>
+    <div class="row"><div class="field"><label>Any Additional Camera Concerns (optional)</label><div class="line tall"></div></div></div>
+  </div>
+
+  <!-- 6. STAFFING -->
+  <div class="section">
+    <div class="section-header">6 · Staffing (Venue / Production-Provided)</div>
+    <div class="section-why">Why we ask: staffing and law-enforcement presence are core inputs to our event risk assessment (ASIS General Security Risk Assessment methodology) — together they give us a clear picture of the overall security posture and determine how many GenX personnel we assign and where they post.</div>
+    <div class="row c2">
+      <div class="field"><label>Estimated Security Staff (Total)</label><div class="line" data-fill="staffing.totalSecurity"></div></div>
+      <div class="field"><label>How Many Security Officers Backstage?</label><div class="line" data-fill="staffing.backstageSecurity"></div></div>
     </div>
     <div class="toggle-row">
       <div>
@@ -264,25 +309,32 @@
         <span class="opt"><span class="box" data-yn-value="no"></span>No</span>
       </div>
     </div>
-    <div class="row"><div class="field"><label>Uniform Description (if yes)</label><div class="line tall" data-fill="staffing.uniformDesc"></div></div></div>
+    <div class="row"><div class="field"><label>Uniform Description (e.g., black polo shirt with SECURITY logo — so our team can identify your staff)</label><div class="line tall" data-fill="staffing.uniformDesc"></div></div></div>
     <div class="row"><div class="field"><label>Staffing Notes</label><div class="line tall" data-fill="staffing.notes"></div></div></div>
+    <div class="toggle-row">
+      <div><div class="t-label">Is law enforcement on-site for this event?</div></div>
+      <div class="yn"><span class="opt"><span class="box"></span>Yes</span><span class="opt"><span class="box"></span>No</span></div>
+    </div>
+    <div class="row"><div class="field"><label>Which Law-Enforcement Agency?</label><div class="line"></div></div></div>
   </div>
 
-  <!-- 5. MEDICAL & EMERGENCY -->
+  <!-- 7. MEDICAL & EMERGENCY -->
   <div class="section">
-    <div class="section-header">5 · Medical &amp; Emergency</div>
+    <div class="section-header">7 · Medical &amp; Emergency</div>
+    <div class="section-why">Why we ask: in the event of an issue we need to know someone trained in CPR / first aid is available, and how medical response reaches backstage.</div>
     <div class="toggle-row">
       <div>
-        <div class="t-label">Trained Medical Staff On-Site</div>
-        <div class="t-desc">Location has trained medical staff on-site for this event</div>
+        <div class="t-label">Trained Medical Staff On-Site (CPR / First Aid)</div>
+        <div class="t-desc">Someone trained in CPR / first aid is on-site for this event</div>
       </div>
       <div class="yn" data-yn="medical.onSite">
         <span class="opt"><span class="box" data-yn-value="yes"></span>Yes</span>
         <span class="opt"><span class="box" data-yn-value="no"></span>No</span>
+        
       </div>
     </div>
     <div class="row c3">
-      <div class="field"><label>First Responder Count</label><div class="line" data-fill="medical.firstResponderCount"></div></div>
+      <div class="field"><label>Medical Staff / First Responder Count</label><div class="line" data-fill="medical.firstResponderCount"></div></div>
       <div class="field">
         <label>AED Located On Site?</label>
         <div class="yn" data-yn="medical.aedOnSite"><span class="opt"><span class="box" data-yn-value="yes"></span>Yes</span><span class="opt"><span class="box" data-yn-value="no"></span>No</span></div>
@@ -292,27 +344,32 @@
         <div class="yn" data-yn="medical.aedNearStage"><span class="opt"><span class="box" data-yn-value="yes"></span>Yes</span><span class="opt"><span class="box" data-yn-value="no"></span>No</span></div>
       </div>
     </div>
-    <div class="row"><div class="field"><label>First Aid Station Locations</label><div class="line" data-fill="medical.firstAidLocations"></div></div></div>
-    <div class="row"><div class="field"><label>Emergency Protocol</label><div class="line xtall" data-fill="medical.emergencyProtocol"></div></div></div>
+    <div class="row"><div class="field"><label>What Is the Closest First-Aid Location to Backstage?</label><div class="line" data-fill="medical.firstAidLocations"></div></div></div>
+    <div class="toggle-row">
+      <div><div class="t-label">In an emergency, will the medical team respond to the green room / backstage?</div></div>
+      <div class="yn"><span class="opt"><span class="box"></span>Yes</span><span class="opt"><span class="box"></span>No</span></div>
+    </div>
+    <div class="row"><div class="field"><label>In the Event of an Emergency, What Is Your Protocol?</label><div class="line xtall" data-fill="medical.emergencyProtocol"></div></div></div>
     <div class="toggle-row">
       <div>
-        <div class="t-label">Attaching an Emergency Action Plan?</div>
+        <div class="t-label">Are you including an Emergency Action Plan (EAP)?</div>
         <div class="t-desc">If yes, include the EAP as a separate PDF when returning this form.</div>
       </div>
       <div class="yn"><span class="opt"><span class="box"></span>Yes</span><span class="opt"><span class="box"></span>No</span></div>
     </div>
   </div>
 
-  <!-- 6. EVACUATION -->
+  <!-- 8. EVACUATION -->
   <div class="section">
-    <div class="section-header">6 · Evacuation Plan</div>
+    <div class="section-header">8 · Evacuation Plan</div>
+    <div class="section-why">Why we ask: egress routes and assembly points feed our emergency action planning, consistent with NFPA 101 (Life Safety Code) assembly-occupancy provisions.</div>
     <div class="row c2">
-      <div class="field"><label>Primary Exit Route</label><div class="line tall" data-fill="evacuation.primaryExit"></div></div>
+      <div class="field"><label>Primary Exit Route from the Stage</label><div class="line tall" data-fill="evacuation.primaryExit"></div></div>
       <div class="field"><label>Secondary Exit Route</label><div class="line tall" data-fill="evacuation.secondaryExit"></div></div>
     </div>
-    <div class="row"><div class="field"><label>Safe Rooms (one per line)</label><div class="line tall" data-fill="evacuation.safeRooms"></div></div></div>
+    <div class="row"><div class="field"><label>Do You Designate Safe Rooms? If So, Where</label><div class="line tall" data-fill="evacuation.safeRooms"></div></div></div>
     <div class="row c2">
-      <div class="field"><label>Rally Point</label><div class="line" data-fill="evacuation.rallyPoint"></div></div>
+      <div class="field"><label>Rally Points We Should Be Aware Of</label><div class="line" data-fill="evacuation.rallyPoint"></div></div>
       <div class="field">
         <label>Evacuation Announcement Method</label>
         <div class="check-row" data-check-group="medical.announcementMethod">
@@ -323,24 +380,25 @@
         </div>
       </div>
     </div>
-    <div class="row"><div class="field"><label>EAP Additional Notes</label><div class="line tall" data-fill="evacuation.eapNotes"></div></div></div>
     <div class="row"><div class="field"><label>Lockdown Protocol</label><div class="line tall" data-fill="evacuation.lockdownProtocol"></div></div></div>
+    <div class="row"><div class="field"><label>Weather / Show-Stop Plan (outdoor venues — write N/A if indoor)</label><div class="line tall"></div></div></div>
   </div>
 
-  <!-- 7. MEET & GREET / GIFT POLICY -->
+  <!-- 9. MEET & GREET / GIFT POLICY -->
   <div class="section">
-    <div class="section-header">7 · Meet &amp; Greet / Gift Policy</div>
+    <div class="section-header">9 · Meet &amp; Greet / Gift Policy</div>
     <div style="font-size:9.5pt;color:#333;line-height:1.55;margin-bottom:8pt;">
-      <strong>M&amp;G Protocol:</strong> Protocol is determined day-of by the <strong>tour manager</strong> and <strong>Lead Security</strong> during the on-site security walkthrough.
+      <strong>M&amp;G Protocol:</strong> The <strong>tour manager</strong> and <strong>Lead Security</strong> will conduct a security walkthrough on show day. That walkthrough determines the meet-and-greet location, the setup, and how it will run.
     </div>
     <div style="font-size:9.5pt;color:#333;line-height:1.55;">
-      <strong>Gift Policy:</strong> Gift policy is finalized by the <strong>tour manager</strong> and <strong>Lead Security</strong> during the on-site security walkthrough.
+      <strong>Gift Policy:</strong> Also set at the show-day walkthrough — including how gifts for the artist are received, screened, and handled. No action is needed from the venue on this form.
     </div>
   </div>
 
-  <!-- 8. COMMUNICATIONS -->
+  <!-- 10. COMMUNICATIONS -->
   <div class="section">
-    <div class="section-header">8 · Communications</div>
+    <div class="section-header">10 · Communications</div>
+    <div class="section-why">Why we ask: shared communications and a known security-operations location establish unified command between your team and ours on event day.</div>
     <div class="toggle-row">
       <div>
         <div class="t-label">Venue and GenX Security to share radios?</div>
@@ -348,8 +406,12 @@
       </div>
       <div class="yn" data-yn="communications.venueShareComms"><span class="opt"><span class="box" data-yn-value="yes"></span>Yes</span><span class="opt"><span class="box" data-yn-value="no"></span>No</span></div>
     </div>
+    <div class="toggle-row">
+      <div><div class="t-label">Is there a security operations center on site?</div></div>
+      <div class="yn"><span class="opt"><span class="box"></span>Yes</span><span class="opt"><span class="box"></span>No</span></div>
+    </div>
     <div class="row c2">
-      <div class="field"><label>Security Operations Location</label><div class="line" data-fill="communications.securityOps"></div></div>
+      <div class="field"><label>Security Operations Center Location</label><div class="line" data-fill="communications.securityOps"></div></div>
       <div class="field"><label>Security Operations Phone</label><div class="line" data-fill="communications.securityOpsPhone"></div></div>
     </div>
     <div class="toggle-row">
@@ -359,9 +421,10 @@
     <div class="row"><div class="field"><label>Notes</label><div class="line tall" data-fill="communications.notes"></div></div></div>
   </div>
 
-  <!-- 9. ACCESS CONTROL -->
+  <!-- 11. ACCESS CONTROL & ARTIST MOVEMENT -->
   <div class="section">
-    <div class="section-header">9 · Access Control</div>
+    <div class="section-header">11 · Access Control &amp; Team Arrival</div>
+    <div class="section-why">Why we ask: this tells us how your access is set up — key card, PIN, escorted — so we know how our team, cast, and crew can move through the building, and exactly where to meet on arrival. Please also circle or arrow our entry door and meet point on the maps in Section 15.</div>
     <div class="field" style="margin-bottom:6pt;">
       <label>Venue Access Control Devices</label>
       <div class="check-row" data-check-group-array="access.doorSystems">
@@ -373,29 +436,56 @@
         <span class="chk"><span class="box" data-check-value="Other"></span>Other</span>
       </div>
     </div>
-    <div class="row"><div class="field"><label>Additional Venue-Required Credentials (name, color, access level)</label><div class="line tall"></div></div></div>
+    <div class="toggle-row">
+      <div><div class="t-label">Are the green room and backstage areas controlled by access control?</div></div>
+      <div class="yn"><span class="opt"><span class="box"></span>Yes</span><span class="opt"><span class="box"></span>No</span></div>
+    </div>
+    <div class="row"><div class="field"><label>Cast &amp; Crew Access — Where and How Should Cast and Crew Enter Backstage / the Venue? (entrance, door, credential check)</label><div class="line tall"></div></div></div>
+    <div class="row"><div class="field"><label>Will Our Team Need Access Cards or Additional Credentials? (type, color, access level)</label><div class="line tall"></div></div></div>
+    <div class="row"><div class="field"><label>Our Arrival — What Door Do We Enter, Where Do We Meet, What Time, and What Should We Do on Arrival?</label><div class="line tall"></div></div></div>
     <div class="row"><div class="field"><label>Parking Notes</label><div class="line tall" data-fill="access.parkingNotes"></div></div></div>
   </div>
 
-  <!-- 10. LOAD IN / LOAD OUT -->
+  <!-- 12. LOAD IN / LOAD OUT -->
   <div class="section">
-    <div class="section-header">10 · Load In / Load Out</div>
+    <div class="section-header">12 · Load In / Load Out</div>
+    <div class="section-why">Why we ask: dock timing and access drive perimeter control before doors open and after the show ends.</div>
     <div class="row"><div class="field"><label>Dock Location</label><div class="line" data-fill="loadinout.dockLocation"></div></div></div>
-    <div class="row c3">
-      <div class="field"><label>Load-In Date</label><div class="line" data-fill="loadinout.loadinDate"></div></div>
-      <div class="field"><label>Load-In Time</label><div class="line" data-fill="loadinout.loadinTime"></div></div>
-      <div class="field">
-        <label>Security at Dock</label>
-        <div class="yn" data-yn="loadinout.securityAtDock"><span class="opt"><span class="box" data-yn-value="yes"></span>Yes</span><span class="opt"><span class="box" data-yn-value="no"></span>No</span></div>
-      </div>
+    <div class="toggle-row">
+      <div><div class="t-label">Security at dock?</div></div>
+      <div class="yn" data-yn="loadinout.securityAtDock"><span class="opt"><span class="box" data-yn-value="yes"></span>Yes</span><span class="opt"><span class="box" data-yn-value="no"></span>No</span></div>
     </div>
     <div class="row"><div class="field"><label>Load-In Notes</label><div class="line tall" data-fill="loadinout.loadinNotes"></div></div></div>
     <div class="row"><div class="field"><label>Load-Out Notes</label><div class="line tall" data-fill="loadinout.loadoutNotes"></div></div></div>
   </div>
 
-  <!-- 11. EMERGENCY CONTACTS -->
+  <!-- 13. MEDIA / PRESS DAY -->
   <div class="section">
-    <div class="section-header">11 · Emergency Contacts</div>
+    <div class="section-header">13 · Media / Press Day</div>
+    <div class="section-why">If this event does not have a media day, mark “No” below and skip this section. Why we ask: media activity changes access-control and escort requirements — even unconfirmed times help us reserve coverage.</div>
+    <div class="toggle-row">
+      <div>
+        <div class="t-label">Does this event have a media day scheduled?</div>
+        <div class="t-desc">No media day? Mark No and skip to the next section. If yes, confirm the details below.</div>
+      </div>
+      <div class="yn"><span class="opt"><span class="box"></span>Yes</span><span class="opt"><span class="box"></span>No</span></div>
+    </div>
+    <div class="row c3">
+      <div class="field"><label>Media Day Date</label><div class="line"></div></div>
+      <div class="field"><label>Time Window (write TBD if not confirmed)</label><div class="line"></div></div>
+      <div class="field"><label>Location</label><div class="line"></div></div>
+    </div>
+    <div class="toggle-row">
+      <div><div class="t-label">Media escorted while on property?</div></div>
+      <div class="yn"><span class="opt"><span class="box"></span>Yes</span><span class="opt"><span class="box"></span>No</span></div>
+    </div>
+    <div class="row"><div class="field"><label>Media Notes (outlets expected, press credentials, camera policy)</label><div class="line tall"></div></div></div>
+  </div>
+
+  <!-- 14. EMERGENCY CONTACTS -->
+  <div class="section">
+    <div class="section-header">14 · Emergency Contacts</div>
+    <div class="section-why">Why we ask: these contacts are loaded into our event-day command sheet for immediate notification.</div>
     <div style="font-size:8.5pt;color:#555;margin-bottom:6pt;">Key contacts the security team should have on file — venue manager, local PD liaison, medical coordinator, etc.</div>
     <div id="emergencyList">
       <!-- Up to 3 person-blocks rendered here; auto-populated from brief if data exists. -->
@@ -426,26 +516,47 @@
     </div>
   </div>
 
-  <!-- 12. MAPS -->
+  <!-- 15. MAPS -->
   <div class="section">
-    <div class="section-header">12 · Maps &amp; Diagrams</div>
-    <div style="font-size:9.5pt;color:#333;line-height:1.55;">
-      If you have any maps or diagrams (venue floor plan, backstage layout, parking &amp; perimeter, etc.), please attach them to your return email or submit them via the secure link.
+    <div class="section-header">15 · Maps &amp; Diagrams — Required</div>
+    <div class="section-why">Why we ask: clear maps are how our team, cast, and crew move through your facility without confusion — at previous engagements, unclear door access cost critical minutes. We only need enough for our personnel to navigate; nothing sensitive.</div>
+    <div class="maps-callout">
+      <div class="mc-title">Minimum we need — please mark these on your maps</div>
+      <ul>
+        <li><strong>Aerial / site view of the facility</strong> — circle or arrow the door or gate our team enters and where we meet on arrival</li>
+        <li><strong>Green room location</strong> and the backstage layout / outline</li>
+        <li><strong>Access to the stage and backstage</strong> — the routes our team needs to know are secured</li>
+        <li><strong>Driving access</strong> — how vehicles reach the loading dock, and where production parks/stages</li>
+      </ul>
+    </div>
+    <div class="maps-callout" style="background:#fff;">
+      <div class="mc-title">Anything additional is greatly appreciated</div>
+      <ul>
+        <li>First-aid stations and AED locations</li>
+        <li>Emergency / evacuation routes and rally points</li>
+        <li>Security office / command post</li>
+        <li>Anything else that helps cast, crew, or our security team understand where things are located</li>
+      </ul>
+    </div>
+    <div style="font-size:9pt;color:#3a4350;line-height:1.55;">
+      Hand-marked photocopies are welcome — legibility matters more than polish. Attach as separate pages or PDFs when returning this form.
     </div>
   </div>
 
-  <!-- Signature -->
+  <!-- Certification & signature -->
   <div class="section">
     <div class="section-header">Completed By</div>
+    <div class="section-why">The information above is accurate to the best of my knowledge as of the date signed. Please notify us of any material changes (staffing, access, construction, policies) before event day.</div>
     <div class="row c2">
-      <div class="field"><label>Name</label><div class="line"></div></div>
+      <div class="field"><label>Completed By (Name)</label><div class="line"></div></div>
       <div class="field"><label>Date</label><div class="line"></div></div>
     </div>
   </div>
 
   <div class="doc-footer">
-    Submitted responses are routed only to <strong id="footerOrg">GenX Corporate Security</strong> personnel assigned to this event.<br>
-    Return this completed form via email or fax using the details at the top of the page.
+    <strong>CONFIDENTIAL — SECURITY SENSITIVE INFORMATION</strong><br>
+    Responses are handled on a need-to-know basis and reviewed only by <strong id="footerOrg">GenX Corporate Security</strong> personnel assigned to this engagement.<br>
+    Return the completed form and attachments to the contact listed in the document header.
   </div>
 
 </div>
@@ -475,14 +586,23 @@
       } catch (e) {}
     }
 
-    // Return-To block
-    setText('retContact', p.get('contact') || settings.orgContact || settings.orgName);
-    setText('retPhone',   p.get('phone')   || settings.orgPhone);
-    setText('retEmail',   p.get('email')   || settings.orgEmail);
+    // Document-control block. Planning/on-site contacts default to the values
+    // printed in the HTML (Steve / Ben) — URL params can override per event.
+    if (p.get('planning')) setText('retPlanning', p.get('planning'));
+    if (p.get('onsite'))   setText('retOnsite',   p.get('onsite'));
+    setText('retEmail', p.get('email') || settings.orgEmail);
     const venueLabel = p.get('venue') || brief?.venue?.name;
     const dateLabel  = p.get('date')  || brief?.timeline?.showDate;
-    const evtParts = [dateLabel, venueLabel].filter(Boolean);
-    if (evtParts.length) document.getElementById('retEvent').textContent = evtParts.join(' · ');
+    setText('retEvent', venueLabel);
+    if (dateLabel) {
+      try {
+        const d = new Date(dateLabel + 'T12:00:00');
+        setText('retDate', d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }));
+        // Hard deadline: one week before show day (only shown if still in the future)
+        const due = new Date(d); due.setDate(due.getDate() - 7);
+        if (due > new Date()) setText('retDue', due.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) + ' (one week before show day)');
+      } catch (_) { setText('retDate', dateLabel); }
+    }
 
     const org = p.get('org') || settings.orgName;
     if (org) {

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css?v=1783300003">
 </head>
 <body>
 
@@ -40,9 +40,9 @@
       View Brief
     </a>
     <button id="finalizeBtn" class="btn btn-sm" onclick="toggleFinalized()" style="display:none;font-weight:700;"></button>
-    <button id="sendVenueBtn" class="btn btn-ghost btn-sm" onclick="openVenueIntakeModal()" style="display:none;" title="Send venue questionnaire">
-      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l12-6-6 12V9L2 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-      Send to Venue
+    <button id="sendVenueBtn" class="btn btn-ghost btn-sm" onclick="openVenueIntakeModal()" style="display:none;" title="Print the venue questionnaire or import the completed form">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6z" stroke="currentColor" stroke-width="1.4"/><path d="M14 6h-4V2M8 11h2M8 8h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Venue Questionnaire
     </button>
   </div>
 </nav>
@@ -121,43 +121,70 @@
       <span class="nav-icon">🗺️</span><span class="nav-label">Maps</span><span class="nav-dot" id="dot-maps"></span>
     </li>
     <li style="padding:6px 16px 2px;"><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-3);">Internal</span></li>
-    <li class="nav-item" data-target="sec-travel" onclick="scrollToSection('sec-travel')">
+    <!-- Travel/flight tracking retired 2026-07-12 (Steve: not worth the value).
+         Section is hidden, not deleted — existing travel data stays in the brief JSON. -->
+    <li class="nav-item" data-target="sec-travel" onclick="scrollToSection('sec-travel')" style="display:none;">
       <span class="nav-icon">✈️</span><span class="nav-label">Travel</span><span class="nav-dot" id="dot-travel"></span>
     </li>
   </ul>
   <div class="sidebar-footer">GenX Security v2.0</div>
 </nav>
 
-<!-- Venue Intake Modal -->
+<!-- Venue Questionnaire Modal — PDF out, AI import back in -->
 <div id="venueIntakeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:480px;overflow:hidden;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:520px;overflow:hidden;">
     <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
       <div>
-        <div style="font-size:14px;font-weight:800;color:var(--text);">Send Venue Questionnaire</div>
-        <div style="font-size:12px;color:var(--text-2);margin-top:2px;">Venue will receive a secure link valid for 7 days</div>
+        <div style="font-size:14px;font-weight:800;color:var(--text);">Venue Questionnaire</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:2px;">Send the PDF out — drop the completed form back here</div>
       </div>
       <button onclick="closeVenueIntakeModal()" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer;line-height:1;padding:4px;">×</button>
     </div>
     <div style="padding:24px;">
-      <div class="field-group">
-        <label class="field-label">Venue Contact Email <span style="color:var(--red);">*</span></label>
-        <input type="email" id="venueIntakeEmail" class="field-input" placeholder="security@venue.com" style="margin-bottom:8px;">
-        <small style="font-size:11px;color:var(--text-3);">The questionnaire link will be emailed here. The link expires after 7 days or when submitted — whichever comes first.</small>
+
+      <!-- Step 1: get the PDF -->
+      <div style="display:flex;align-items:center;gap:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:rgba(88,166,255,0.15);color:#58a6ff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);">Download the fillable PDF</div>
+          <div style="font-size:11px;color:var(--text-2);margin-top:2px;">Real form fields — the venue types answers in any PDF viewer, saves, and emails it back. <button type="button" onclick="openBlankIntakePdf()" style="background:none;border:none;color:#58a6ff;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:0;">Print version</button></div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" onclick="downloadIntakePdf()" style="flex-shrink:0;">📄 Download PDF</button>
       </div>
+
+      <!-- Step 2: drop the completed form -->
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:6px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:rgba(63,185,80,0.15);color:var(--green);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;">2</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">Drop the completed form here</div>
+          <div id="intakeDropZone"
+               onclick="document.getElementById('intakeImportFile').click()"
+               style="border:2px dashed var(--border-2);border-radius:10px;padding:26px 16px;text-align:center;cursor:pointer;background:var(--surface-2);transition:all 0.15s;">
+            <div style="font-size:26px;">🤖</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-top:6px;">Drag &amp; drop the returned PDF or photos — or tap to browse</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:3px;">AI reads the answers (handwriting included) and fills the brief for you</div>
+          </div>
+          <input type="file" id="intakeImportFile" accept=".pdf,image/*" style="display:none;" onchange="importIntakeDoc(this)">
+        </div>
+      </div>
+
       <div id="venueIntakeError" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:8px;font-size:12px;color:var(--red);"></div>
-    </div>
-    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;">
-      <button type="button" onclick="openBlankIntakePdf()" style="background:none;border:none;color:#58a6ff;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:6px 4px;display:inline-flex;align-items:center;gap:6px;" title="Open a printable blank questionnaire — use when email is unreliable">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6z" stroke="currentColor" stroke-width="1.4"/><path d="M14 6h-4V2M8 11h2M8 8h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-        Download blank PDF (backup)
-      </button>
-      <div style="display:flex;gap:10px;">
-        <button class="btn btn-ghost btn-sm" onclick="closeVenueIntakeModal()">Cancel</button>
-        <button class="btn btn-primary btn-sm" id="sendVenueIntakeConfirm" onclick="sendVenueIntake()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l12-6-6 12V9L2 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-          Send Email
-        </button>
+
+      <!-- Import review -->
+      <div id="intakeImportReview" style="display:none;margin-top:16px;">
+        <div id="intakeImportSummary" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;"></div>
+        <div id="intakeImportList" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:12px;display:grid;gap:8px;background:var(--surface-2);"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+          <button class="btn btn-ghost btn-sm" onclick="cancelImportReview()">Discard</button>
+          <button class="btn btn-primary btn-sm" id="applyImportBtn" onclick="applyIntakeImport()">✓ Apply to Brief</button>
+        </div>
       </div>
+    </div>
+    <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:space-between;align-items:center;">
+      <button type="button" onclick="copyIntakeLink()" style="background:none;border:none;color:var(--text-3);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:4px;" title="Prefer the online form? Copy a secure fill-out link to paste into your own email or text">
+        🔗 Copy online-form link instead
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="closeVenueIntakeModal()">Close</button>
     </div>
   </div>
 </div>
@@ -258,8 +285,12 @@
     <div class="panel-body">
       <div class="grid-2">
         <div class="field-group">
-          <label class="field-label">Venue Name</label>
-          <input class="field-input" id="venueName" placeholder="Venue Name" oninput="scheduleSave();updateMapsButtons();updateNav()">
+          <label class="field-label">Venue Location</label>
+          <input class="field-input" id="venueName" placeholder="City, State" oninput="scheduleSave();updateMapsButtons();updateNav()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Business Name</label>
+          <input class="field-input" id="venueBusinessName" placeholder="e.g., Foxwoods Resort Casino" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Street Address</label>
@@ -288,10 +319,6 @@
         <div class="field-group">
           <label class="field-label">Capacity</label>
           <input class="field-input" id="venueCapacity" placeholder="Total Capacity" oninput="scheduleSave()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Total Ticketed</label>
-          <input class="field-input" id="venueTotalTicketed" placeholder="Ticketed Count" oninput="scheduleSave()">
         </div>
         <div class="field-group">
           <label class="field-label">Venue Type</label>
@@ -324,6 +351,10 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#33ccff" stroke-width="2"/><path d="M8 13s1.5 2 4 2 4-2 4-2" stroke="#33ccff" stroke-width="1.5" stroke-linecap="round"/><circle cx="9" cy="10" r="1" fill="#33ccff"/><circle cx="15" cy="10" r="1" fill="#33ccff"/></svg>
           Open in Waze
         </a>
+      </div>
+      <div class="field-group" style="margin-top:16px;">
+        <label class="field-label">Security Concerns — Past 12 Months</label>
+        <textarea class="field-input" id="venuePriorIncidents" placeholder="From the venue questionnaire — anything that could affect this show…" oninput="scheduleSave()"></textarea>
       </div>
     </div>
   </section>
@@ -394,20 +425,6 @@
           </div>
           <input class="field-input" type="date" id="arrivalDate" oninput="scheduleSave();renderTimeline()">
         </div>
-        <div class="field-group">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <label class="field-label" style="margin-bottom:0;">Media Day</label>
-            <label class="tbd-toggle"><input type="checkbox" id="mediaDateTBD" onchange="toggleTBD('mediaDate');scheduleSave();renderTimeline()"> TBD</label>
-          </div>
-          <input class="field-input" type="date" id="mediaDate" oninput="scheduleSave();renderTimeline()">
-        </div>
-        <div class="field-group">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <label class="field-label" style="margin-bottom:0;">Media Time</label>
-            <label class="tbd-toggle"><input type="checkbox" id="mediaTimeTBD" onchange="toggleTBD('mediaTime');scheduleSave()"> TBD</label>
-          </div>
-          <input class="field-input" type="time" id="mediaTime" oninput="scheduleSave()">
-        </div>
       </div>
       <div class="grid-4">
         <div class="field-group">
@@ -446,6 +463,52 @@
       <div id="timelineVisualWrap" style="display:none;margin-top:8px;">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-3);margin-bottom:12px;">Event Timeline</div>
         <div class="timeline-visual" id="timelineVisual"></div>
+      </div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+        <div class="toggle-row" style="padding:0;">
+          <div class="toggle-info">
+            <div class="toggle-label">Media / Press Day Scheduled</div>
+            <div class="toggle-desc">Turn on to add media day details</div>
+          </div>
+          <label class="toggle" style="margin-left:12px;">
+            <input type="checkbox" id="mediaScheduled" onchange="toggleMediaDayFields()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div id="mediaDayFields" style="display:none;margin-top:14px;">
+          <div class="grid-2">
+            <div class="field-group">
+              <label class="field-label">Media Day Date</label>
+              <input class="field-input" type="date" id="mediaDate" oninput="scheduleSave();renderTimeline()">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Media Time</label>
+              <input class="field-input" type="time" id="mediaTime" oninput="scheduleSave()">
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-group">
+              <label class="field-label">Time Window (if not exact)</label>
+              <input class="field-input" id="mediaTimeWindow" placeholder="e.g., 2–4 PM, or TBD" oninput="scheduleSave()">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Location</label>
+              <input class="field-input" id="mediaDayLocation" placeholder="e.g., Green room, press riser" oninput="scheduleSave()">
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field-group">
+              <label class="field-label">Media Escorted On Property</label>
+              <select class="field-input" id="mediaEscort" onchange="scheduleSave()">
+                <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Media Notes</label>
+            <textarea class="field-input" id="mediaDayNotes" placeholder="Outlets expected, press credentials, camera policy…" oninput="scheduleSave()"></textarea>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -565,6 +628,54 @@
         <label class="field-label">Notes</label>
         <textarea class="field-input" id="ingressNotes" placeholder="VIP entry procedures, gate assignments, special instructions…" oninput="scheduleSave()"></textarea>
       </div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-3);margin-bottom:12px;">Crowd &amp; Barricade</div>
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Crowd-Control Barricade Needed</label>
+            <select class="field-input" id="crowdNeeded" onchange="toggleCrowdFields()">
+              <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+            </select>
+          </div>
+        </div>
+        <div id="crowdFields" style="display:none;">
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Barricade at the Stage</label>
+            <select class="field-input" id="crowdStageBarricade" onchange="scheduleSave()">
+              <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Audience Configuration</label>
+            <select class="field-input" id="crowdAudience" onchange="scheduleSave()">
+              <option value=""></option>
+              <option>Fully seated</option>
+              <option>GA standing</option>
+              <option>Seated + GA pit</option>
+              <option>Mixed / varies by area</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Barricade Type Available</label>
+            <select class="field-input" id="crowdBarricadeType" onchange="scheduleSave()">
+              <option value=""></option>
+              <option>Concert barricade (mojo / blowthrough)</option>
+              <option>Bike rack</option>
+              <option>Both available</option>
+              <option>None</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Barricade / Crowd Notes</label>
+          <textarea class="field-input" id="crowdNotes" oninput="scheduleSave()"></textarea>
+        </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -616,6 +727,21 @@
       <div class="field-group" style="margin-top:16px;">
         <label class="field-label">Staffing Notes</label>
         <textarea class="field-input" id="staffingNotes" placeholder="Briefing times, position assignments, special instructions…" oninput="scheduleSave()"></textarea>
+      </div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-3);margin-bottom:12px;">Law Enforcement</div>
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Officers On-Site for This Event</label>
+            <select class="field-input" id="leOnSite" onchange="scheduleSave()">
+              <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Responding Agency</label>
+            <input class="field-input" id="leAgency" placeholder="e.g., Scottsdale PD" oninput="scheduleSave()">
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -671,6 +797,14 @@
         <label class="field-label">Emergency Protocol</label>
         <textarea class="field-input" id="emergencyProtocol" placeholder="Response procedures, code words, radio channels…" oninput="scheduleSave()"></textarea>
       </div>
+      <div class="grid-2">
+      <div class="field-group">
+        <label class="field-label">Medical Team Responds to Green Room / Backstage</label>
+        <select class="field-input" id="medicalToGreenRoom" onchange="scheduleSave()">
+          <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+        </select>
+      </div>
+      </div>
     </div>
   </section>
 
@@ -716,6 +850,11 @@
       <div class="field-group">
         <label class="field-label">Lockdown Protocol</label>
         <textarea class="field-input" id="lockdownProtocol" placeholder="Steps to initiate and maintain lockdown…" oninput="scheduleSave()"></textarea>
+      </div>
+      <button type="button" id="weatherAddLink" onclick="showWeatherPlan(true)" style="background:none;border:1px dashed var(--border);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;color:var(--text-3);cursor:pointer;font-family:inherit;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-3)'">+ Add Weather / Show-Stop Plan (outdoor venues)</button>
+      <div class="field-group" id="weatherWrap" style="display:none;">
+        <label class="field-label">Weather / Show-Stop Plan (outdoor)</label>
+        <textarea class="field-input" id="weatherPlan" placeholder="Shelter locations, show-stop criteria, who makes the call…" oninput="scheduleSave()"></textarea>
       </div>
     </div>
   </section>
@@ -798,6 +937,14 @@
       <div class="field-group" style="margin-top:16px;">
         <label class="field-label">Notes</label>
         <textarea class="field-input" id="commsNotes" oninput="scheduleSave()"></textarea>
+      </div>
+      <div class="grid-2">
+      <div class="field-group">
+        <label class="field-label">Security Operations Center On Site</label>
+        <select class="field-input" id="opsCenterOnSite" onchange="scheduleSave()">
+          <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+        </select>
+      </div>
       </div>
     </div>
   </section>
@@ -895,6 +1042,50 @@
         <label class="field-label">Parking Notes</label>
         <textarea class="field-input" id="parkingNotes" oninput="scheduleSave()"></textarea>
       </div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-3);margin-bottom:12px;">CCTV &amp; Surveillance</div>
+        <div class="grid-2">
+      <div class="field-group">
+        <label class="field-label">Venue Has CCTV Coverage</label>
+        <select class="field-input" id="cctvCoverage" onchange="scheduleSave()">
+          <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Monitored Live During Events</label>
+        <select class="field-input" id="cctvMonitored" onchange="scheduleSave()">
+          <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+        </select>
+      </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Camera Concerns / Notes</label>
+          <textarea class="field-input" id="cctvNotes" oninput="scheduleSave()"></textarea>
+        </div>
+      </div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-3);margin-bottom:12px;">Venue Access Detail (from questionnaire)</div>
+        <div class="grid-2">
+      <div class="field-group">
+        <label class="field-label">Green Room &amp; Backstage Access-Controlled</label>
+        <select class="field-input" id="backstageControlled" onchange="scheduleSave()">
+          <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+        </select>
+      </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Cast &amp; Crew Access — Where / How</label>
+          <textarea class="field-input" id="castCrewAccess" oninput="scheduleSave()"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">GenX Arrival — Door / Meet Point / Time</label>
+          <textarea class="field-input" id="teamArrival" oninput="scheduleSave()"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Additional Credentials Needed (venue-stated)</label>
+          <textarea class="field-input" id="accessAddlCreds" oninput="scheduleSave()"></textarea>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -970,7 +1161,7 @@
               <th>Activity</th>
               <th>Security Notes</th>
               <th style="width:70px;text-align:center;">Critical</th>
-              <th style="width:44px;"></th>
+              <th style="width:72px;"></th>
             </tr>
           </thead>
           <tbody id="rosBody"></tbody>
@@ -978,6 +1169,8 @@
       </div>
       <div class="ros-add-row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-ghost btn-sm" onclick="addROSRow({})">+ Add Row</button>
+        <button class="btn btn-ghost btn-sm" onclick="shiftROSTimes()" title="Push or pull every timed row by the same amount — for when the whole show slips">⏱ Shift All Times</button>
+        <button class="btn btn-ghost btn-sm" onclick="sortROSByTime();scheduleSave()" title="Re-order rows by their times">↕ Sort by Time</button>
         <button class="btn btn-ghost btn-sm" style="border-color:rgba(88,166,255,0.4);color:#58a6ff;" onclick="loadROSTemplate()">📋 Load Standard Template</button>
         <button class="btn btn-ghost btn-sm" style="border-color:rgba(63,185,80,0.4);color:#3fb950;" onclick="saveROSTemplate()">💾 Save as Standard Template</button>
       </div>
@@ -1068,8 +1261,9 @@
     </div>
   </section>
 
-  <!-- 19. Travel — Internal -->
-  <section class="panel" id="sec-travel">
+  <!-- 19. Travel — Internal. Retired 2026-07-12; hidden (not deleted) so existing
+       travel data still round-trips through collectBrief() untouched. -->
+  <section class="panel" id="sec-travel" style="display:none;">
     <div class="panel-header" style="background:rgba(88,166,255,0.05);border-bottom-color:rgba(88,166,255,0.2);">
       <div class="section-icon" style="background:rgba(88,166,255,0.12);">✈️</div>
       <div style="flex:1;">
@@ -1324,7 +1518,7 @@
 
 <div class="toast-container" id="toastContainer"></div>
 
-<script src="/app.js?v=1780001000"></script>
+<script src="/app.js?v=1783300003"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
@@ -1638,19 +1832,38 @@ function initTravelSection(brief) {
 function openVenueIntakeModal() {
   const modal = document.getElementById('venueIntakeModal');
   modal.style.display = 'flex';
-  const emailField = document.getElementById('venueIntakeEmail');
-  emailField.value = document.getElementById('venueContactEmail')?.value?.trim() || '';
-  emailField.removeAttribute('readonly');
-  emailField.removeAttribute('disabled');
-  emailField.focus();
   document.getElementById('venueIntakeError').style.display = 'none';
-  const btn = document.getElementById('sendVenueIntakeConfirm');
-  btn.disabled = false;
-  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l12-6-6 12V9L2 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg> Send Email';
+  initIntakeDropZone();
+}
+
+// Drag & drop onto the import box
+let _dropZoneWired = false;
+function initIntakeDropZone() {
+  if (_dropZoneWired) return;
+  const zone = document.getElementById('intakeDropZone');
+  if (!zone) return;
+  _dropZoneWired = true;
+  const hi = (on) => {
+    zone.style.borderColor = on ? 'var(--green)' : 'var(--border-2)';
+    zone.style.background  = on ? 'rgba(63,185,80,0.08)' : 'var(--surface-2)';
+  };
+  zone.addEventListener('dragover',  e => { e.preventDefault(); hi(true); });
+  zone.addEventListener('dragleave', () => hi(false));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); hi(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) importIntakeFile(file);
+  });
 }
 
 function closeVenueIntakeModal() {
   document.getElementById('venueIntakeModal').style.display = 'none';
+}
+
+function downloadIntakePdf() {
+  const briefId = new URLSearchParams(location.search).get('id');
+  if (!briefId) return;
+  window.location.href = `${API}/api/briefs/${briefId}/intake/pdf`;
 }
 
 function openBlankIntakePdf() {
@@ -1670,38 +1883,132 @@ document.getElementById('venueIntakeModal').addEventListener('click', function(e
   if (e.target === this) closeVenueIntakeModal();
 });
 
-async function sendVenueIntake() {
+function showIntakeError(msg) {
+  const el = document.getElementById('venueIntakeError');
+  el.textContent = msg;
+  el.style.display = '';
+}
+
+// ── Copy secure link (no email) ───────────────────────────────────────────────
+async function copyIntakeLink() {
   const briefId = new URLSearchParams(location.search).get('id');
   if (!briefId) return;
-  const email = document.getElementById('venueIntakeEmail').value.trim();
-  if (!email) { showIntakeError('Please enter the venue contact email.'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showIntakeError('That doesn\'t look like a valid email address — please double-check it.'); return; }
-
-  const btn = document.getElementById('sendVenueIntakeConfirm');
-  btn.disabled = true; btn.textContent = 'Sending…';
-
   try {
-    const res  = await fetch(`/api/briefs/${briefId}/send-venue-intake`, {
+    const email = document.getElementById('venueContactEmail')?.value?.trim() || '';
+    const res = await fetch(`${API}/api/briefs/${briefId}/intake/link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ venueEmail: email })
     });
     const data = await res.json();
-    if (!res.ok) { showIntakeError(data.error || 'Send failed.'); btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l12-6-6 12V9L2 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg> Send Email'; return; }
-
+    if (!res.ok) { showIntakeError(data.error || 'Could not create link.'); return; }
+    await navigator.clipboard.writeText(data.intakeUrl);
     closeVenueIntakeModal();
-    toast('Questionnaire sent to ' + email, 'success');
-    showIntakeBanner('pending', email);
+    toast('Secure link copied — paste it into your own email or text', 'success');
+    showIntakeBanner('pending', email || 'link recipient');
   } catch (e) {
-    showIntakeError('Request failed — check your connection.');
-    btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8l12-6-6 12V9L2 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg> Send Email';
+    showIntakeError('Could not create or copy the link — check your connection.');
   }
 }
 
-function showIntakeError(msg) {
-  const el = document.getElementById('venueIntakeError');
-  el.textContent = msg;
-  el.style.display = '';
+// ── AI import of a completed questionnaire (PDF / photo) ─────────────────────
+let _pendingImport = null;
+
+function importIntakeDoc(input) {
+  const file = input.files?.[0];
+  input.value = '';
+  if (file) importIntakeFile(file);
+}
+
+async function importIntakeFile(file) {
+  if (!file) return;
+  const briefId = new URLSearchParams(location.search).get('id');
+  if (!briefId) return;
+
+  if (file.size > 4 * 1024 * 1024) {
+    showIntakeError('File is too large (4 MB max). For big scans, export the PDF at a lower quality or split it.');
+    return;
+  }
+
+  const review  = document.getElementById('intakeImportReview');
+  const summary = document.getElementById('intakeImportSummary');
+  const list    = document.getElementById('intakeImportList');
+  review.style.display = '';
+  summary.textContent = '🤖 Reading the document… this takes 30–60 seconds.';
+  list.innerHTML = '';
+  document.getElementById('applyImportBtn').style.display = 'none';
+
+  try {
+    const dataUrl = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = e => res(e.target.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const res = await fetch(`${API}/api/briefs/${briefId}/intake/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: dataUrl, mediaType: file.type, filename: file.name })
+    });
+    const data = await res.json();
+    if (!res.ok) { review.style.display = 'none'; showIntakeError(data.error || 'Extraction failed.'); return; }
+
+    _pendingImport = data.extracted || {};
+    const n = data.fieldCount || Object.keys(_pendingImport).length;
+    if (!n) {
+      summary.textContent = 'No answers could be read from that document.';
+      list.innerHTML = '<div style="font-size:12px;color:var(--text-2);">Try a clearer scan or photo — good lighting, all pages, text readable.</div>';
+      return;
+    }
+    summary.textContent = `${n} answers extracted from ${file.name} — review, then apply.`;
+    list.innerHTML = Object.entries(_pendingImport).map(([k, v]) => {
+      let valStr;
+      if (k === 'emergencyContacts' && Array.isArray(v)) {
+        valStr = v.map(c => [c.name, c.role, c.phone].filter(Boolean).join(' · ')).join('\n');
+      } else if (typeof v === 'boolean') {
+        valStr = v ? 'Yes' : 'No';
+      } else {
+        valStr = String(v);
+      }
+      const label = (INTAKE_LABELS[k] || k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())).trim();
+      return `<div style="display:grid;grid-template-columns:200px 1fr;gap:10px;font-size:12px;align-items:start;">
+        <div style="color:var(--text-3);font-weight:600;">${esc(label)}</div>
+        <div style="color:var(--text);white-space:pre-wrap;">${esc(valStr)}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('applyImportBtn').style.display = '';
+  } catch (e) {
+    review.style.display = 'none';
+    showIntakeError('Import failed — check your connection and try again.');
+  }
+}
+
+function cancelImportReview() {
+  _pendingImport = null;
+  document.getElementById('intakeImportReview').style.display = 'none';
+}
+
+async function applyIntakeImport() {
+  if (!_pendingImport) return;
+  const briefId = new URLSearchParams(location.search).get('id');
+  const btn = document.getElementById('applyImportBtn');
+  btn.disabled = true;
+  btn.textContent = 'Applying…';
+  try {
+    const res = await fetch(`${API}/api/briefs/${briefId}/intake/apply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: _pendingImport })
+    });
+    const data = await res.json();
+    if (!res.ok) { showIntakeError(data.error || 'Apply failed.'); btn.disabled = false; btn.textContent = '✓ Apply to Brief'; return; }
+    toast('Questionnaire answers applied to the brief', 'success');
+    location.reload();
+  } catch (e) {
+    showIntakeError('Apply failed — check your connection.');
+    btn.disabled = false;
+    btn.textContent = '✓ Apply to Brief';
+  }
 }
 
 function showIntakeBanner(status, email, submittedAt) {
@@ -1717,9 +2024,9 @@ function showIntakeBanner(status, email, submittedAt) {
     banner.style.background    = 'rgba(210,153,34,0.1)';
     banner.style.borderColor   = 'rgba(210,153,34,0.35)';
     icon.textContent           = '⏳';
-    title.textContent          = 'Venue Questionnaire Sent';
+    title.textContent          = 'Waiting on the Venue';
     title.style.color          = '#d2993c';
-    sub.innerHTML              = `Sent to <strong style="color:var(--text);">${email || 'the venue'}</strong> — link valid for 7 days. If you used the wrong address, cancel below and resend. If the email bounces, the bounce notification will go to your SMTP from address in Settings.`;
+    sub.innerHTML              = `Questionnaire is out${email ? ` (contact: <strong style="color:var(--text);">${email}</strong>)` : ''}. When the completed form comes back, open <strong style="color:var(--text);">Venue Questionnaire</strong> and drop it in — AI fills the brief.`;
     sub.style.color            = 'var(--text-2)';
     action.style.display       = 'none';
   } else if (status === 'completed') {
@@ -1735,60 +2042,97 @@ function showIntakeBanner(status, email, submittedAt) {
   }
 }
 
-function renderIntakeResponses(data) {
+const INTAKE_LABELS = {
+  // Venue
+  venueName:'Venue Location', businessName:'Business Name', venueAddress:'Street Address', venuePhone:'Venue Phone', venueStreet:'Street', venueCity:'City', venueState:'State', venueZip:'Zip',
+  venueType:'Venue Type', venueCapacity:'Total Capacity', venueTotalTicketed:'Ticketed Attendance',
+  priorIncidents:'Security Concerns — Past 12 Months',
+  // Security Contacts / provider / LE
+  secChiefName:'Security Chief — Name', secChiefTitle:'Security Chief — Title', secChiefPhone:'Security Chief — Phone', secChiefEmail:'Security Chief — Email',
+  facilityName:'Facility Manager — Name', facilityPhone:'Facility Manager — Phone', facilityEmail:'Facility Manager — Email',
+  localPdPhone:'Local PD Non-Emergency',
+  securityProvider:'Security Provider — Company', securityProviderType:'Security Provider — Type',
+  leAgency:'Law Enforcement — Agency', leOnSite:'Law Enforcement — On-Site Detail', leResponseTime:'Law Enforcement — Response Time',
+  // Ingress
+  chkMag:'Screening — Magnetometer', chkBag:'Screening — Bag Check', chkWand:'Screening — Wand',
+  chkPatDown:'Screening — Pat Down', chkVisual:'Screening — Visual Inspection', chkEvolv:'Screening — Evolv',
+  ticketingType:'Ticketing Type', gateCount:'Gate Count', gateOpenTime:'Gate Open Time',
+  prohibitedItems:'Prohibited Items', reEntryPolicy:'Re-Entry Policy',
+  alcoholService:'Alcohol Served', alcoholCutoff:'Alcohol Cutoff', ingressNotes:'Ingress Notes',
+  // Crowd & Barricade
+  barricadeNeeded:'Crowd-Control Barricade Needed', crowdType:'Audience Configuration', barricadeType:'Barricade Type', stageBarricade:'Barricade at Stage', barricadeNotes:'Barricade / Crowd Notes',
+  // CCTV
+  cctvCoverage:'CCTV — Coverage', cctvMonitored:'CCTV — Monitored Live', cctvAccess:'CCTV — Tour Access to Feeds', cctvNotes:'Camera Concerns',
+  // Staffing
+  totalSecurity:'Total Security', leoCount:'LEO Officers', backstageSecurity:'Backstage Security',
+  uniformed:'Uniformed Staff', uniformDesc:'Uniform Description', staffingNotes:'Staffing Notes',
+  // Medical
+  medicalOnSite:'Medical Staff On-Site (CPR/First Aid)', medicalToGreenRoom:'Medical Responds to Green Room', ambulanceOnSite:'Ambulance On-Site', firstResponderCount:'First Responder Count',
+  aedOnSite:'AED On Site', aedNearStage:'AED Near Stage/Backstage',
+  nearestHospital:'Nearest Hospital / Trauma Center', hospitalDistance:'Hospital Drive Time',
+  firstAidLocations:'Closest First Aid to Backstage', emergencyProtocol:'Emergency Protocol',
+  // Evacuation
+  primaryExit:'Primary Exit Route', secondaryExit:'Secondary Exit Route', safeRooms:'Safe Rooms',
+  rallyPoint:'Rally Point', announcementMethod:'Announcement Method', eapNotes:'EAP Notes', lockdownProtocol:'Lockdown Protocol',
+  weatherPlan:'Weather / Show-Stop Plan',
+  // Meet & Greet
+  mgGenxStaff:'Total GenX Security Staff', mgProtocol:'M&G Protocol', giftPolicy:'Gift Policy',
+  // Communications
+  venueShareComms:'Venue Sharing Communications', opsCenterOnSite:'Security Ops Center On Site', securityOps:'Security Operations Location',
+  securityOpsPhone:'Security Operations Phone', cellOk:'GenX Radios Permitted', commsNotes:'Comms Notes',
+  // Access Control / artist movement
+  doorCardAccess:'Door — Card Access', doorFacial:'Door — Facial Recognition', doorPin:'Door — PIN',
+  doorKey:'Door — Key', doorFob:'Door — Fob', doorOther:'Door — Other',
+  additionalCredentials:'Additional Venue Credentials',
+  artistArrival:'Artist Vehicle Arrival Point', artistRoute:'Artist Route (Vehicle → Stage)',
+  teamEntryDoor:'GenX Team Entry Door', teamCheckIn:'Team Check-In (Time / Place / Contact)',
+  backstageAccessControlled:'Green Room & Backstage Access-Controlled', castCrewAccess:'Cast & Crew Access (Where / How)', parkingNotes:'Parking Notes',
+  // Load In/Out
+  dockLocation:'Dock Location', loadinDate:'Load-In Date', loadinTime:'Load-In Time',
+  securityAtDock:'Security at Dock', loadinNotes:'Load-In Notes',
+  loadoutDate:'Load-Out Date', loadoutTime:'Load-Out Time', vehicleCount:'Vehicle Count', loadoutNotes:'Load-Out Notes',
+  // Media Day
+  mediaDay:'Media Day Scheduled', mediaDayDate:'Media Day — Date', mediaDayTime:'Media Day — Time Window',
+  mediaLocation:'Media Day — Location', mediaEscort:'Media Escorted', mediaNotes:'Media Notes',
+  // Maps
+  mapFloorName:'Map — Floor Plan (file)', mapBackstageName:'Map — Backstage Layout (file)', mapParkingName:'Map — Parking/Perimeter (file)',
+  sopMedicalName:'Emergency Action Plan (file)'
+};
+
+function renderIntakeResponses(data, issues) {
   const section = document.getElementById('sec-intake');
   const grid    = document.getElementById('venueIntakeResponsesGrid');
   if (!data || !Object.keys(data).length) return;
 
-  const labels = {
-    // Venue
-    venueName:'Venue Name', venuePhone:'Venue Phone', venueStreet:'Street', venueCity:'City', venueState:'State', venueZip:'Zip',
-    venueType:'Venue Type', venueCapacity:'Total Capacity', venueTotalTicketed:'Ticketed Attendance',
-    // Security Contacts
-    secChiefName:'Security Chief — Name', secChiefTitle:'Security Chief — Title', secChiefPhone:'Security Chief — Phone', secChiefEmail:'Security Chief — Email',
-    facilityName:'Facility Manager — Name', facilityPhone:'Facility Manager — Phone', facilityEmail:'Facility Manager — Email',
-    localPdPhone:'Local PD Non-Emergency',
-    // Ingress
-    chkMag:'Screening — Magnetometer', chkBag:'Screening — Bag Check', chkWand:'Screening — Wand',
-    chkPatDown:'Screening — Pat Down', chkVisual:'Screening — Visual Inspection', chkEvolv:'Screening — Evolv',
-    ticketingType:'Ticketing Type', gateCount:'Gate Count', gateOpenTime:'Gate Open Time',
-    prohibitedItems:'Prohibited Items', ingressNotes:'Ingress Notes',
-    // Staffing
-    totalSecurity:'Total Security', leoCount:'LEO Officers', backstageSecurity:'Backstage Security',
-    uniformed:'Uniformed Staff', uniformDesc:'Uniform Description', staffingNotes:'Staffing Notes',
-    // Medical
-    medicalOnSite:'Medical Staff On-Site', firstResponderCount:'First Responder Count',
-    aedOnSite:'AED On Site', aedNearStage:'AED Near Stage/Backstage',
-    firstAidLocations:'First Aid Locations', emergencyProtocol:'Emergency Protocol',
-    // Evacuation
-    primaryExit:'Primary Exit Route', secondaryExit:'Secondary Exit Route', safeRooms:'Safe Rooms',
-    rallyPoint:'Rally Point', announcementMethod:'Announcement Method', eapNotes:'EAP Notes', lockdownProtocol:'Lockdown Protocol',
-    // Meet & Greet
-    mgGenxStaff:'Total GenX Security Staff', mgProtocol:'M&G Protocol', giftPolicy:'Gift Policy',
-    // Communications
-    venueShareComms:'Venue Sharing Communications', securityOps:'Security Operations Location',
-    securityOpsPhone:'Security Operations Phone', cellOk:'GenX Radios Permitted', commsNotes:'Comms Notes',
-    // Access Control
-    doorCardAccess:'Door — Card Access', doorFacial:'Door — Facial Recognition', doorPin:'Door — PIN',
-    doorKey:'Door — Key', doorFob:'Door — Fob', doorOther:'Door — Other',
-    additionalCredentials:'Additional Venue Credentials', parkingNotes:'Parking Notes',
-    // Load In/Out
-    dockLocation:'Dock Location', loadinDate:'Load-In Date', loadinTime:'Load-In Time',
-    securityAtDock:'Security at Dock', loadinNotes:'Load-In Notes',
-    loadoutDate:'Load-Out Date', loadoutTime:'Load-Out Time', vehicleCount:'Vehicle Count', loadoutNotes:'Load-Out Notes',
-    // Maps
-    mapFloorName:'Map — Floor Plan (file)', mapBackstageName:'Map — Backstage Layout (file)', mapParkingName:'Map — Parking/Perimeter (file)'
-  };
+  const labels = INTAKE_LABELS;
 
-  // Skip raw base64 map data — show the filename cards instead
-  const skipKeys = new Set(['mapFloor','mapBackstage','mapParking']);
+  // Skip raw base64 file data + bookkeeping keys — show the filename cards instead
+  const skipKeys = new Set(['mapFloor','mapBackstage','mapParking','sopMedical',
+    'mapFloorType','mapBackstageType','mapParkingType','sopMedicalType','sendCopyEmail']);
   const mapKeys  = { mapFloorName:'Floor Plan', mapBackstageName:'Backstage Layout', mapParkingName:'Parking / Perimeter' };
+  const triDisplay = { yes: '✓ Yes', no: '✗ No', unknown: '? Unknown — needs confirming' };
 
-  grid.innerHTML = Object.entries(data)
+  // Fields flagged by server-side validation get an amber border + a summary card up top
+  const flagged = new Set((issues || []).map(i => i.field));
+  const issuesCard = (issues || []).length ? `
+    <div style="background:rgba(212,160,23,0.08);border:1px solid rgba(212,160,23,0.4);border-radius:8px;padding:12px 14px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin-bottom:6px;">⚠ ${issues.length} answer${issues.length !== 1 ? 's' : ''} need${issues.length === 1 ? 's' : ''} review</div>
+      ${issues.map(i => `<div style="font-size:12px;color:var(--text-2);line-height:1.7;"><strong style="color:var(--text);">${esc(labels[i.field] || i.field)}:</strong> ${esc(i.problem)}${i.value ? ` — venue entered “${esc(String(i.value))}”` : ''}</div>`).join('')}
+    </div>` : '';
+
+  grid.innerHTML = issuesCard + Object.entries(data)
     .filter(([k, v]) => !skipKeys.has(k) && v !== '' && v !== null && v !== undefined && v !== false)
     .map(([k, v]) => {
       const label  = labels[k] || k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
-      const valStr = typeof v === 'boolean' ? 'Yes' : String(v);
+      if (k === 'emergencyContacts' && Array.isArray(v)) {
+        const txt = v.map(c => [c.name, c.role, c.phone, c.email].filter(Boolean).join(' · ')).join('\n');
+        if (!txt) return '';
+        return `<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:4px;">Emergency Contacts (submitted)</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap;">${esc(txt)}</div>
+        </div>`;
+      }
+      const valStr = typeof v === 'boolean' ? 'Yes' : (triDisplay[v] || String(v));
       // Map image preview
       if (mapKeys[k] && data[k.replace('Name','')]) {
         const src = data[k.replace('Name','')];
@@ -1798,8 +2142,9 @@ function renderIntakeResponses(data) {
           ${src.startsWith('data:image') ? `<img src="${src}" style="max-width:100%;max-height:200px;border-radius:6px;border:1px solid var(--border);">` : `<span style="font-size:12px;color:var(--blue);">📎 ${valStr}</span>`}
         </div>`;
       }
-      return `<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:4px;">${label}</div>
+      const cardBorder = flagged.has(k) ? 'rgba(212,160,23,0.5)' : 'var(--border)';
+      return `<div style="background:var(--surface-2);border:1px solid ${cardBorder};border-radius:8px;padding:12px 14px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:4px;">${label}${flagged.has(k) ? ' <span style="color:var(--gold);">⚠</span>' : ''}</div>
         <div style="font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;">${valStr}</div>
       </div>`;
     }).join('');
@@ -1826,7 +2171,7 @@ function initVenueIntakeUI(brief) {
     showIntakeBanner('pending', intake.venueEmail);
   } else if (intake.status === 'completed') {
     showIntakeBanner('completed', intake.venueEmail, intake.submittedAt);
-    renderIntakeResponses(intake.data);
+    renderIntakeResponses(intake.data, intake.issues);
   }
 }
 

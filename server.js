@@ -17,16 +17,420 @@ const db = require('./db');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Merge a venue's intake submission into the brief's structured fields.
+// Rule: only fill brief fields that are currently empty/unset — never overwrite
+// values the GenX team already entered. Returns the (mutated) brief.
+function mergeIntakeIntoBrief(brief, data) {
+  if (!brief || !data) return brief;
+  const isEmpty = (v) => v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0);
+  const fillIfEmpty = (obj, key, val) => {
+    if (val === undefined || val === null || val === '') return;
+    if (isEmpty(obj[key])) obj[key] = val;
+  };
+  const fillBoolIfUnset = (obj, key, val) => {
+    if (typeof val !== 'boolean') return;
+    if (obj[key] === undefined || obj[key] === null) obj[key] = val;
+  };
+  // Tri-state answers ('yes' | 'no' | 'unknown' | '') — only an explicit yes/no
+  // lands in the brief; "unknown"/unanswered leaves the brief field unset so the
+  // GenX team can see it still needs confirming. Legacy boolean submissions pass
+  // through unchanged.
+  const fillTriIfUnset = (obj, key, val) => {
+    if (typeof val === 'boolean') return fillBoolIfUnset(obj, key, val);
+    if (val !== 'yes' && val !== 'no') return;
+    if (obj[key] === undefined || obj[key] === null) obj[key] = (val === 'yes');
+  };
+
+  // Venue
+  brief.venue ||= {};
+  fillIfEmpty(brief.venue, 'name',          data.venueName);
+  fillIfEmpty(brief.venue, 'businessName',  data.businessName);
+  fillIfEmpty(brief.venue, 'street',        data.venueAddress);
+  fillIfEmpty(brief.venue, 'street',        data.venueStreet);
+  fillIfEmpty(brief.venue, 'city',          data.venueCity);
+  fillIfEmpty(brief.venue, 'state',         data.venueState);
+  fillIfEmpty(brief.venue, 'zip',           data.venueZip);
+  fillIfEmpty(brief.venue, 'phone',         data.venuePhone);
+  fillIfEmpty(brief.venue, 'capacity',      data.venueCapacity);
+  fillIfEmpty(brief.venue, 'totalTicketed', data.venueTotalTicketed);
+  fillIfEmpty(brief.venue, 'type',          data.venueType);
+
+  // Security Contacts → contacts.primary / contacts.backup
+  brief.contacts ||= {};
+  brief.contacts.primary ||= {};
+  fillIfEmpty(brief.contacts.primary, 'name',  data.secChiefName);
+  fillIfEmpty(brief.contacts.primary, 'title', data.secChiefTitle);
+  fillIfEmpty(brief.contacts.primary, 'phone', data.secChiefPhone);
+  fillIfEmpty(brief.contacts.primary, 'email', data.secChiefEmail);
+  brief.contacts.backup ||= {};
+  fillIfEmpty(brief.contacts.backup, 'name',  data.facilityName);
+  fillIfEmpty(brief.contacts.backup, 'phone', data.facilityPhone);
+  fillIfEmpty(brief.contacts.backup, 'email', data.facilityEmail);
+
+  // Ingress
+  brief.ingress ||= {};
+  fillBoolIfUnset(brief.ingress, 'magnetometer',     data.chkMag);
+  fillBoolIfUnset(brief.ingress, 'bagCheck',         data.chkBag);
+  fillBoolIfUnset(brief.ingress, 'wand',             data.chkWand);
+  fillBoolIfUnset(brief.ingress, 'patDown',          data.chkPatDown);
+  fillBoolIfUnset(brief.ingress, 'visualInspection', data.chkVisual);
+  fillBoolIfUnset(brief.ingress, 'evolv',            data.chkEvolv);
+  fillIfEmpty(brief.ingress, 'ticketingType', data.ticketingType);
+  fillIfEmpty(brief.ingress, 'gateCount',     data.gateCount);
+  fillIfEmpty(brief.ingress, 'gateOpenTime',  data.gateOpenTime);
+  fillIfEmpty(brief.ingress, 'notes',         data.ingressNotes);
+  // Prohibited items arrive as free text; the brief stores them as tags
+  if (typeof data.prohibitedItems === 'string' && data.prohibitedItems.trim() && isEmpty(brief.ingress.prohibitedItems)) {
+    brief.ingress.prohibitedItems = data.prohibitedItems.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean).slice(0, 40);
+  }
+
+  // Staffing
+  brief.staffing ||= {};
+  fillIfEmpty(brief.staffing, 'totalSecurity',     data.totalSecurity);
+  fillIfEmpty(brief.staffing, 'leo',               data.leoCount);
+  fillIfEmpty(brief.staffing, 'backstageSecurity', data.backstageSecurity);
+  fillBoolIfUnset(brief.staffing, 'uniformed',     data.uniformed);
+  fillIfEmpty(brief.staffing, 'uniformDesc',       data.uniformDesc);
+  fillIfEmpty(brief.staffing, 'notes',             data.staffingNotes);
+
+  // Medical
+  brief.medical ||= {};
+  fillTriIfUnset(brief.medical, 'onSite',          data.medicalOnSite);
+  fillIfEmpty(brief.medical, 'firstResponderCount',data.firstResponderCount);
+  fillTriIfUnset(brief.medical, 'aedOnSite',       data.aedOnSite);
+  fillTriIfUnset(brief.medical, 'aedNearStage',    data.aedNearStage);
+  fillIfEmpty(brief.medical, 'firstAidLocations',  data.firstAidLocations);
+  fillIfEmpty(brief.medical, 'emergencyProtocol',  data.emergencyProtocol);
+  fillIfEmpty(brief.medical, 'announcementMethod', data.announcementMethod);
+
+  // Evacuation
+  brief.evacuation ||= {};
+  fillIfEmpty(brief.evacuation, 'primaryExit',      data.primaryExit);
+  fillIfEmpty(brief.evacuation, 'secondaryExit',    data.secondaryExit);
+  fillIfEmpty(brief.evacuation, 'rallyPoint',       data.rallyPoint);
+  fillIfEmpty(brief.evacuation, 'lockdownProtocol', data.lockdownProtocol);
+  if (typeof data.safeRooms === 'string' && data.safeRooms.trim() && isEmpty(brief.evacuation.safeRooms)) {
+    brief.evacuation.safeRooms = data.safeRooms.split('\n').map(s => s.trim()).filter(Boolean);
+  }
+
+  // Meet & Greet
+  brief.meetgreet ||= {};
+  fillIfEmpty(brief.meetgreet, 'protocol',   data.mgProtocol);
+  fillIfEmpty(brief.meetgreet, 'giftPolicy', data.giftPolicy);
+
+  // Communications
+  brief.communications ||= {};
+  fillTriIfUnset(brief.communications, 'venueShareComms',  data.venueShareComms);
+  fillIfEmpty(brief.communications, 'securityOps',         data.securityOps);
+  fillIfEmpty(brief.communications, 'securityOpsPhone',    data.securityOpsPhone);
+  fillTriIfUnset(brief.communications, 'cellOk',           data.cellOk);
+  fillIfEmpty(brief.communications, 'notes',               data.commsNotes);
+
+  // Access Control — translate booleans into doorSystems string array
+  brief.access ||= {};
+  if (isEmpty(brief.access.doorSystems)) {
+    const sys = [];
+    if (data.doorCardAccess) sys.push('Card Access');
+    if (data.doorFacial)     sys.push('Facial Recognition');
+    if (data.doorPin)        sys.push('PIN');
+    if (data.doorKey)        sys.push('Key');
+    if (data.doorFob)        sys.push('Fob');
+    if (data.doorOther)      sys.push('Other');
+    if (sys.length) brief.access.doorSystems = sys;
+  }
+  fillIfEmpty(brief.access, 'parkingNotes', data.parkingNotes);
+
+  // Load In / Out
+  brief.loadinout ||= {};
+  fillIfEmpty(brief.loadinout, 'dockLocation',  data.dockLocation);
+  fillIfEmpty(brief.loadinout, 'loadinDate',    data.loadinDate);
+  fillIfEmpty(brief.loadinout, 'loadinTime',    data.loadinTime);
+  fillIfEmpty(brief.loadinout, 'loadinNotes',   data.loadinNotes);
+  fillIfEmpty(brief.loadinout, 'loadoutDate',   data.loadoutDate);
+  fillIfEmpty(brief.loadinout, 'loadoutTime',   data.loadoutTime);
+  fillIfEmpty(brief.loadinout, 'loadoutNotes',  data.loadoutNotes);
+  fillIfEmpty(brief.loadinout, 'vehicleCount',  data.vehicleCount);
+  fillTriIfUnset(brief.loadinout, 'securityAtDock', data.securityAtDock);
+
+  // Promoted questionnaire sections — land in real brief fields so the
+  // dashboard, printed brief, and AI import all stay aligned.
+  fillIfEmpty(brief.venue,    'priorIncidents', data.priorIncidents);
+  fillIfEmpty(brief.contacts, 'leOnSite',       data.leOnSite);
+  fillIfEmpty(brief.contacts, 'leAgency',       data.leAgency);
+  brief.crowd ||= {};
+  fillIfEmpty(brief.crowd, 'needed',         data.barricadeNeeded);
+  fillIfEmpty(brief.crowd, 'audience',       data.crowdType);
+  fillIfEmpty(brief.crowd, 'barricadeType',  data.barricadeType);
+  fillIfEmpty(brief.crowd, 'stageBarricade', data.stageBarricade);
+  fillIfEmpty(brief.crowd, 'notes',          data.barricadeNotes);
+  brief.cctv ||= {};
+  fillIfEmpty(brief.cctv, 'coverage',  data.cctvCoverage);
+  fillIfEmpty(brief.cctv, 'monitored', data.cctvMonitored);
+  fillIfEmpty(brief.cctv, 'notes',     data.cctvNotes);
+  fillIfEmpty(brief.medical,        'toGreenRoom',     data.medicalToGreenRoom);
+  fillIfEmpty(brief.evacuation,     'weatherPlan',     data.weatherPlan);
+  fillIfEmpty(brief.communications, 'opsCenterOnSite', data.opsCenterOnSite);
+  fillIfEmpty(brief.access, 'backstageControlled',   data.backstageAccessControlled);
+  fillIfEmpty(brief.access, 'castCrewAccess',        data.castCrewAccess);
+  fillIfEmpty(brief.access, 'teamArrival',           data.teamCheckIn);
+  fillIfEmpty(brief.access, 'additionalCredentials', data.additionalCredentials);
+  brief.timeline ||= {};
+  fillIfEmpty(brief.timeline, 'mediaDate', data.mediaDayDate);
+  brief.mediaDay ||= {};
+  fillTriIfUnset(brief.mediaDay, 'scheduled', data.mediaDay);
+  fillIfEmpty(brief.mediaDay, 'timeWindow', data.mediaDayTime);
+  fillIfEmpty(brief.mediaDay, 'location',   data.mediaLocation);
+  fillIfEmpty(brief.mediaDay, 'escort',     data.mediaEscort);
+  fillIfEmpty(brief.mediaDay, 'notes',      data.mediaNotes);
+
+  // Maps — append uploaded files as map entries (don't overwrite existing)
+  brief.maps ||= [];
+  const mapTitles = { mapFloor: 'Floor Plan', mapBackstage: 'Backstage Layout', mapParking: 'Parking / Perimeter' };
+  for (const [field, title] of Object.entries(mapTitles)) {
+    const img = data[field];
+    if (typeof img === 'string' && img.startsWith('data:') && !brief.maps.some(m => m.title === title)) {
+      brief.maps.push({ title, description: 'From venue intake', image: img });
+    }
+  }
+
+  return brief;
+}
+
+// Canonical intake field registry — keep in sync with public/intake.html and
+// public/intake-blank.html. Used by the AI document-import extraction schema.
+const INTAKE_TEXT_FIELDS = [
+  // Venue
+  'venueName','businessName','venueAddress','venuePhone','venueCapacity','priorIncidents',
+  // Security contacts / provider / law enforcement
+  'secChiefName','secChiefTitle','secChiefPhone','secChiefEmail',
+  'facilityName','facilityPhone','facilityEmail',
+  'leAgency',
+  // Ingress & screening
+  'ticketingType','gateCount','gateOpenTime','prohibitedItems','ingressNotes',
+  // Crowd & barricade
+  'crowdType','barricadeType','barricadeNotes',
+  // CCTV
+  'cctvNotes',
+  // Staffing
+  'totalSecurity','backstageSecurity','uniformDesc','staffingNotes',
+  // Medical
+  'firstResponderCount','firstAidLocations','emergencyProtocol',
+  // Evacuation
+  'primaryExit','secondaryExit','safeRooms','rallyPoint','announcementMethod','lockdownProtocol','weatherPlan',
+  // Communications
+  'securityOps','securityOpsPhone','commsNotes',
+  // Access control / team arrival
+  'additionalCredentials','castCrewAccess','parkingNotes','teamCheckIn',
+  // Load in / out
+  'dockLocation','loadinNotes','loadoutNotes',
+  // Media day
+  'mediaDayDate','mediaDayTime','mediaLocation','mediaNotes'
+];
+const INTAKE_CHECK_FIELDS = [
+  'chkMag','chkBag','chkWand','chkPatDown','chkVisual','chkEvolv','uniformed',
+  'doorCardAccess','doorFacial','doorPin','doorKey','doorFob','doorOther'
+];
+const INTAKE_TRI_FIELDS = [
+  'medicalOnSite','aedOnSite','aedNearStage','medicalToGreenRoom',
+  'venueShareComms','opsCenterOnSite','cellOk','securityAtDock',
+  'barricadeNeeded','stageBarricade','backstageAccessControlled',
+  'cctvCoverage','cctvMonitored',
+  'leOnSite','mediaDay','mediaEscort'
+];
+
+// Append venue-submitted emergency contacts into brief.emergency (dedupe by name/phone)
+function mergeEmergencyContacts(brief, contacts) {
+  const submitted = (contacts || []).filter(c => c && (c.name || c.phone));
+  if (!submitted.length) return;
+  if (!Array.isArray(brief.emergency)) brief.emergency = [];
+  for (const c of submitted) {
+    const dupe = brief.emergency.some(e =>
+      (e.name && c.name && e.name.toLowerCase() === c.name.toLowerCase()) ||
+      (e.phone && c.phone && e.phone === c.phone)
+    );
+    if (!dupe) brief.emergency.push({ role: c.role || '', name: c.name || '', phone: c.phone || '', email: c.email || '' });
+  }
+}
+
+// ── Intake normalization ──────────────────────────────────────────────────────
+// Deterministic cleanup of venue-entered answers before they are stored or
+// merged into the brief: dates → YYYY-MM-DD, clock times → HH:MM (24h),
+// phones → (XXX) XXX-XXXX, emails lowercased, counts stripped of commas,
+// whitespace trimmed. Anything that can't be confidently normalized is left
+// exactly as typed and reported in `issues` so the team can chase it down.
+const INTAKE_NUMERIC_KEYS = new Set([
+  'venueCapacity','venueTotalTicketed','gateCount','totalSecurity','backstageSecurity',
+  'firstResponderCount','vehicleCount','leoCount','mgGenxStaff'
+]);
+// Keys ending in "Time" that are durations/windows, not clock times
+const INTAKE_TIME_EXEMPT = new Set(['mediaDayTime','leResponseTime']);
+
+function normalizeDateStr(s) {
+  const pad = n => String(n).padStart(2, '0');
+  const mk = (y, mo, d) => {
+    y = +y; mo = +mo; d = +d;
+    if (y < 100) y += 2000;
+    if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 2000 || y > 2100) return null;
+    return `${y}-${pad(mo)}-${pad(d)}`;
+  };
+  let m = s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);          // 2026-07-29
+  if (m) return mk(m[1], m[2], m[3]);
+  m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2}(?:\d{2})?)$/);    // 7-29-26 / 07/29/2026
+  if (m) return mk(m[3], m[1], m[2]);
+  m = s.match(/^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{2}|\d{4})$/); // July 29, 2026
+  if (m) {
+    const mo = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
+      .indexOf(m[1].slice(0, 3).toLowerCase()) + 1;
+    if (mo) return mk(m[3], mo, m[2]);
+  }
+  return null;
+}
+
+function normalizeTimeStr(s) {
+  const str = s.trim().toLowerCase();
+  let m = str.match(/^(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)$/);   // 5pm, 5:30 pm
+  if (m) {
+    let h = +m[1]; const min = m[2] || '00';
+    if (h < 1 || h > 12 || +min > 59) return null;
+    const pm = m[3].startsWith('p');
+    if (pm && h !== 12) h += 12;
+    if (!pm && h === 12) h = 0;
+    return String(h).padStart(2, '0') + ':' + min;
+  }
+  m = str.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);                          // 17:00
+  if (m) return m[1].padStart(2, '0') + ':' + m[2];
+  m = str.match(/^([01]\d|2[0-3])([0-5]\d)$/);                            // 1700
+  if (m) return m[1] + ':' + m[2];
+  return null;
+}
+
+function normalizePhoneStr(s) {
+  const ext = (s.match(/(?:ext|extension|x)\.?\s*(\d{1,6})\s*$/i) || [])[1];
+  let digits = s.replace(/\D/g, '');
+  if (ext) digits = digits.slice(0, digits.length - ext.length);
+  if (digits.length === 11 && digits[0] === '1') digits = digits.slice(1);
+  if (digits.length !== 10) return null;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}` + (ext ? ` ext. ${ext}` : '');
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizeIntakeData(data) {
+  const issues = [];
+  const out = {};
+  for (const [k, v] of Object.entries(data || {})) {
+    if (typeof v !== 'string') { out[k] = v; continue; }
+    let val = v.trim();
+    if (val && !val.startsWith('data:')) {
+      if (/Date$/.test(k)) {
+        const d = normalizeDateStr(val);
+        if (d) val = d;
+        else if (!/^(n\/?a|none|tbd)$/i.test(val))
+          issues.push({ field: k, value: val, problem: 'Date could not be read — expected something like 7/29/2026' });
+      } else if (/Phone$/.test(k)) {
+        const p = normalizePhoneStr(val);
+        if (p) val = p;
+        else if (val.replace(/\D/g, '').length > 0)
+          issues.push({ field: k, value: val, problem: 'Phone number looks incomplete or malformed' });
+      } else if (/Email$/.test(k)) {
+        val = val.toLowerCase();
+        if (!EMAIL_RE.test(val))
+          issues.push({ field: k, value: val, problem: 'Not a valid email address' });
+      } else if (INTAKE_NUMERIC_KEYS.has(k)) {
+        const cleaned = val.replace(/[,\s]/g, '');
+        if (/^\d+$/.test(cleaned)) val = cleaned;
+        else if (!/\d/.test(val) && !/^(n\/?a|none|tbd|unknown)$/i.test(val))
+          issues.push({ field: k, value: val, problem: 'Expected a number' });
+      } else if (/Time$/.test(k) && !INTAKE_TIME_EXEMPT.has(k)) {
+        const t = normalizeTimeStr(val);
+        if (t) val = t;
+        // "TBD" / "after doors" are legitimate answers — no flag
+      }
+    }
+    out[k] = val;
+  }
+  if (Array.isArray(data?.emergencyContacts)) {
+    out.emergencyContacts = data.emergencyContacts.map(c => {
+      if (!c || typeof c !== 'object') return c;
+      const nc = { ...c };
+      for (const f of ['role', 'name', 'phone', 'email']) {
+        if (typeof nc[f] === 'string') nc[f] = nc[f].trim();
+      }
+      if (nc.phone) {
+        const p = normalizePhoneStr(nc.phone);
+        if (p) nc.phone = p;
+        else if (!/^[2-9]11$/.test(nc.phone.trim()) && nc.phone.replace(/\D/g, '').length > 0)
+          issues.push({ field: 'emergencyContacts', value: nc.phone, problem: `Phone for "${nc.name || nc.role || 'contact'}" looks incomplete` });
+      }
+      if (nc.email) {
+        nc.email = nc.email.toLowerCase();
+        if (!EMAIL_RE.test(nc.email))
+          issues.push({ field: 'emergencyContacts', value: nc.email, problem: `Email for "${nc.name || nc.role || 'contact'}" is not valid` });
+      }
+      return nc;
+    });
+  }
+  return { data: out, issues };
+}
+
+// JSON schema for structured extraction of a completed questionnaire document.
+function intakeExtractionSchema() {
+  const nul = { type: 'null' };
+  const props = {};
+  for (const f of INTAKE_TEXT_FIELDS)  props[f] = { anyOf: [{ type: 'string' }, nul] };
+  for (const f of INTAKE_CHECK_FIELDS) props[f] = { anyOf: [{ type: 'boolean' }, nul] };
+  for (const f of INTAKE_TRI_FIELDS)   props[f] = { anyOf: [{ type: 'string', enum: ['yes', 'no', 'unknown'] }, nul] };
+  const contactStr = { anyOf: [{ type: 'string' }, nul] };
+  props.emergencyContacts = {
+    anyOf: [{
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { role: contactStr, name: contactStr, phone: contactStr, email: contactStr },
+        required: ['role', 'name', 'phone', 'email'],
+        additionalProperties: false
+      }
+    }, nul]
+  };
+  return { type: 'object', properties: props, required: Object.keys(props), additionalProperties: false };
+}
+
+function computeIntakeExpiry(brief) {
+  const showDate = brief?.timeline?.showDate;
+  const fallback = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  if (!showDate) return fallback.toISOString();
+  const fiveBefore = new Date(showDate + 'T23:59:59');
+  fiveBefore.setDate(fiveBefore.getDate() - 5);
+  if (fiveBefore.getTime() <= Date.now()) return fallback.toISOString();
+  return fiveBefore.toISOString();
+}
+
+function resolveAppUrl(req) {
+  if (settings.appUrl) return settings.appUrl.replace(/\/$/, '');
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, '');
+  if (req) {
+    const host = req.get('host');
+    if (host && !/^localhost(:|$)/i.test(host)) {
+      return `${req.protocol}://${host}`;
+    }
+  }
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return `http://localhost:${PORT}`;
+}
+
 // Trust X-Forwarded-* from one proxy hop (Vercel, Cloudflare, etc.) so req.secure
 // reflects the real client→proxy scheme.
 app.set('trust proxy', 1);
 
-// Public token-form submissions are text-only — keep them tiny. Authenticated brief PUTs
+// Public token-form limits: travel submissions are text-only and stay tiny; intake
+// submissions carry client-compressed map/EAP attachments as base64, so they get
+// room up to Vercel's serverless body ceiling (~4.5MB). Authenticated brief PUTs
 // can carry base64 photos, so the global limit is higher.
 app.use((req, res, next) => {
   const len = Number(req.headers['content-length'] || 0);
-  const isPublicForm = /^\/api\/(intake|travel)\//.test(req.path);
-  const limit = isPublicForm ? 512 * 1024 : 25 * 1024 * 1024;
+  let limit = 25 * 1024 * 1024;
+  if (/^\/api\/travel\//.test(req.path)) limit = 512 * 1024;
+  else if (/^\/api\/intake\//.test(req.path)) limit = Math.floor(4.2 * 1024 * 1024);
   if (len > limit) return res.status(413).json({ error: 'Payload too large' });
   next();
 });
@@ -77,7 +481,8 @@ const SETTINGS_DEFAULTS = {
   smtpFrom: '', smtpFromName: 'GenX Takeover Security',
   notifyEmail: '', appUrl: process.env.APP_URL || '',
   emailSubject: '', emailIntro: '', emailInstructions: '',
-  travelContacts: []
+  travelContacts: [],
+  credDefaults: { name: '', issuedBy: '', notes: '' }
 };
 let settings = { ...SETTINGS_DEFAULTS };
 
@@ -183,7 +588,13 @@ function sanitiseFormBody(value, depth = 0) {
   const MAX_DEPTH = 4;
   if (depth > MAX_DEPTH) return null;
   if (value == null) return value;
-  if (typeof value === 'string') return value.length > MAX_STR ? value.slice(0, MAX_STR) : value;
+  if (typeof value === 'string') {
+    // Base64 file attachments (maps, EAP) are legitimately huge — capping them at
+    // MAX_STR silently corrupts the data URI. The route-level body limit already
+    // bounds total size; here just guard against absurd single values.
+    const cap = value.startsWith('data:') ? 4.2 * 1024 * 1024 : MAX_STR;
+    return value.length > cap ? value.slice(0, cap) : value;
+  }
   if (typeof value === 'number' || typeof value === 'boolean') return value;
   if (Array.isArray(value)) return value.slice(0, MAX_ARR).map(v => sanitiseFormBody(v, depth + 1));
   if (typeof value === 'object') {
@@ -587,7 +998,15 @@ app.post('/api/briefs', requireAdmin, async (req, res, next) => {
   try {
     const id  = uuidv4();
     const now = new Date().toISOString();
-    await db.upsertBrief({ id, createdAt: now, updatedAt: now, ...req.body });
+    const body = { ...req.body };
+    // Seed GenX credential fields from saved defaults
+    const cd = settings.credDefaults || {};
+    body.access = body.access || {};
+    body.access.genxCred = body.access.genxCred || {};
+    if (!body.access.genxCred.name)     body.access.genxCred.name     = cd.name     || '';
+    if (!body.access.genxCred.issuedBy) body.access.genxCred.issuedBy = cd.issuedBy || '';
+    if (!body.access.genxCred.notes)    body.access.genxCred.notes    = cd.notes    || '';
+    await db.upsertBrief({ id, createdAt: now, updatedAt: now, ...body });
     res.status(201).json({ id });
   } catch (err) { next(err); }
 });
@@ -611,6 +1030,21 @@ app.put('/api/briefs/:id', requireAdmin, async (req, res, next) => {
     const existing = await db.getBrief(req.params.id) || { id: req.params.id, createdAt: new Date().toISOString() };
     const updated = { ...existing, ...req.body, id: req.params.id, updatedAt: new Date().toISOString() };
     await db.upsertBrief(updated);
+
+    // Persist GenX credential fields as org-wide defaults (only overwrite when non-empty)
+    const gc = updated.access?.genxCred;
+    if (gc) {
+      const cur = settings.credDefaults || { name: '', issuedBy: '', notes: '' };
+      const next = { ...cur };
+      if (gc.name     && gc.name     !== cur.name)     next.name     = gc.name;
+      if (gc.issuedBy && gc.issuedBy !== cur.issuedBy) next.issuedBy = gc.issuedBy;
+      if (gc.notes    && gc.notes    !== cur.notes)    next.notes    = gc.notes;
+      if (next.name !== cur.name || next.issuedBy !== cur.issuedBy || next.notes !== cur.notes) {
+        settings.credDefaults = next;
+        saveSettings().catch(err => console.error('[credDefaults] save failed', err));
+      }
+    }
+
     res.json({ ok: true, updatedAt: updated.updatedAt });
   } catch (err) { next(err); }
 });
@@ -733,7 +1167,21 @@ Crime Index Score: ${crimeData.crimeIndexScore ?? 'N/A'} (100 = national average
 ${crimeData.census ? `Median Household Income: $${crimeData.census.medianHouseholdIncome?.toLocaleString() || 'N/A'} | Poverty Rate: ${crimeData.census.povertyRate ?? 'N/A'}%` : ''}
 Data source: ${crimeData.dataSource === 'city' ? (crimeContext.agencyName || 'City PD') : 'State estimates'}` : '';
 
-    const prompt = `You are a professional event security consultant. Analyze this security brief and produce a detailed risk assessment grounded in industry standards. Return ONLY valid JSON with no markdown or extra text.
+    const prompt = `You are a senior event security consultant and insurance risk advisor preparing a pre-event risk assessment that will be read by the security director, the show's producers, and the show's insurance broker/underwriter.
+
+DEPTH REQUIREMENTS — this assessment must be specific to THIS event, not generic:
+- Every finding must cite concrete data from the brief: actual attendance figures, staff counts, post assignments, gate/entrance counts, call times, venue name, city, named personnel roles. Never write advice that could apply to any event.
+- Show your math. When you assess staffing, compute the actual ratio (e.g., "14 guards for 3,200 attendees = 1:229, versus the ASIS ESP-2012 benchmark of 1:250 for seated shows / 1:100 for GA floor"). Do the same for ingress throughput (attendees per screening lane per hour), medical coverage, and AED counts.
+- Recommendations must be actionable with quantities and deadlines ("add 4 screeners to the north gate to hit 900/hr throughput before doors at 18:00"), not vague ("improve screening").
+- If the brief is MISSING data needed to assess a category (e.g., no evacuation plan, no medical staffing listed, no radio channel plan), that gap is itself a finding — call it out explicitly and score the category down for it. Missing information is a real risk and an underwriting red flag.
+- detail fields should be 3-5 sentences with the supporting numbers; do not pad, but do not produce one-line summaries either.
+
+VENUE CONTEXT CALIBRATION — be reasonable about what the venue itself already provides:
+Before scoring anything, classify the venue type from the brief (name, address, description) and factor in the security infrastructure that type of venue inherently brings. Different venues are NOT blank slates:
+- High-baseline venues (casinos, arenas/stadiums with house security, cruise ships, hotels/resorts, theme parks): these come with 24/7 surveillance rooms, in-house security staff, controlled/hardened entrances, established emergency plans, on-site medical, and often armed security or resident law enforcement. Do NOT flag gaps the venue's own infrastructure clearly covers — a casino show does not need the production to bring its own camera coverage or perimeter hardening. Focus findings on what the PRODUCTION must add on top (backstage/talent protection, credentialing, coordination with house security, ingress for the show's own ticketed crowd).
+- Medium-baseline venues (theaters, convention centers, clubs, school/church facilities): some house staff and infrastructure, but the production carries much of the load. Assess the split explicitly.
+- Low/no-baseline venues (rodeo grounds, fairgrounds, open fields, parking lots, ranches, street festivals, temporary outdoor stages): assume NOTHING exists unless the brief says so — no cameras, no house security, no fixed perimeter, no medical, poor lighting, soft vehicle access. The production's plan must cover everything, so raise the bar accordingly and flag exposures a permanent venue would have handled (perimeter/fencing, lighting, vehicle mitigation, weather shelter, dust/livestock hazards where relevant).
+State your venue classification and its assumed baseline in the relevant findings so the reader can see the calibration. Apply the same logic to the insurance section — an underwriter prices a casino ballroom very differently from an open-air rodeo arena (weather exposure, livestock, temporary structures, unfenced perimeters all change coverage needs).
 
 INDUSTRY STANDARDS FRAMEWORK:
 Base all findings and recommendations on these authoritative sources (cite the most relevant one per finding):
@@ -747,47 +1195,128 @@ Base all findings and recommendations on these authoritative sources (cite the m
 - OSHA 1910.151 Medical Services & First Aid: minimum first responder requirements for crowd events
 - NIMS/ICS Emergency Management Framework: command structure, communications protocols
 
+INSURANCE ANALYSIS:
+The production takes out insurance for each show. Analyze this brief the way an event-insurance underwriter would, and produce the "insurance" section of the output:
+- recommendedCoverages: the specific policies this event should carry, with realistic limits for its size/type — Commercial General Liability (typical event minimums $1M per occurrence / $2M aggregate; scale up for attendance, pyro, or vehicle exposure), liquor liability or host liquor (only if alcohol is served/sold), workers' compensation for paid staff, hired & non-owned auto (if crew/talent transport or shuttle ops appear in the brief), event cancellation/postponement, equipment/inland marine for production gear, excess/umbrella when attendance or exposures warrant, and terrorism (TRIA) or weather riders where the profile justifies them. Tie every rationale to facts in the brief.
+- underwritingConcerns: conditions in this brief that an underwriter would flag — things that raise premiums, trigger exclusions, or could void coverage (e.g., no documented evacuation plan, understaffed medical, pyrotechnics, crowd-surfing/GA floor without barricade plan, elevated local crime, unvetted vendors, no incident-reporting procedure). For each: what the insurer sees, the likely impact on coverage/premium, and the mitigation that fixes it.
+- documentationChecklist: paperwork the show should have in hand before doors — certificates of insurance (COIs) from every vendor and subcontractor with the production named as additional insured, waiver of subrogation where appropriate, signed venue agreement with clear indemnification, security vendor's own GL/workers' comp certs, incident report forms, and any permits (pyro, alcohol, occupancy).
+- readinessScore: 0-100 for how insurable/well-documented this event currently looks; summary: 2-3 sentences an underwriter would write about this event.
+This is operational risk guidance, not legal or brokerage advice — phrase recommendations as items to confirm with the show's licensed broker.
+
 BRIEF DATA:
 ${JSON.stringify(briefSummary, null, 2)}
 ${briefSummary.venue?.totalTicketed ? `TOTAL TICKETED ATTENDANCE: ${briefSummary.venue.totalTicketed} (use this for all staffing ratio calculations, crowd density, and ingress throughput analysis)` : ''}
-${crimePromptSection}
+${crimePromptSection}`;
 
-Return this exact JSON structure:
-{
-  "overallScore": <number 0-100>,
-  "riskLevel": "<Low|Medium|High|Critical>",
-  "categoryScores": {
-    "staffing": <0-100>,
-    "medical": <0-100>,
-    "evacuation": <0-100>,
-    "accessControl": <0-100>,
-    "communications": <0-100>,
-    "ingress": <0-100>
-  },
-  "criticalFindings": [
-    { "title": "", "detail": "", "recommendation": "", "standard": "<e.g., ASIS ESP-2012 §4.3 — Staffing Ratios>" }
-  ],
-  "mediumFindings": [
-    { "title": "", "detail": "", "recommendation": "", "standard": "<e.g., NFPA 101 §7.2 — Means of Egress>" }
-  ],
-  "lowFindings": [
-    { "title": "", "detail": "", "standard": "<e.g., DHS Crowd Management Best Practices>" }
-  ],
-  "passingChecks": ["<string>"],
-  "priorityActions": [
-    { "action": "", "severity": "<Critical|Medium|Low>" }
-  ],
-  "crimeSummary": "<3-4 sentence analysis of the venue area crime context based on the data provided, including comparison to national averages>"
-}`;
+    const riskSchema = {
+      type: 'object',
+      additionalProperties: false,
+      required: ['overallScore', 'riskLevel', 'categoryScores', 'criticalFindings', 'mediumFindings', 'lowFindings', 'passingChecks', 'priorityActions', 'crimeSummary', 'insurance'],
+      properties: {
+        overallScore: { type: 'integer', description: '0-100 overall risk-readiness score (higher = safer)' },
+        riskLevel: { type: 'string', enum: ['Low', 'Medium', 'High', 'Critical'] },
+        categoryScores: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['staffing', 'medical', 'evacuation', 'accessControl', 'communications', 'ingress'],
+          properties: {
+            staffing: { type: 'integer' }, medical: { type: 'integer' }, evacuation: { type: 'integer' },
+            accessControl: { type: 'integer' }, communications: { type: 'integer' }, ingress: { type: 'integer' }
+          }
+        },
+        criticalFindings: {
+          type: 'array',
+          items: {
+            type: 'object', additionalProperties: false,
+            required: ['title', 'detail', 'recommendation', 'standard'],
+            properties: { title: { type: 'string' }, detail: { type: 'string' }, recommendation: { type: 'string' }, standard: { type: 'string' } }
+          }
+        },
+        mediumFindings: {
+          type: 'array',
+          items: {
+            type: 'object', additionalProperties: false,
+            required: ['title', 'detail', 'recommendation', 'standard'],
+            properties: { title: { type: 'string' }, detail: { type: 'string' }, recommendation: { type: 'string' }, standard: { type: 'string' } }
+          }
+        },
+        lowFindings: {
+          type: 'array',
+          items: {
+            type: 'object', additionalProperties: false,
+            required: ['title', 'detail', 'standard'],
+            properties: { title: { type: 'string' }, detail: { type: 'string' }, standard: { type: 'string' } }
+          }
+        },
+        passingChecks: { type: 'array', items: { type: 'string' } },
+        priorityActions: {
+          type: 'array',
+          items: {
+            type: 'object', additionalProperties: false,
+            required: ['action', 'severity'],
+            properties: { action: { type: 'string' }, severity: { type: 'string', enum: ['Critical', 'Medium', 'Low'] } }
+          }
+        },
+        crimeSummary: { type: 'string', description: '3-4 sentence analysis of venue area crime context vs national averages' },
+        insurance: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['readinessScore', 'summary', 'recommendedCoverages', 'underwritingConcerns', 'documentationChecklist'],
+          properties: {
+            readinessScore: { type: 'integer', description: '0-100 insurability/documentation readiness' },
+            summary: { type: 'string' },
+            recommendedCoverages: {
+              type: 'array',
+              items: {
+                type: 'object', additionalProperties: false,
+                required: ['coverage', 'recommendedLimit', 'priority', 'rationale'],
+                properties: {
+                  coverage: { type: 'string' },
+                  recommendedLimit: { type: 'string' },
+                  priority: { type: 'string', enum: ['Essential', 'Recommended', 'Optional'] },
+                  rationale: { type: 'string' }
+                }
+              }
+            },
+            underwritingConcerns: {
+              type: 'array',
+              items: {
+                type: 'object', additionalProperties: false,
+                required: ['title', 'detail', 'impact', 'mitigation'],
+                properties: { title: { type: 'string' }, detail: { type: 'string' }, impact: { type: 'string' }, mitigation: { type: 'string' } }
+              }
+            },
+            documentationChecklist: {
+              type: 'array',
+              items: {
+                type: 'object', additionalProperties: false,
+                required: ['item', 'detail'],
+                properties: { item: { type: 'string' }, detail: { type: 'string' } }
+              }
+            }
+          }
+        }
+      }
+    };
 
     const client = new Anthropic({ apiKey: settings.anthropicKey });
-    const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 8192,
+    const msg = await client.beta.messages.create({
+      model: 'claude-opus-5',
+      max_tokens: 16000,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      output_config: { format: { type: 'json_schema', schema: riskSchema } },
       messages: [{ role: 'user', content: prompt }]
     });
-    let content = msg.content?.[0]?.text || '';
-    // Strip markdown code fences if present
+    if (msg.stop_reason === 'refusal') {
+      throw new Error('The AI declined to analyze this brief. Try regenerating, or edit the brief and try again.');
+    }
+    if (msg.stop_reason === 'max_tokens') {
+      throw new Error('The assessment was too long to complete. Try regenerating.');
+    }
+    // Thinking blocks may precede the text block — find the text block explicitly
+    let content = (msg.content || []).find(b => b.type === 'text')?.text || '';
+    // Strip markdown code fences if present (defensive; structured output should be bare JSON)
     content = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
     const assessment = JSON.parse(content);
     assessment.generatedAt = new Date().toISOString();
@@ -991,13 +1520,13 @@ app.post('/api/briefs/:id/send-venue-intake', requireAdmin, async (req, res) => 
   await db.cancelIntakeTokensForBrief(req.params.id);
 
   const token     = uuidv4();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const expiresAt = computeIntakeExpiry(brief);
   await db.insertIntakeToken({ token, briefId: req.params.id, venueEmail, expiresAt });
 
   brief.venueIntake = { status: 'pending', sentAt: new Date().toISOString(), venueEmail };
   await db.upsertBrief(brief);
 
-  const appUrl    = (settings.appUrl || `http://localhost:${PORT}`).replace(/\/$/, '');
+  const appUrl    = resolveAppUrl(req);
   const intakeUrl = `${appUrl}/intake/${token}`;
 
   try {
@@ -1035,6 +1564,9 @@ app.get('/api/intake/:token', async (req, res, next) => {
       venueZip:   brief?.venue?.zip    || '',
       eventDate:  brief?.timeline?.showDate || '',
       orgName:    settings.orgName || 'GenX Takeover Security',
+      orgContact: settings.orgContact || '',
+      orgEmail:   settings.orgEmail   || '',
+      orgPhone:   settings.orgPhone   || '',
       expiresAt:  t.expiresAt
     });
   } catch (err) { next(err); }
@@ -1048,7 +1580,7 @@ app.post('/api/intake/:token', async (req, res, next) => {
   if (t.used)                               return res.status(410).json({ error: 'Already submitted.' });
   if (new Date(t.expiresAt) < new Date())   return res.status(410).json({ error: 'Link expired.' });
 
-  const data = sanitiseFormBody(req.body) || {};
+  const { data, issues } = normalizeIntakeData(sanitiseFormBody(req.body) || {});
 
   await db.markIntakeSubmitted(req.params.token);
   t.submittedAt = new Date().toISOString();
@@ -1060,22 +1592,16 @@ app.post('/api/intake/:token', async (req, res, next) => {
       submittedAt: t.submittedAt,
       venueEmail: t.venueEmail,
       sentAt: brief.venueIntake?.sentAt,
-      data
+      data,
+      issues
     };
 
-    // Merge submitted emergency contacts into brief.emergency
-    const submitted = (data.emergencyContacts || []).filter(c => c && (c.name || c.phone));
-    if (submitted.length) {
-      if (!Array.isArray(brief.emergency)) brief.emergency = [];
-      // Append only contacts not already present (match by name + phone)
-      for (const c of submitted) {
-        const dupe = brief.emergency.some(e =>
-          (e.name && c.name && e.name.toLowerCase() === c.name.toLowerCase()) ||
-          (e.phone && c.phone && e.phone === c.phone)
-        );
-        if (!dupe) brief.emergency.push({ role: c.role || '', name: c.name || '', phone: c.phone || '', email: c.email || '' });
-      }
-    }
+    // Merge structured intake answers into matching brief sections
+    // (only fills empty fields — never overwrites GenX-entered values)
+    mergeIntakeIntoBrief(brief, data);
+
+    // Merge submitted emergency contacts into brief.emergency (append, dedupe)
+    mergeEmergencyContacts(brief, data.emergencyContacts);
 
     await db.upsertBrief(brief);
   }
@@ -1083,7 +1609,7 @@ app.post('/api/intake/:token', async (req, res, next) => {
   // Notify Steve
   const notifyTo = settings.notifyEmail || settings.orgEmail;
   if (notifyTo && settings.smtpHost && settings.smtpUser && settings.smtpPass) {
-    const appUrl   = (settings.appUrl || `http://localhost:${PORT}`).replace(/\/$/, '');
+    const appUrl   = resolveAppUrl(req);
     const briefUrl = `${appUrl}/brief?id=${t.briefId}`;
     try {
       await makeTransporter().sendMail({
@@ -1093,6 +1619,30 @@ app.post('/api/intake/:token', async (req, res, next) => {
         html: intakeNotificationEmailHtml(brief, t, briefUrl, data)
       });
     } catch (err) { console.error('Intake notification email failed:', err.message); }
+  }
+
+  // Optional courtesy receipt to the venue submitter
+  const copyTo = (data.sendCopyEmail || '').toString().trim();
+  if (copyTo && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(copyTo) && settings.smtpHost && settings.smtpUser && settings.smtpPass) {
+    try {
+      const orgName = settings.orgName || 'GenX Takeover Security';
+      const venueName = brief?.venue?.name || 'your venue';
+      await makeTransporter().sendMail({
+        from: fromAddress(),
+        to: copyTo,
+        subject: `Receipt — Venue Security Questionnaire (${venueName})`,
+        html: `<div style="font-family:'Helvetica Neue',Arial,sans-serif;background:#0d1117;color:#e6edf3;padding:32px;">
+          <div style="max-width:560px;margin:0 auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:28px;">
+            <h2 style="margin:0 0 12px;font-size:18px;">Submission received</h2>
+            <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:#8b949e;">
+              Thank you for completing the venue security questionnaire for <strong style="color:#e6edf3;">${(venueName || '').replace(/[<>&]/g,'')}</strong>.
+              Your responses have been delivered to the ${orgName.replace(/[<>&]/g,'')} team and will be reviewed by personnel directly assigned to this event.
+            </p>
+            <p style="margin:0;font-size:12px;color:#484f58;">If you need to amend any answers, reply to this email and we'll re-issue an editable link.</p>
+          </div>
+        </div>`
+      });
+    } catch (err) { console.error('Venue receipt email failed:', err.message); }
   }
 
   res.json({ ok: true });
@@ -1112,7 +1662,7 @@ app.post('/api/briefs/:id/send-travel-questionnaire', requireAdmin, async (req, 
   if (!Array.isArray(contacts) || contacts.length === 0)
     return res.status(400).json({ error: 'No contacts provided.' });
 
-  const appUrl   = (settings.appUrl || `http://localhost:${PORT}`).replace(/\/$/, '');
+  const appUrl   = resolveAppUrl(req);
   const venueName = brief.venue?.name || 'the upcoming show';
   const showDate  = brief.timeline?.showDate || '';
   const org       = settings.orgName || 'GenX Takeover Security';
@@ -1281,7 +1831,7 @@ app.post('/api/briefs/:id/travel-pending/resend', requireAdmin, async (req, res)
   const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
   await db.insertTravelToken({ token, briefId: req.params.id, name, email, role: role || '', expiresAt });
 
-  const appUrl    = (settings.appUrl || `http://localhost:${PORT}`).replace(/\/$/, '');
+  const appUrl    = resolveAppUrl(req);
   const venueName = brief.venue?.name || 'the upcoming show';
   const showDate  = brief.timeline?.showDate || '';
   const org       = settings.orgName || 'GenX Takeover Security';
@@ -1364,13 +1914,13 @@ app.post('/api/briefs/:id/intake/resend', requireAdmin, async (req, res) => {
   await db.cancelIntakeTokensForBrief(req.params.id);
 
   const token = uuidv4();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const expiresAt = computeIntakeExpiry(brief);
   await db.insertIntakeToken({ token, briefId: req.params.id, venueEmail, expiresAt });
 
   brief.venueIntake = { status: 'pending', sentAt: new Date().toISOString(), venueEmail };
   await db.upsertBrief(brief);
 
-  const appUrl    = (settings.appUrl || `http://localhost:${PORT}`).replace(/\/$/, '');
+  const appUrl    = resolveAppUrl(req);
   const intakeUrl = `${appUrl}/intake/${token}`;
   try {
     await makeTransporter().sendMail({
@@ -1387,6 +1937,157 @@ app.post('/api/briefs/:id/intake/resend', requireAdmin, async (req, res) => {
     await db.deleteIntakeToken(token);
     res.status(500).json({ error: 'Failed to send: ' + err.message });
   }
+});
+
+// Fillable questionnaire PDF (true AcroForm fields — venues type into it in
+// any PDF viewer). Pre-fills venue basics + header from the brief.
+app.get('/api/briefs/:id/intake/pdf', requireAdmin, async (req, res) => {
+  try {
+    const brief = await db.getBrief(req.params.id);
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+    const { buildIntakePdf } = require('./intake-pdf');
+    const bytes = await buildIntakePdf({
+      brief,
+      orgName: settings.orgName || 'GenX Corporate Security',
+      orgEmail: settings.orgEmail || ''
+    });
+    const venueSlug = (brief.venue?.name || 'venue').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'venue';
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="security-questionnaire-${venueSlug}.pdf"`);
+    res.send(Buffer.from(bytes));
+  } catch (err) {
+    console.error('Intake PDF error:', err.message);
+    res.status(500).json({ error: 'PDF generation failed: ' + err.message });
+  }
+});
+
+// Create an intake link WITHOUT sending email — for when SMTP delivery is
+// unreliable (spam filtering). Steve copies the link into his own email/text.
+app.post('/api/briefs/:id/intake/link', requireAdmin, async (req, res, next) => {
+  try {
+    const brief = await db.getBrief(req.params.id);
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+
+    await db.cancelIntakeTokensForBrief(req.params.id);
+    const token     = uuidv4();
+    const expiresAt = computeIntakeExpiry(brief);
+    const venueEmail = (req.body?.venueEmail || '').toString().trim();
+    await db.insertIntakeToken({ token, briefId: req.params.id, venueEmail, expiresAt });
+
+    brief.venueIntake = { status: 'pending', sentAt: new Date().toISOString(), venueEmail, viaLink: true };
+    await db.upsertBrief(brief);
+
+    res.json({ ok: true, intakeUrl: `${resolveAppUrl(req)}/intake/${token}`, expiresAt });
+  } catch (err) { next(err); }
+});
+
+// AI document import — extract questionnaire answers from a completed PDF or
+// photographed form. Returns the extracted fields for review; nothing is saved
+// until /intake/apply is called.
+app.post('/api/briefs/:id/intake/import', requireAdmin, async (req, res) => {
+  try {
+    const brief = await db.getBrief(req.params.id);
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+
+    const { file, mediaType, filename } = req.body || {};
+    if (!file || typeof file !== 'string') return res.status(400).json({ error: 'No file provided.' });
+    const b64 = file.replace(/^data:[^;]+;base64,/, '');
+    const isPdf = /pdf/i.test(mediaType || '') || /\.pdf$/i.test(filename || '');
+
+    // Fast path: a digitally-filled copy of our own PDF has real form fields —
+    // read the answers exactly, no AI involved.
+    if (isPdf) {
+      try {
+        const { extractFromFilledPdf } = require('./intake-pdf');
+        const exact = await extractFromFilledPdf(Buffer.from(b64, 'base64'));
+        if (exact) {
+          const norm = normalizeIntakeData(exact);
+          return res.json({ ok: true, extracted: norm.data, issues: norm.issues, fieldCount: Object.keys(norm.data).length, source: 'form-fields' });
+        }
+      } catch (e) { console.error('AcroForm extract failed, falling back to AI:', e.message); }
+    }
+
+    if (!settings.anthropicKey) return res.status(400).json({ error: 'This file has no fillable form data, and no Anthropic API key is configured in Settings for AI extraction.' });
+    const docBlock = isPdf
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } }
+      : { type: 'image',    source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: b64 } };
+
+    const instructions = `This document is a completed "Venue Security Questionnaire" for a live-event security advance (it may be a filled PDF, a scan, or a photo of a paper form — handwriting included).
+
+Extract every answer into the JSON schema. Rules:
+- Use null for any field that is blank, illegible, or not present in the document. Never guess or infer an answer that isn't written.
+- Yes/No/Unknown questions: return "yes" only when Yes is clearly marked, "no" only when No is clearly marked, "unknown" when an Unknown/Not-sure box is marked. Blank = null.
+- Checkbox fields (screening methods, door systems): true only when the box is clearly checked or the item is clearly circled/indicated; otherwise null.
+- Dates: YYYY-MM-DD. Times: HH:MM 24-hour when unambiguous, otherwise transcribe verbatim (e.g. "TBD", "after lunch").
+- "N/A", "none", or a dash written by the venue IS an answer — transcribe it verbatim as the string value.
+- emergencyContacts: one entry per contact row that has at least a name or phone. Empty rows are omitted.
+- Transcribe free-text answers faithfully; fix obvious OCR artifacts but do not paraphrase.`;
+
+    const client = new Anthropic({ apiKey: settings.anthropicKey });
+    const baseReq = {
+      model: 'claude-opus-4-8',
+      max_tokens: 8192,
+      messages: [{ role: 'user', content: [docBlock, { type: 'text', text: instructions }] }]
+    };
+    let msg;
+    try {
+      msg = await client.messages.create({
+        ...baseReq,
+        output_config: { format: { type: 'json_schema', schema: intakeExtractionSchema() } }
+      });
+    } catch (e) {
+      // Structured-output rejected (older API surface) — fall back to prompt-enforced JSON
+      if (e?.status === 400) {
+        msg = await client.messages.create({
+          ...baseReq,
+          messages: [{ role: 'user', content: [docBlock, { type: 'text', text: instructions + '\n\nRespond with ONLY a valid JSON object matching this schema (no markdown fences):\n' + JSON.stringify(intakeExtractionSchema()) }] }]
+        });
+      } else throw e;
+    }
+
+    let content = (msg.content || []).find(b => b.type === 'text')?.text || '';
+    content = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+    const raw = JSON.parse(content);
+
+    // Drop empties so the review screen only shows real answers
+    const extracted = {};
+    for (const [k, v] of Object.entries(raw)) {
+      if (v === null || v === undefined || v === '') continue;
+      if (Array.isArray(v) && !v.length) continue;
+      extracted[k] = v;
+    }
+    const norm = normalizeIntakeData(extracted);
+    res.json({ ok: true, extracted: norm.data, issues: norm.issues, fieldCount: Object.keys(norm.data).length });
+  } catch (err) {
+    console.error('Intake import error:', err.message);
+    res.status(500).json({ error: 'Extraction failed: ' + err.message });
+  }
+});
+
+// Apply reviewed import data — same merge path as a live venue submission.
+app.post('/api/briefs/:id/intake/apply', requireAdmin, async (req, res, next) => {
+  try {
+    const brief = await db.getBrief(req.params.id);
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+
+    const raw = sanitiseFormBody(req.body?.data) || {};
+    if (!Object.keys(raw).length) return res.status(400).json({ error: 'No data to apply.' });
+    const { data, issues } = normalizeIntakeData(raw);
+
+    brief.venueIntake = {
+      status: 'completed',
+      submittedAt: new Date().toISOString(),
+      venueEmail: brief.venueIntake?.venueEmail || '',
+      sentAt: brief.venueIntake?.sentAt,
+      source: 'document-import',
+      data: { ...(brief.venueIntake?.data || {}), ...data },
+      issues
+    };
+    mergeIntakeIntoBrief(brief, data);
+    mergeEmergencyContacts(brief, data.emergencyContacts);
+    await db.upsertBrief(brief);
+    res.json({ ok: true });
+  } catch (err) { next(err); }
 });
 
 // AI-generate travel brief
@@ -1501,18 +2202,24 @@ app.post('/api/roster/import-from-briefs', requireAdmin, async (req, res, next) 
 
 // ── Page routes ──────────────────────────────────────────────────────────────
 const pub = path.join(__dirname, 'public');
-app.get('/',           (_, res) => res.sendFile(path.join(pub, 'index.html')));
-app.get('/brief',      (_, res) => res.sendFile(path.join(pub, 'brief.html')));
-app.get('/view',       (_, res) => res.sendFile(path.join(pub, 'view.html')));
-app.get('/settings',   (_, res) => res.sendFile(path.join(pub, 'settings.html')));
-app.get('/risk',       (_, res) => res.sendFile(path.join(pub, 'risk.html')));
-app.get('/intake/:token', (_, res) => res.sendFile(path.join(pub, 'intake.html')));
-app.get('/travel/:token', (_, res) => res.sendFile(path.join(pub, 'travel-form.html')));
-app.get('/map-editor',   (_, res) => res.sendFile(path.join(pub, 'map-editor.html')));
-app.get('/roster', (_, res) => res.sendFile(path.join(pub, 'roster.html')));
-app.get('/login',  (_, res) => res.sendFile(path.join(pub, 'login.html')));
-app.get('/portal', (_, res) => res.sendFile(path.join(pub, 'portal.html')));
-app.get('*',           (_, res) => res.sendFile(path.join(pub, 'index.html')));
+function sendHtml(res, file) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(path.join(pub, file));
+}
+app.get('/',           (_, res) => sendHtml(res, 'index.html'));
+app.get('/brief',      (_, res) => sendHtml(res, 'brief.html'));
+app.get('/view',       (_, res) => sendHtml(res, 'view.html'));
+app.get('/settings',   (_, res) => sendHtml(res, 'settings.html'));
+app.get('/risk',       (_, res) => sendHtml(res, 'risk.html'));
+app.get('/intake/:token', (_, res) => sendHtml(res, 'intake.html'));
+app.get('/travel/:token', (_, res) => sendHtml(res, 'travel-form.html'));
+app.get('/map-editor',   (_, res) => sendHtml(res, 'map-editor.html'));
+app.get('/roster', (_, res) => sendHtml(res, 'roster.html'));
+app.get('/login',  (_, res) => sendHtml(res, 'login.html'));
+app.get('/portal', (_, res) => sendHtml(res, 'portal.html'));
+app.get('*',           (_, res) => sendHtml(res, 'index.html'));
 
 // Final error handler — catches multer fileFilter rejections, body-parser errors, etc.
 app.use((err, req, res, next) => {

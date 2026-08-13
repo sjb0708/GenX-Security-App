@@ -384,6 +384,33 @@ body {
 .tbd-toggle input[type="checkbox"] { accent-color: var(--red); cursor: pointer; }
 .tbd-toggle:has(input:checked) { color: var(--red); }
 .field-input.tbd-active { opacity: 0.35; pointer-events: none; background: var(--surface-2); }
+
+/* Tell Chrome to render native form controls (date/time pickers, autofill) in dark mode */
+:root, body { color-scheme: dark; }
+
+/* Override Chrome / WebKit autofill blue-tint coloring on dark theme */
+input.field-input:-webkit-autofill,
+input.field-input:-webkit-autofill:hover,
+input.field-input:-webkit-autofill:focus,
+input.field-input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--surface-2) inset !important;
+  box-shadow: 0 0 0 1000px var(--surface-2) inset !important;
+  caret-color: var(--text);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Hide the placeholder display Chrome shows for empty date/time inputs.
+   The is-empty class is toggled in JS based on .value, since :placeholder-shown
+   doesn't apply reliably to date/time inputs. We have to target every inner
+   sub-element of the picker because color doesn't cascade across shadow DOM. */
+.field-input[type="date"]::-webkit-datetime-edit,
+.field-input[type="time"]::-webkit-datetime-edit { color: var(--text); }
+.field-input.is-empty:not(:focus)::-webkit-datetime-edit {
+  visibility: hidden !important;
+}
+.field-input[type="date"]::-webkit-calendar-picker-indicator,
+.field-input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
 .field-label {
   display: block; font-size: 11px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.6px;
@@ -622,7 +649,7 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
-.ros-table th:first-child { width: 40px; }
+.ros-table:not(.ros-view) th:first-child { width: 40px; }
 .ros-table td {
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
@@ -1046,11 +1073,95 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 }
 
 /* ── Print ────────────────────────────────────────────────────────────────── */
+/* Hide print-only running footer on screen */
+.brief-print-footer { display: none; }
+
+/* ── Labeled freetext blocks (screen styling) ────────────────────────────────── */
+.freetext-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+.freetext-body {
+  font-size: 12px;
+  color: var(--text-2);
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-left: 2px solid var(--border);
+  border-radius: 4px;
+}
+
 @media print {
-  @page { margin: 0.65in 0.55in; size: letter portrait; }
+  @page { margin: 0.7in 0.55in 0.85in 0.55in; size: letter portrait; }
 
   /* Force all colors to print */
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box !important; }
+
+  /* ── Print-only running footer (repeats on every page) ── */
+  .brief-print-footer {
+    display: flex !important;
+    position: fixed !important;
+    bottom: -0.6in !important;
+    left: 0 !important;
+    right: 0 !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 7.5pt !important;
+    color: #6b7280 !important;
+    border-top: 1px solid #d1d5db !important;
+    padding-top: 4pt !important;
+    letter-spacing: 0.3pt !important;
+    gap: 12pt !important;
+    font-family: 'Montserrat', sans-serif !important;
+  }
+  .brief-print-footer span:nth-child(1) { font-weight: 700 !important; color: #c1121f !important; }
+  .brief-print-footer span:nth-child(2) { text-align: center !important; flex: 1 !important; color: #111827 !important; }
+  .brief-print-footer span:nth-child(3) { text-align: right !important; font-style: italic !important; }
+
+  /* ── Hide emoji section icons — they read amateur in a security document ── */
+  .section-icon { display: none !important; }
+  .view-panel-header h3 { margin-left: 0 !important; }
+
+  /* ── Stage name: subtle gray, no italic, smaller ── */
+  .person-stage { color: #6b7280 !important; font-style: normal !important; font-size: 7.5pt !important; }
+
+  /* ── Labeled freetext blocks: small caps label + soft callout body ── */
+  .freetext-label {
+    font-size: 7pt !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.7pt !important;
+    color: #6b7280 !important;
+    margin-bottom: 4pt !important;
+  }
+  .freetext-body {
+    font-size: 9pt !important;
+    color: #1f2937 !important;
+    padding: 7pt 9pt !important;
+    background: #f8f9fa !important;
+    border-left: 2pt solid #c1121f !important;
+    border-radius: 0 !important;
+    line-height: 1.55 !important;
+  }
+
+  /* ── Orphan-header guard: keep section headers with their bodies ── */
+  .view-panel-header { break-after: avoid !important; page-break-after: avoid !important; }
+  .view-panel-body   { break-before: avoid !important; page-break-before: avoid !important; }
+
+  /* ── Unified palette: replace gold and blue tags with red/gray so the
+        document reads as a single coordinated color system. ── */
+  .tag-gold,
+  .tag-blue { background: #f3f4f6 !important; color: #374151 !important; border-color: #d1d5db !important; }
+
+  /* Contact-card "backup" was gold — keep symmetry with primary in red, but
+     thinner stroke so it doesn't compete visually. */
+  .contact-card.backup { border-left: 2px solid #9ca3af !important; }
+  .contact-card.primary { border-left: 3px solid #c1121f !important; }
 
   /* Override dark CSS variables with light equivalents */
   :root {
@@ -1096,41 +1207,91 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
     border: none !important;
     border-radius: 0 !important;
     overflow: visible !important;
-    margin-bottom: 18pt !important;
+    margin-bottom: 20pt !important;
     break-inside: avoid;
+    page-break-after: avoid !important;
   }
   .brief-header-red {
-    height: 5px !important;
-    background: linear-gradient(90deg, #c1121f, #e63946 60%, transparent) !important;
+    height: 3pt !important;
+    background: #c1121f !important;
   }
   .brief-header-body {
     background: #fff !important;
-    padding: 14pt 0 10pt !important;
-    border-bottom: 2px solid #c1121f !important;
+    padding: 16pt 0 14pt !important;
+    border-bottom: 0.75pt solid #d1d5db !important;
   }
-  .brief-header-venue { color: #111827 !important; font-size: 20pt !important; font-weight: 800 !important; }
+  .brief-header-venue { color: #111827 !important; font-size: 24pt !important; font-weight: 800 !important; line-height: 1.15 !important; letter-spacing: -0.4pt !important; }
+  .brief-header-meta { margin-top: 10pt !important; display: flex !important; flex-wrap: wrap !important; gap: 6pt !important; }
+  .brief-header-logo img { width: 80pt !important; height: 80pt !important; object-fit: contain !important; }
 
-  /* ── Panels ── */
+  /* ── Panels ── editorial-style headers (red rule, no gray bar) ── */
   .view-panel {
     background: #fff !important;
-    border: 1px solid #d1d5db !important;
-    border-radius: 6pt !important;
-    overflow: visible !important;          /* KEY: was overflow:hidden, clips content */
-    margin-bottom: 12pt !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    margin-bottom: 14pt !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
+  /* Treat each side-by-side panel grid row as one unit when possible */
+  .grid-2 { break-inside: avoid-page; }
   .view-panel-header {
-    background: #f3f4f6 !important;
-    border-bottom: 1px solid #d1d5db !important;
-    padding: 7pt 12pt !important;
+    background: transparent !important;
+    border-bottom: 1.5pt solid #c1121f !important;
+    padding: 0 0 4pt 0 !important;
+    margin-bottom: 8pt !important;
   }
-  .view-panel-header h3 { color: #111827 !important; font-size: 9pt !important; letter-spacing: 0.5pt !important; }
-  .view-panel-body { padding: 12pt !important; overflow: visible !important; }
+  .view-panel-header h3 { color: #c1121f !important; font-size: 9.5pt !important; letter-spacing: 1.2pt !important; font-weight: 800 !important; margin: 0 !important; text-transform: uppercase !important; }
+  .view-panel-body { padding: 0 !important; overflow: visible !important; }
 
-  /* Run of Show — allow page breaks within */
-  .ros-panel { break-inside: auto !important; page-break-inside: auto !important; }
+  /* Bring back subtle separation between sections without panel chrome */
+  .view-panel + .view-panel { margin-top: 4pt !important; }
+
+  /* Run of Show — start on a new page so the section header and table
+     stay together; allow the table itself to break across pages if long.
+     The thead is set to table-header-group below so column headers repeat. */
+  .ros-panel {
+    break-before: page !important; page-break-before: always !important;
+    break-inside: auto !important; page-break-inside: auto !important;
+  }
   .ros-panel .view-panel-body { overflow: visible !important; }
+  .ros-panel .view-panel-header { break-after: avoid !important; page-break-after: avoid !important; }
+
+  /* Maps panel — each map gets its own page so Safari's Save-As-PDF can't
+     drop overflow content. The Safari print preview is misleading for content
+     near page boundaries; forcing one-map-per-page sidesteps that entirely.
+     Safari ignores break-before:page on children of a flex container, so the
+     inline display:flex wrapper around the cards must be neutralised in print. */
+  .view-panel.maps-panel {
+    break-before: page !important; page-break-before: always !important;
+    break-inside: auto !important; page-break-inside: auto !important;
+    overflow: visible !important;
+  }
+  .view-panel.maps-panel .view-panel-body { overflow: visible !important; }
+  .view-panel.maps-panel .view-panel-body > div {
+    display: block !important;
+    gap: 0 !important;
+  }
+  .view-panel.maps-panel .map-card {
+    break-inside: avoid !important; page-break-inside: avoid !important;
+    overflow: visible !important;
+    margin: 0 !important;
+  }
+  /* Page-break AFTER every card except the last. break-after is more reliable
+     than chained break-before in Safari when several cards live in one parent. */
+  .view-panel.maps-panel .map-card:not(:last-child) {
+    break-after: page !important; page-break-after: always !important;
+  }
+  .view-panel.maps-panel .map-card img {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100% !important;
+    max-height: 8in !important;
+    object-fit: contain !important;
+    background: #fff !important;
+  }
 
   /* ── Grids ── */
   .grid-2 { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10pt !important; }
@@ -1168,16 +1329,20 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   .ros-table { width: 100% !important; border-collapse: collapse !important; font-size: 9pt !important; table-layout: fixed !important; }
   .ros-table colgroup, .ros-table col { display: none; }
   .ros-table thead { display: table-header-group !important; }
+  /* Background on th cells, not the tr — WebKit print drops tr backgrounds,
+     which leaves white header text invisible on white. */
   .ros-table thead tr { background: #c1121f !important; color: #fff !important; }
-  .ros-table th { padding: 6pt 8pt !important; font-size: 8pt !important; font-weight: 700 !important; text-transform: uppercase !important; color: #fff !important; border: none !important; }
+  .ros-table th { background: #c1121f !important; padding: 6pt 8pt !important; font-size: 8pt !important; font-weight: 700 !important; text-transform: uppercase !important; color: #fff !important; border: none !important; }
   .ros-table td { padding: 5pt 8pt !important; border-bottom: 1px solid #e9ebee !important; color: #111827 !important; word-wrap: break-word !important; vertical-align: top !important; }
   .ros-table tr { break-inside: avoid !important; page-break-inside: avoid !important; }
   .ros-row-critical td { background: rgba(193,18,31,0.07) !important; font-weight: 700 !important; }
   .ros-row-critical td:first-child { border-left: 3px solid #c1121f !important; }
-  /* drag handle column — hide in print */
-  .ros-table td:first-child, .ros-table th:first-child { display: none !important; }
-  /* delete button column — hide in print */
-  .ros-table td:last-child, .ros-table th:last-child { display: none !important; }
+  /* drag handle column — hide in print (edit-mode table only) */
+  .ros-table:not(.ros-view) td:first-child,
+  .ros-table:not(.ros-view) th:first-child { display: none !important; }
+  /* delete button column — hide in print (edit-mode table only) */
+  .ros-table:not(.ros-view) td:last-child,
+  .ros-table:not(.ros-view) th:last-child { display: none !important; }
 
   /* ── Data tables ── */
   .data-table { width: 100% !important; border-collapse: collapse !important; font-size: 9pt !important; }
@@ -1185,16 +1350,74 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   .data-table td { padding: 5pt 8pt !important; border-bottom: 1px solid #e9ebee !important; color: #111827 !important; }
   .data-table td img { max-width: 40pt !important; height: auto !important; border-radius: 3pt !important; }
 
-  /* ── Person cards ── */
-  .person-grid { display: flex !important; flex-wrap: wrap !important; gap: 8pt !important; }
-  .person-card { background: #f3f4f6 !important; border: 1px solid #d1d5db !important; border-radius: 6pt !important; width: 88pt !important; padding: 8pt !important; break-inside: avoid !important; overflow: visible !important; box-shadow: none !important; }
-  .person-name  { color: #111827 !important; font-size: 8.5pt !important; font-weight: 700 !important; }
-  .person-stage { color: #1d4ed8 !important; font-size: 8pt !important; }
-  .person-role  { color: #6b7280 !important; font-size: 7.5pt !important; }
+  /* ── People panels (Talent / Crew / GenX Staff) ──
+     These grids are often taller than one page. The generic .view-panel
+     break-inside:avoid makes them unbreakable, and WebKit clips (drops)
+     any unbreakable block taller than a page — cards silently vanish.
+     Let the panel fragment; each card stays atomic below. Same escape
+     hatch as .ros-panel / .maps-panel. */
+  .view-panel.people-panel {
+    break-inside: auto !important; page-break-inside: auto !important;
+  }
+  .view-panel.people-panel .view-panel-body { overflow: visible !important; }
+  /* NO forced page break before personnel — Safari computes total page
+     count from natural document height and silently drops content pushed
+     past it by break-before:page (the whole Talent/Crew page vanished from
+     Save-as-PDF). Natural flow + atomic inline-block cards paginate fine;
+     a rare orphaned section header is the accepted trade-off. */
+  /* Redundant with the running footer in print, and its padding can spill
+     a near-empty final page. */
+  .brief-endmark { display: none !important; }
+
+  /* ── Person cards (bigger, head-safe framing) ──
+     block container + inline-block cards, NOT flex or grid — WebKit's
+     print engine ignores break-inside:avoid on flex/grid items and slices
+     cards mid-photo at page boundaries (verified via WKWebView print
+     harness). Inline-blocks are atomic: a card that doesn't fit moves to
+     the next page whole. */
+  .person-grid {
+    display: block !important;
+    font-size: 0 !important; /* kill inter-inline-block whitespace gaps */
+  }
+  .person-card {
+    display: inline-block !important;
+    vertical-align: top !important;
+    font-size: 9pt !important; /* restore — parent font-size is 0 */
+    background: #fff !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 4pt !important;
+    width: 112pt !important;
+    margin: 0 10pt 10pt 0 !important;
+    padding: 10pt 8pt 9pt !important;
+    text-align: center !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+  .person-name  { color: #111827 !important; font-size: 9pt !important; font-weight: 700 !important; margin-top: 6pt !important; line-height: 1.25 !important; }
+  .person-stage { color: #6b7280 !important; font-size: 7.5pt !important; font-style: normal !important; font-weight: 500 !important; margin-top: 1pt !important; }
+  .person-role  { color: #6b7280 !important; font-size: 7.5pt !important; margin-top: 3pt !important; }
   .person-notes { color: #374151 !important; font-size: 7.5pt !important; }
-  .person-photo { background: #e9ebee !important; border: 1px solid #d1d5db !important; }
+  .person-photo {
+    background: #e9ebee !important;
+    border: 1px solid #d1d5db !important;
+    width: 78pt !important;
+    height: 78pt !important;
+    margin: 0 auto !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+  }
   .person-photo span { color: #374151 !important; }
-  .person-photo img { border-radius: 50% !important; }
+  .person-photo img {
+    border-radius: 50% !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    /* CSS default. Inline object-position from data wins when present, so
+       hand-positioned photos in the roster keep their framing. */
+    object-position: 50% 8%;
+  }
 
   /* ── Channel grid ── */
   .channel-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 5pt !important; }
@@ -1209,6 +1432,16 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   /* ── Page breaks ── */
   .brief-header-block { page-break-after: avoid; }
   .mini-stat, .person-card, .contact-card, .kv-row { page-break-inside: avoid; }
+
+  /* Tighter credential card so the page after Access Control doesn't strand
+     the Load In / Load Out block on a near-empty page. */
+  .brief-cred-img {
+    max-height: 200pt !important;
+    max-width: 140pt !important;
+    width: auto !important;
+    height: auto !important;
+    box-shadow: none !important;
+  }
 }
 
 /* ── Travel mode buttons ──────────────────────────────────────────────────── */

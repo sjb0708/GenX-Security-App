@@ -148,6 +148,23 @@
     .toggle-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .toggle-yn { font-size: 11px; font-weight: 700; min-width: 24px; text-align: center; color: var(--text-2); }
 
+    /* Tri-state (Yes / No / Not Sure) segmented control */
+    .tri-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .tri-row:first-child { border-top: none; padding-top: 0; }
+    .tri-label { font-size: 13px; color: var(--text); font-weight: 600; }
+    .tri-desc { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+    .tri { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+    .tri button { background: transparent; border: none; border-right: 1px solid var(--border); color: var(--text-2); font-family: inherit; font-size: 12px; font-weight: 600; padding: 8px 14px; cursor: pointer; transition: all 0.15s; }
+    .tri button:last-child { border-right: none; }
+    .tri button:hover { color: var(--text); }
+    .tri button.on-yes { background: rgba(63,185,80,0.15); color: var(--green); }
+    .tri button.on-no { background: rgba(230,57,70,0.15); color: var(--red); }
+    .tri button.on-unknown { background: rgba(210,153,60,0.15); color: #d2993c; }
+
+    /* Required-field validation */
+    .f input.invalid, .f select.invalid, .f textarea.invalid { border-color: var(--red); box-shadow: 0 0 0 1px rgba(230,57,70,0.5); }
+    .submit-error { display: none; margin-bottom: 12px; padding: 12px 16px; background: rgba(230,57,70,0.1); border: 1px solid rgba(230,57,70,0.35); border-radius: 10px; font-size: 13px; color: var(--red); font-weight: 600; line-height: 1.5; }
+
     /* Section divider */
     .divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
 
@@ -242,7 +259,7 @@
         <div class="hero-meta-icon">⏱️</div>
         <div>
           <div class="hero-meta-label">Time to Complete</div>
-          <div class="hero-meta-value">10–15 minutes</div>
+          <div class="hero-meta-value">15–20 minutes</div>
         </div>
       </div>
       <div class="hero-meta-item">
@@ -284,54 +301,32 @@
       <div class="panel-body">
         <div class="g2">
           <div class="f">
-            <label>Venue Name</label>
-            <input type="text" name="venueName" placeholder="e.g., Aetos Center for the Performing Arts">
+            <label>Venue Location<span class="req">*</span></label>
+            <input type="text" name="venueName" placeholder="City, State">
           </div>
           <div class="f">
             <label>Main Phone</label>
             <input type="tel" name="venuePhone" placeholder="e.g., 555-555-1234">
           </div>
         </div>
-        <div class="f">
-          <label>Street Address</label>
-          <input type="text" name="venueStreet" placeholder="Street address">
-        </div>
-        <div class="g3">
+        <div class="g2">
           <div class="f">
-            <label>City</label>
-            <input type="text" name="venueCity" placeholder="City">
-          </div>
-          <div class="f">
-            <label>State</label>
-            <input type="text" name="venueState" placeholder="AZ" maxlength="2" style="text-transform:uppercase;">
-          </div>
-          <div class="f">
-            <label>Zip</label>
-            <input type="text" name="venueZip" placeholder="Zip">
-          </div>
-        </div>
-        <div class="g3">
-          <div class="f">
-            <label>Venue Type</label>
-            <select name="venueType">
-              <option value="">Select…</option>
-              <option>Performing Arts Center</option>
-              <option>Theater</option>
-              <option>Amphitheater</option>
-              <option>Bar</option>
-              <option>Casino</option>
-              <option>Hotel Ballroom</option>
-              <option>Convention Center</option>
-              <option>Stadium</option>
-              <option>Arena</option>
-              <option>Club / Nightclub</option>
-              <option>Other</option>
-            </select>
+            <label>Business Name</label>
+            <input type="text" name="businessName" placeholder="e.g., Foxwoods Resort Casino">
           </div>
           <div class="f">
             <label>Total Capacity</label>
             <input type="number" name="venueCapacity" placeholder="—" min="0">
           </div>
+        </div>
+        <div class="f">
+          <label>Street Address</label>
+          <input type="text" name="venueAddress" placeholder="e.g., 350 Trolley Line Blvd, Mashantucket, CT 06338">
+        </div>
+        <div class="f">
+          <label>Any Security Concerns in the Last 12 Months That Would Affect This Show</label>
+          <textarea name="priorIncidents" placeholder="Fights, ejections, medical emergencies, threats, weapons recovered at screening… Write “None” if the venue has had no notable incidents."></textarea>
+          <div class="hint">This stays confidential to the security team and helps us plan staffing correctly.</div>
         </div>
       </div>
     </div>
@@ -340,14 +335,14 @@
     <div class="panel" data-section="contacts">
       <div class="panel-header">
         <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3v8z"/><path d="m9 12 2 2 4-4"/></svg></div>
-        <div class="panel-title">Security Contacts</div>
+        <div class="panel-title">Contacts</div>
         <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
         <p style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Primary Contact</p>
         <div class="g2">
           <div class="f">
-            <label>Name</label>
+            <label>Name<span class="req">*</span></label>
             <input type="text" name="secChiefName" placeholder="e.g., Maria Chen">
           </div>
           <div class="f">
@@ -355,7 +350,7 @@
             <input type="text" name="secChiefTitle" placeholder="e.g., Director of Security">
           </div>
           <div class="f">
-            <label>Phone</label>
+            <label>Phone<span class="req">*</span></label>
             <input type="tel" name="secChiefPhone" placeholder="e.g., 555-555-1234">
           </div>
           <div class="f">
@@ -364,7 +359,7 @@
           </div>
         </div>
         <hr class="divider" style="margin-top:4px;">
-        <p style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Secondary Contact</p>
+        <p style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Secondary Contact — in the event the primary is unavailable, do you have a designated point of contact?</p>
         <div class="g2">
           <div class="f">
             <label>Name</label>
@@ -423,8 +418,104 @@
           </div>
         </div>
         <div class="f">
+          <label>Does Your Venue Have Any Prohibited Items?</label>
+          <textarea name="prohibitedItems" placeholder="e.g., Weapons of any kind, outside food/drink, bags over 12&quot;x12&quot;, professional cameras, laser pointers…"></textarea>
+          <div class="hint">One item per line, or attach your policy.</div>
+        </div>
+        <div class="f">
           <label>Notes</label>
           <textarea name="ingressNotes" placeholder=""></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3b. CROWD & BARRICADE -->
+    <div class="panel" data-section="crowd">
+      <div class="panel-header">
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+        <div class="panel-title">Crowd &amp; Barricade</div>
+        <div class="section-status">Not started</div>
+      </div>
+      <div class="panel-body">
+        <div class="tri-row" style="border-top:none;padding-top:0;">
+          <div>
+            <div class="tri-label">Is There a Need for Crowd-Control Barricade for This Event?</div>
+            <div class="tri-desc">If No, you can skip the rest of this section.</div>
+          </div>
+          <div class="tri" data-tri="barricadeNeeded">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="barricadeNeeded" value="">
+        </div>
+        <div class="g2">
+          <div class="f">
+            <label>Audience Configuration</label>
+            <select name="crowdType">
+              <option value="">Select…</option>
+              <option>Fully seated</option>
+              <option>GA standing</option>
+              <option>Seated + GA pit</option>
+              <option>Mixed / varies by area</option>
+            </select>
+          </div>
+          <div class="f">
+            <label>Barricade Type Available</label>
+            <select name="barricadeType">
+              <option value="">Select…</option>
+              <option>Concert barricade (mojo / blowthrough)</option>
+              <option>Bike rack</option>
+              <option>Both available</option>
+              <option>None</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="tri-row">
+          <div>
+            <div class="tri-label">Barricade at the Stage for This Event</div>
+          </div>
+          <div class="tri" data-tri="stageBarricade">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="stageBarricade" value="">
+        </div>
+        <div class="f">
+          <label>Barricade / Crowd Notes</label>
+          <textarea name="barricadeNotes" placeholder="Barricade placement, pit layout, crowd history at similar shows…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3c. CCTV -->
+    <div class="panel" data-section="cctv">
+      <div class="panel-header">
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M2 8l9.5 3.5L20 8l-8-5.5L2 8z"/><path d="M11.5 11.5V16M7 16h9M12 16v4"/></svg></div>
+        <div class="panel-title">CCTV &amp; Surveillance</div>
+        <div class="section-status">Not started</div>
+      </div>
+      <div class="panel-body">
+        <div class="tri-row">
+          <div>
+            <div class="tri-label">Venue Has CCTV Coverage</div>
+            <div class="tri-desc">Cameras covering entrances, FOH, and backstage areas</div>
+          </div>
+          <div class="tri" data-tri="cctvCoverage">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="cctvCoverage" value="">
+        </div>
+        <div class="tri-row">
+          <div>
+            <div class="tri-label">Monitored Live During Events</div>
+          </div>
+          <div class="tri" data-tri="cctvMonitored">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="cctvMonitored" value="">
+        </div>
+        <div class="f">
+          <label>Any Additional Camera Concerns (optional)</label>
+          <textarea name="cctvNotes" placeholder=""></textarea>
         </div>
       </div>
     </div>
@@ -438,17 +529,13 @@
       </div>
       <div class="panel-body">
         <p style="font-size:12px;color:var(--text-2);">Provide counts for staff <em>your venue / production is providing</em>. GenX Security personnel are handled internally.</p>
-        <div class="g4">
+        <div class="g2">
           <div class="f">
-            <label>Total Security</label>
+            <label>Estimated Security Staff (Total)</label>
             <input type="number" name="totalSecurity" placeholder="—" min="0">
           </div>
           <div class="f">
-            <label>LEO Officers</label>
-            <input type="number" name="leoCount" placeholder="—" min="0">
-          </div>
-          <div class="f">
-            <label>Security Backstage</label>
+            <label>How Many Security Officers Backstage?</label>
             <input type="number" name="backstageSecurity" placeholder="—" min="0">
           </div>
         </div>
@@ -460,12 +547,27 @@
           <div class="toggle-wrap"><label class="toggle"><input type="checkbox" name="uniformed" onchange="toggleUniformDesc(this)"><span class="toggle-track"></span></label><span class="toggle-yn">No</span></div>
         </div>
         <div class="f" id="uniformDescWrap" style="display:none;">
-          <label>Uniform Description</label>
-          <textarea name="uniformDesc" placeholder="Black polo with logo patch, black tactical pants, black boots…"></textarea>
+          <label>Uniform Description — e.g., black polo shirt with SECURITY logo, so our team can identify your staff</label>
+          <textarea name="uniformDesc" placeholder="e.g., Black polo with logo patch, black tactical pants, black boots…"></textarea>
         </div>
         <div class="f">
           <label>Staffing Notes</label>
           <textarea name="staffingNotes" placeholder=""></textarea>
+        </div>
+        <hr class="divider">
+        <p style="font-size:12px;color:var(--text-2);margin-bottom:4px;">Law Enforcement</p>
+        <div class="tri-row" style="border-top:none;">
+          <div>
+            <div class="tri-label">Is Law Enforcement On-Site for This Event?</div>
+          </div>
+          <div class="tri" data-tri="leOnSite">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="leOnSite" value="">
+        </div>
+        <div class="f">
+          <label>Which Law-Enforcement Agency?</label>
+          <input type="text" name="leAgency" placeholder="e.g., Scottsdale PD">
         </div>
       </div>
     </div>
@@ -482,38 +584,58 @@
           <input type="file" name="sopMedical" accept=".pdf,.doc,.docx,image/*" onchange="handleSopAttach(this,'sopMedicalSlot')">
           <div class="sop-attach-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></div>
           <div class="sop-attach-body">
-            <div class="sop-attach-title">Have an Emergency Action Plan?</div>
-            <div class="sop-attach-desc">If you have an Emergency Action Plan you would like to share with us, you can post it here. PDF, Word, or image.</div>
+            <div class="sop-attach-title">Are you including an Emergency Action Plan (EAP)?</div>
+            <div class="sop-attach-desc">If yes, attach it here — PDF, Word, or image.</div>
           </div>
           <span class="sop-attach-btn">Choose File</span>
         </label>
-        <div class="toggle-row" style="border-top:none;padding-top:0;">
+        <div class="tri-row" style="border-top:none;padding-top:0;">
           <div>
-            <div class="toggle-label">Trained Medical Staff On-Site</div>
-            <div class="toggle-desc">Location has trained medical staff on-site for this event</div>
+            <div class="tri-label">Trained Medical Staff On-Site (CPR / First Aid)</div>
+            <div class="tri-desc">Someone trained in CPR / first aid is on-site for this event</div>
           </div>
-          <div class="toggle-wrap"><label class="toggle"><input type="checkbox" name="medicalOnSite"><span class="toggle-track"></span></label><span class="toggle-yn">No</span></div>
+          <div class="tri" data-tri="medicalOnSite">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="medicalOnSite" value="">
+        </div>
+        <div class="tri-row">
+          <div>
+            <div class="tri-label">AED Located On Site</div>
+          </div>
+          <div class="tri" data-tri="aedOnSite">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="aedOnSite" value="">
+        </div>
+        <div class="tri-row">
+          <div>
+            <div class="tri-label">AED Close to Stage &amp; Backstage</div>
+          </div>
+          <div class="tri" data-tri="aedNearStage">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="aedNearStage" value="">
         </div>
         <div class="f" style="max-width:200px;">
-          <label>First Responder Count</label>
+          <label>Medical Staff / First Responder Count</label>
           <input type="number" name="firstResponderCount" placeholder="—" min="0">
         </div>
-        <div style="display:flex;gap:32px;flex-wrap:wrap;">
-          <div class="toggle-row" style="border:none;padding:0;flex:1;min-width:200px;">
-            <div class="toggle-label" style="font-size:12px;">AED Located On Site?</div>
-            <div class="toggle-wrap" style="margin-left:12px;"><label class="toggle"><input type="checkbox" name="aedOnSite"><span class="toggle-track"></span></label><span class="toggle-yn">No</span></div>
+        <div class="f">
+          <label>What Is the Closest First-Aid Location to Backstage?</label>
+          <input type="text" name="firstAidLocations" placeholder="e.g., First-aid room off the main concourse, 30 seconds from stage left…">
+        </div>
+        <div class="tri-row">
+          <div>
+            <div class="tri-label">In an Emergency, Will the Medical Team Respond to the Green Room / Backstage?</div>
           </div>
-          <div class="toggle-row" style="border:none;padding:0;flex:1;min-width:220px;">
-            <div class="toggle-label" style="font-size:12px;">AED Close to Stage &amp; Backstage?</div>
-            <div class="toggle-wrap" style="margin-left:12px;"><label class="toggle"><input type="checkbox" name="aedNearStage"><span class="toggle-track"></span></label><span class="toggle-yn">No</span></div>
+          <div class="tri" data-tri="medicalToGreenRoom">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
           </div>
+          <input type="hidden" name="medicalToGreenRoom" value="">
         </div>
         <div class="f">
-          <label>First Aid Station Locations</label>
-          <input type="text" name="firstAidLocations" placeholder="e.g., Main floor left, backstage area…">
-        </div>
-        <div class="f">
-          <label>Emergency Protocol</label>
+          <label>In the Event of an Emergency, What Is Your Protocol?</label>
           <textarea name="emergencyProtocol" placeholder=""></textarea>
         </div>
       </div>
@@ -530,7 +652,7 @@
         <p style="font-size:12px;color:var(--text-2);line-height:1.6;margin-bottom:4px;">Any information you can share about evacuation procedures is helpful — exits, rally points, lockdown steps, announcement language. Fill in what you have.</p>
         <div class="g2">
           <div class="f">
-            <label>Primary Exit Route</label>
+            <label>Primary Exit Route from the Stage</label>
             <textarea name="primaryExit" placeholder=""></textarea>
           </div>
           <div class="f">
@@ -539,11 +661,11 @@
           </div>
         </div>
         <div class="f">
-          <label>Safe Rooms (one per line)</label>
+          <label>Do You Designate Safe Rooms? If So, Where</label>
           <textarea name="safeRooms" placeholder=""></textarea>
         </div>
         <div class="f">
-          <label>Rally Point</label>
+          <label>Rally Points We Should Be Aware Of</label>
           <input type="text" name="rallyPoint" placeholder="e.g., North parking lot, east entrance">
         </div>
         <div class="f" style="max-width:280px;">
@@ -557,12 +679,12 @@
           </select>
         </div>
         <div class="f">
-          <label>EAP Additional Notes</label>
-          <textarea name="eapNotes" placeholder=""></textarea>
-        </div>
-        <div class="f">
           <label>Lockdown Protocol</label>
           <textarea name="lockdownProtocol" placeholder=""></textarea>
+        </div>
+        <div class="f">
+          <label>Weather / Show-Stop Plan (outdoor venues — write N/A if indoor)</label>
+          <textarea name="weatherPlan" placeholder="Shelter locations, lightning/wind show-stop criteria, who makes the call… Write N/A for fully indoor venues."></textarea>
         </div>
       </div>
     </div>
@@ -578,13 +700,13 @@
         <div class="f">
           <label>M&amp;G Protocol</label>
           <div style="padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.55;color:var(--text-2);">
-            Protocol is determined day-of by the <strong>tour manager</strong> and <strong>Lead Security</strong> during the on-site security walkthrough.
+            The <strong>tour manager</strong> and <strong>Lead Security</strong> will conduct a security walkthrough on show day. That walkthrough determines the meet-and-greet location, the setup, and how it will run.
           </div>
         </div>
         <div class="f">
           <label>Gift Policy</label>
           <div style="padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.55;color:var(--text-2);">
-            Gift policy is finalized by the <strong>tour manager</strong> and <strong>Lead Security</strong> during the on-site security walkthrough.
+            Also set at the show-day walkthrough — including how gifts for the artist are received, screened, and handled. No action is needed from the venue on this form.
           </div>
         </div>
       </div>
@@ -598,16 +720,28 @@
         <div class="section-status">Not started</div>
       </div>
       <div class="panel-body">
-        <div class="toggle-row" style="border-top:none;padding-top:0;">
+        <div class="tri-row" style="border-top:none;padding-top:0;">
           <div>
-            <div class="toggle-label">Is there a need for Venue and GenX Security to share radios?</div>
-            <div class="toggle-desc">Select Yes if your venue security team and GenX Security will operate on shared radio channels during the event.</div>
+            <div class="tri-label">Venue and GenX Security to Share Radios</div>
+            <div class="tri-desc">Select Yes if your venue security team and GenX Security will operate on shared radio channels during the event.</div>
           </div>
-          <div class="toggle-wrap"><label class="toggle"><input type="checkbox" name="venueShareComms"><span class="toggle-track"></span></label><span class="toggle-yn">No</span></div>
+          <div class="tri" data-tri="venueShareComms">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="venueShareComms" value="">
+        </div>
+        <div class="tri-row">
+          <div>
+            <div class="tri-label">Is There a Security Operations Center On Site?</div>
+          </div>
+          <div class="tri" data-tri="opsCenterOnSite">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="opsCenterOnSite" value="">
         </div>
         <div class="g2">
           <div class="f">
-            <label>Security Operations Location</label>
+            <label>Security Operations Center Location</label>
             <input type="text" name="securityOps" placeholder="e.g., Security office, ground floor">
           </div>
           <div class="f">
@@ -615,11 +749,14 @@
             <input type="tel" name="securityOpsPhone" placeholder="e.g., 555-555-1234">
           </div>
         </div>
-        <div class="toggle-row">
+        <div class="tri-row">
           <div>
-            <div class="toggle-label">GenX Security Radios Permitted</div>
+            <div class="tri-label">GenX Security Radios Permitted</div>
           </div>
-          <div class="toggle-wrap"><label class="toggle"><input type="checkbox" name="cellOk"><span class="toggle-track"></span></label><span class="toggle-yn">No</span></div>
+          <div class="tri" data-tri="cellOk">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="cellOk" value="">
         </div>
         <div class="f">
           <label>Notes</label>
@@ -647,9 +784,28 @@
             <label class="check-item"><input type="checkbox" name="doorOther"> Other</label>
           </div>
         </div>
+        <div class="tri-row">
+          <div>
+            <div class="tri-label">Are the Green Room and Backstage Areas Controlled by Access Control?</div>
+          </div>
+          <div class="tri" data-tri="backstageAccessControlled">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="backstageAccessControlled" value="">
+        </div>
         <div class="f">
-          <label>Additional Venue-Required Credentials (name, color, access level)</label>
+          <label>Cast &amp; Crew Access — Where and How Should Cast and Crew Enter Backstage / the Venue?</label>
+          <textarea name="castCrewAccess" placeholder="e.g., Artist entrance at Door 3 with escort; crew badge-in at Door 12; all credentials checked at the stage door…"></textarea>
+        </div>
+        <div class="f">
+          <label>Will Our Team Need Access Cards or Additional Credentials? (type, color, access level)</label>
           <textarea name="additionalCredentials" placeholder=""></textarea>
+        </div>
+        <hr class="divider">
+        <p style="font-size:12px;color:var(--text-2);">GenX Team Arrival — in the past our teams have been left outside an unmarked door. Please also mark our entry door on your maps.</p>
+        <div class="f">
+          <label>Our Arrival — What Door Do We Enter, Where Do We Meet, What Time, and What Should We Do on Arrival?</label>
+          <textarea name="teamCheckIn" placeholder="e.g., 4:30 PM at the security office inside Door 12; ask for the shift supervisor…"></textarea>
         </div>
         <div class="f">
           <label>Parking Notes</label>
@@ -670,23 +826,14 @@
           <label>Dock Location</label>
           <input type="text" name="dockLocation" placeholder="e.g., South side loading dock, ground level door">
         </div>
-        <div class="g3">
-          <div class="f">
-            <label>Load-In Date</label>
-            <input type="date" name="loadinDate">
+        <div class="tri-row">
+          <div>
+            <div class="tri-label">Security at Dock</div>
           </div>
-          <div class="f">
-            <label>Load-In Time</label>
-            <input type="time" name="loadinTime">
+          <div class="tri" data-tri="securityAtDock">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
           </div>
-          <div class="f" style="justify-content:flex-end;">
-            <div class="toggle-row" style="border:none;padding:8px 0 0;">
-              <div>
-                <div class="toggle-label" style="font-size:12px;">Security at Dock</div>
-              </div>
-              <div class="toggle-wrap" style="margin-left:10px;"><label class="toggle"><input type="checkbox" name="securityAtDock"><span class="toggle-track"></span></label><span class="toggle-yn">No</span></div>
-            </div>
-          </div>
+          <input type="hidden" name="securityAtDock" value="">
         </div>
         <div class="f">
           <label>Load-In Notes</label>
@@ -695,6 +842,55 @@
         <div class="f">
           <label>Load-Out Notes</label>
           <textarea name="loadoutNotes" placeholder=""></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10b. MEDIA / PRESS DAY -->
+    <div class="panel" data-section="media">
+      <div class="panel-header">
+        <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
+        <div class="panel-title">Media / Press Day</div>
+        <div class="section-status">Not started</div>
+      </div>
+      <div class="panel-body">
+        <div class="tri-row" style="border-top:none;padding-top:0;">
+          <div>
+            <div class="tri-label">Does This Event Have a Media Day Scheduled?</div>
+            <div class="tri-desc">No media day? Mark No and skip this section. If yes, confirm the details below.</div>
+          </div>
+          <div class="tri" data-tri="mediaDay">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="mediaDay" value="">
+        </div>
+        <div class="g3">
+          <div class="f">
+            <label>Media Day Date</label>
+            <input type="date" name="mediaDayDate">
+          </div>
+          <div class="f">
+            <label>Time Window</label>
+            <input type="text" name="mediaDayTime" placeholder="e.g., 2–4 PM, or TBD">
+            <div class="hint">Write “TBD” if times aren’t confirmed yet.</div>
+          </div>
+          <div class="f">
+            <label>Location</label>
+            <input type="text" name="mediaLocation" placeholder="e.g., Green room, lobby, press riser">
+          </div>
+        </div>
+        <div class="tri-row">
+          <div>
+            <div class="tri-label">Media Escorted While On Property</div>
+          </div>
+          <div class="tri" data-tri="mediaEscort">
+            <button type="button" data-v="yes">Yes</button><button type="button" data-v="no">No</button>
+          </div>
+          <input type="hidden" name="mediaEscort" value="">
+        </div>
+        <div class="f">
+          <label>Media Notes</label>
+          <textarea name="mediaNotes" placeholder="Outlets expected, credential process for press, camera policy…"></textarea>
         </div>
       </div>
     </div>
@@ -756,6 +952,7 @@
     </div>
 
     <div class="submit-bar">
+      <div class="submit-error" id="submitError"></div>
       <div class="copy-row">
         <input type="checkbox" id="sendCopyChk" onchange="toggleCopyEmail(this)">
         <label for="sendCopyChk">Email me a copy of this submission</label>
@@ -777,6 +974,46 @@
 <script>
   const token = location.pathname.split('/intake/')[1];
 
+  // ── Field registry (keep in sync with server.js INTAKE_* lists) ─────────────
+  // Text-like fields: inputs, selects, textareas, and tri-state hidden inputs.
+  const TEXT_FIELDS = [
+    'venueName','businessName','venueAddress','venuePhone','venueCapacity','priorIncidents',
+    'secChiefName','secChiefTitle','secChiefPhone','secChiefEmail',
+    'facilityName','facilityPhone','facilityEmail',
+    'leAgency','leOnSite',
+    'ticketingType','gateCount','gateOpenTime','prohibitedItems','ingressNotes',
+    'barricadeNeeded','crowdType','barricadeType','stageBarricade','barricadeNotes',
+    'cctvCoverage','cctvMonitored','cctvNotes',
+    'totalSecurity','backstageSecurity','uniformDesc','staffingNotes',
+    'medicalOnSite','aedOnSite','aedNearStage','medicalToGreenRoom',
+    'firstResponderCount','firstAidLocations','emergencyProtocol',
+    'primaryExit','secondaryExit','safeRooms','rallyPoint','announcementMethod','lockdownProtocol','weatherPlan',
+    'venueShareComms','opsCenterOnSite','securityOps','securityOpsPhone','cellOk','commsNotes',
+    'backstageAccessControlled','castCrewAccess','additionalCredentials','teamCheckIn','parkingNotes',
+    'dockLocation','securityAtDock','loadinNotes','loadoutNotes',
+    'mediaDay','mediaDayDate','mediaDayTime','mediaLocation','mediaEscort','mediaNotes'
+  ];
+  const CHECK_FIELDS = [
+    'chkMag','chkBag','chkWand','chkPatDown','chkVisual','chkEvolv','uniformed',
+    'doorCardAccess','doorFacial','doorPin','doorKey','doorFob','doorOther'
+  ];
+  const REQUIRED_FIELDS = ['venueName','secChiefName','secChiefPhone'];
+  // Core questions per section — a section reads "Complete" only when all of
+  // these are answered. Sections with no core entries complete on any answer.
+  const CORE_FIELDS = {
+    venue:    ['venueName','venueCapacity'],
+    contacts: ['secChiefName','secChiefPhone'],
+    ingress:  ['ticketingType','gateCount','gateOpenTime'],
+    crowd:    ['barricadeNeeded'],
+    cctv:     ['cctvCoverage'],
+    staffing: ['totalSecurity'],
+    medical:  ['medicalOnSite','aedOnSite'],
+    evac:     ['primaryExit','rallyPoint'],
+    comms:    ['securityOps','cellOk'],
+    load:     ['dockLocation'],
+    media:    ['mediaDay']
+  };
+
   // ── Load form ────────────────────────────────────────────────────────────────
   async function load() {
     try {
@@ -791,10 +1028,6 @@
 
       const f = document.getElementById('intakeForm');
       if (data.venueName)   f.venueName.value   = data.venueName;
-      if (data.venueStreet) f.venueStreet.value  = data.venueStreet;
-      if (data.venueCity)   f.venueCity.value    = data.venueCity;
-      if (data.venueState)  f.venueState.value   = data.venueState;
-      if (data.venueZip)    f.venueZip.value     = data.venueZip;
 
       // Hero — title + event date
       const venueLabel = data.venueName ? ` — ${data.venueName}` : '';
@@ -832,6 +1065,7 @@
       document.getElementById('progressStrip').style.display = '';
       document.getElementById('savedBadge').style.display = '';
       initToggles();
+      initTriControls();
       buildProgressDots();
 
       // Restore saved draft if one exists; otherwise seed one Emergency Contacts row
@@ -876,8 +1110,8 @@
       dotsEl.appendChild(dot);
     });
   }
-  function isSectionFilled(panel) {
-    // A section is "filled" if any input/select/textarea has a non-empty value or any checkbox is checked
+  function isSectionTouched(panel) {
+    // Any input/select/textarea with a value, any checked checkbox, any chosen file
     const els = panel.querySelectorAll('input, select, textarea');
     for (const el of els) {
       if (el.type === 'checkbox' || el.type === 'radio') {
@@ -890,21 +1124,39 @@
     }
     return false;
   }
+  function fieldAnswered(name) {
+    const form = document.getElementById('intakeForm');
+    const el = form?.elements[name];
+    return !!(el && el.value && el.value.trim());
+  }
   function updateProgress() {
     const panels = getSectionPanels();
-    let filled = 0;
+    let coreDone = 0, coreTotal = 0;
     panels.forEach(panel => {
-      const done = isSectionFilled(panel);
-      if (done) filled++;
+      const core    = CORE_FIELDS[panel.dataset.section] || [];
+      const touched = isSectionTouched(panel);
+      let state;
+      if (!panel.querySelector('input, select, textarea')) {
+        state = 'complete'; // informational section (e.g., M&G policy) — nothing to fill
+      } else if (core.length) {
+        const answered = core.filter(fieldAnswered).length;
+        coreDone  += answered;
+        coreTotal += core.length;
+        state = (answered === core.length) ? 'complete' : (touched ? 'progress' : 'none');
+      } else {
+        // Informational / optional sections (M&G, maps, contacts list)
+        state = touched ? 'complete' : 'none';
+      }
       const pill = panel.querySelector('.section-status');
       if (pill) {
-        pill.classList.toggle('done', done);
-        pill.textContent = done ? 'Complete' : 'Not started';
+        pill.classList.toggle('done', state === 'complete');
+        pill.textContent = state === 'complete' ? 'Complete' : (state === 'progress' ? 'In progress' : 'Not started');
       }
       const dot = document.querySelector(`.progress-dot[data-section="${panel.dataset.section}"]`);
-      if (dot) dot.classList.toggle('done', done);
+      if (dot) dot.classList.toggle('done', state === 'complete');
     });
-    const pct = panels.length ? Math.round((filled / panels.length) * 100) : 0;
+    // Overall % = answered core questions across the whole form — honest measure
+    const pct = coreTotal ? Math.round((coreDone / coreTotal) * 100) : 0;
     const fillEl = document.getElementById('progressFill');
     const pctEl  = document.getElementById('progressPct');
     if (fillEl) fillEl.style.width = pct + '%';
@@ -1004,6 +1256,8 @@
     const label   = document.getElementById(labelId);
     const preview = document.getElementById(previewId);
     label.classList.add('has-file');
+    const origText = label.querySelector('.map-upload-label').dataset.orig
+      || (label.querySelector('.map-upload-label').dataset.orig = label.querySelector('.map-upload-label').textContent);
     label.querySelector('.map-upload-label').textContent = file.name;
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
@@ -1012,44 +1266,74 @@
     } else {
       preview.style.display = 'none';
     }
+    // Remove button
+    let clear = label.querySelector('.map-clear');
+    if (!clear) {
+      clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'map-clear';
+      clear.textContent = '× Remove';
+      clear.style.cssText = 'display:block;margin:8px auto 0;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-2);font-family:inherit;font-size:11px;font-weight:600;padding:5px 12px;cursor:pointer;';
+      clear.onclick = (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        input.value = '';
+        label.classList.remove('has-file');
+        label.querySelector('.map-upload-label').textContent = origText;
+        preview.style.display = 'none';
+        clear.remove();
+        scheduleAutoSave(); updateProgress();
+      };
+      label.appendChild(clear);
+    }
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────────
+  function showSubmitError(msg) {
+    const el = document.getElementById('submitError');
+    el.innerHTML = msg;
+    el.style.display = '';
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function clearSubmitError() {
+    const el = document.getElementById('submitError');
+    el.style.display = 'none';
+  }
+
   async function submitForm(e) {
     e.preventDefault();
+    const form = e.target;
+    clearSubmitError();
+
+    // Required-field validation
+    let firstBad = null;
+    for (const name of REQUIRED_FIELDS) {
+      const el = form.elements[name];
+      if (!el) continue;
+      const ok = el.value && el.value.trim();
+      el.classList.toggle('invalid', !ok);
+      if (!ok && !firstBad) firstBad = el;
+    }
+    if (firstBad) {
+      showSubmitError('A few required fields are missing — venue name and a primary security contact name &amp; phone. They’re marked in red above.');
+      firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstBad.focus({ preventScroll: true });
+      return;
+    }
+
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.textContent = 'Uploading maps…';
+    btn.textContent = 'Preparing attachments…';
 
-    const form = e.target;
     const body = {};
 
-    // Text / select / number fields
-    ['venueName','venuePhone','venueStreet','venueCity','venueState','venueZip',
-     'venueType','venueCapacity','venueTotalTicketed',
-     'secChiefName','secChiefTitle','secChiefPhone','secChiefEmail',
-     'facilityName','facilityPhone','facilityEmail','localPdPhone',
-     'ticketingType','gateCount','gateOpenTime','prohibitedItems','ingressNotes',
-     'totalSecurity','leoCount','backstageSecurity','uniformDesc','staffingNotes',
-     'firstResponderCount','firstAidLocations','emergencyProtocol',
-     'primaryExit','secondaryExit','safeRooms','rallyPoint',
-     'announcementMethod','eapNotes','lockdownProtocol',
-     'mgTime','mgDuration','mgLocation','mgTotalVips','mgStaff','mgProtocol','giftPolicy',
-     'securityOps','securityOpsPhone','commsNotes',
-     'additionalCredentials','parkingNotes',
-     'dockLocation','loadinDate','loadinTime','loadinNotes',
-     'loadoutDate','loadoutTime','vehicleCount','loadoutNotes'
-    ].forEach(name => {
+    // Text / select / number / tri-state fields
+    TEXT_FIELDS.forEach(name => {
       const el = form.elements[name];
       if (el) body[name] = el.value;
     });
 
     // Checkboxes
-    ['chkMag','chkBag','chkWand','chkPatDown','chkVisual','chkEvolv',
-     'uniformed','medicalOnSite','aedOnSite','aedNearStage','mgScheduled',
-     'venueShareComms','cellOk','securityAtDock',
-     'doorCardAccess','doorFacial','doorPin','doorKey','doorFob','doorOther'
-    ].forEach(name => {
+    CHECK_FIELDS.forEach(name => {
       const el = form.elements[name];
       body[name] = el ? el.checked : false;
     });
@@ -1057,17 +1341,30 @@
     // Emergency contacts
     body.emergencyContacts = collectEcRows();
 
-    // Map + SOP uploads — convert to base64
-    btn.textContent = 'Uploading attachments…';
+    // Map + SOP uploads — compress images client-side, cap document sizes
     const fileFields = ['mapFloor','mapBackstage','mapParking','sopMedical'];
     for (const name of fileFields) {
       const el   = form.elements[name];
       const file = el?.files?.[0];
-      if (file) {
-        body[name] = await fileToBase64(file);
+      if (!file) continue;
+      try {
+        body[name] = await prepareAttachment(file);
         body[name + 'Name'] = file.name;
         body[name + 'Type'] = file.type;
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Submit Questionnaire';
+        showSubmitError(`<strong>${file.name}</strong>: ${err.message}`);
+        return;
       }
+    }
+
+    // Final safety net — keep the whole submission under the server limit
+    if (JSON.stringify(body).length > 4 * 1024 * 1024) {
+      btn.disabled = false;
+      btn.textContent = 'Submit Questionnaire';
+      showSubmitError('Your attachments are too large all together. Remove one and email it to us instead — everything else will submit normally.');
+      return;
     }
 
     // Copy-of-submission email
@@ -1105,6 +1402,67 @@
     });
   }
 
+  // Compress images before upload so submissions stay under the server body limit.
+  // PDFs/documents can't be compressed in the browser — they get a size cap instead.
+  async function prepareAttachment(file) {
+    if (file.type.startsWith('image/')) {
+      const dataUrl = await fileToBase64(file);
+      if (dataUrl.length < 400 * 1024) return dataUrl;
+      let out = await shrinkImage(dataUrl, 1600, 0.82);
+      if (out.length > 1.2 * 1024 * 1024) out = await shrinkImage(dataUrl, 1100, 0.72);
+      return out;
+    }
+    const MAX_DOC = 3 * 1024 * 1024;
+    if (file.size > MAX_DOC) {
+      throw new Error('This file is too large to attach here (3 MB max for PDFs/documents). Please email it to us instead — submit the rest of the form normally.');
+    }
+    return fileToBase64(file);
+  }
+
+  function shrinkImage(dataUrl, maxDim, quality) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          let nw = img.width, nh = img.height;
+          if (nw > maxDim || nh > maxDim) {
+            if (nw >= nh) { nh = Math.round(nh * maxDim / nw); nw = maxDim; }
+            else          { nw = Math.round(nw * maxDim / nh); nh = maxDim; }
+          }
+          const c = document.createElement('canvas');
+          c.width = nw; c.height = nh;
+          c.getContext('2d').drawImage(img, 0, 0, nw, nh);
+          resolve(c.toDataURL('image/jpeg', quality));
+        } catch (_) { resolve(dataUrl); }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
+  // ── Tri-state (Yes / No / Not Sure) controls ─────────────────────────────────
+  function initTriControls() {
+    document.querySelectorAll('.tri[data-tri]').forEach(tri => {
+      const name   = tri.dataset.tri;
+      const row    = tri.closest('.tri-row') || tri.parentElement;
+      const hidden = row.querySelector(`input[type="hidden"][name="${name}"]`);
+      if (!hidden) return;
+      const sync = () => {
+        tri.querySelectorAll('button').forEach(b => {
+          b.className = (b.dataset.v === hidden.value) ? ('on-' + b.dataset.v) : '';
+        });
+      };
+      tri.querySelectorAll('button').forEach(b => {
+        b.onclick = () => {
+          hidden.value = (hidden.value === b.dataset.v) ? '' : b.dataset.v;
+          sync();
+          hidden.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+      });
+      sync();
+    });
+  }
+
   function initToggles() {
     document.querySelectorAll('.toggle-yn').forEach(yn => {
       const cb = yn.closest('.toggle-wrap').querySelector('input[type="checkbox"]');
@@ -1123,29 +1481,11 @@
   function collectDraft() {
     const form = document.getElementById('intakeForm');
     const draft = { _ec: collectEcRows() };
-    ['venueName','venuePhone','venueStreet','venueCity','venueState','venueZip',
-     'venueType','venueCapacity','venueTotalTicketed',
-     'secChiefName','secChiefTitle','secChiefPhone','secChiefEmail',
-     'facilityName','facilityPhone','facilityEmail','localPdPhone',
-     'ticketingType','gateCount','gateOpenTime','prohibitedItems','ingressNotes',
-     'totalSecurity','leoCount','backstageSecurity','uniformDesc','staffingNotes',
-     'firstResponderCount','firstAidLocations','emergencyProtocol',
-     'primaryExit','secondaryExit','safeRooms','rallyPoint',
-     'announcementMethod','eapNotes','lockdownProtocol',
-     'mgTime','mgDuration','mgLocation','mgTotalVips','mgStaff','mgProtocol','giftPolicy',
-     'securityOps','securityOpsPhone','commsNotes',
-     'additionalCredentials','parkingNotes',
-     'dockLocation','loadinDate','loadinTime','loadinNotes',
-     'loadoutDate','loadoutTime','vehicleCount','loadoutNotes'
-    ].forEach(name => {
+    TEXT_FIELDS.forEach(name => {
       const el = form.elements[name];
       if (el) draft[name] = el.value;
     });
-    ['chkMag','chkBag','chkWand','chkPatDown','chkVisual','chkEvolv',
-     'uniformed','medicalOnSite','aedOnSite','aedNearStage','mgScheduled',
-     'venueShareComms','cellOk','securityAtDock',
-     'doorCardAccess','doorFacial','doorPin','doorKey','doorFob','doorOther'
-    ].forEach(name => {
+    CHECK_FIELDS.forEach(name => {
       const el = form.elements[name];
       if (el) draft[name] = el.checked;
     });
@@ -1167,6 +1507,7 @@
       addEcRow();
     }
     initToggles();
+    initTriControls();
   }
 
   function saveProgress(silent = false) {
@@ -1201,7 +1542,10 @@
 
   function initAutoSave() {
     const form = document.getElementById('intakeForm');
-    form.addEventListener('input',  () => { scheduleAutoSave(); updateProgress(); });
+    form.addEventListener('input',  (e) => {
+      if (e.target?.classList?.contains('invalid') && e.target.value.trim()) e.target.classList.remove('invalid');
+      scheduleAutoSave(); updateProgress();
+    });
     form.addEventListener('change', () => { scheduleAutoSave(); updateProgress(); });
     setInterval(() => saveProgress(true), 30000);
   }

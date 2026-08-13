@@ -303,10 +303,10 @@ function intakeBadgeHtml(b) {
     return `<div style="padding:8px 20px 12px;border-top:1px solid var(--border);">
       <div style="display:flex;align-items:center;gap:6px;">
         <span style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">Venue Intake</span>
-        <span style="font-size:11px;color:var(--text-3);">— Not sent</span>
+        <span style="font-size:11px;color:var(--text-3);">— Not started</span>
         <div style="display:flex;gap:6px;margin-left:auto;">
           ${printBtn}
-          <a href="/brief?id=${esc(b.id)}" onclick="event.stopPropagation();" style="font-size:11px;font-weight:700;color:var(--text-3);text-decoration:none;padding:3px 8px;border:1px solid var(--border);border-radius:5px;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-2)'" onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">Send →</a>
+          <a href="/brief?id=${esc(b.id)}" onclick="event.stopPropagation();" style="font-size:11px;font-weight:700;color:var(--text-3);text-decoration:none;padding:3px 8px;border:1px solid var(--border);border-radius:5px;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--border-2)'" onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">Open →</a>
         </div>
       </div>
     </div>`;
@@ -319,7 +319,6 @@ function intakeBadgeHtml(b) {
         <span style="font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;" title="${esc(b.intakeEmail || '')}">${esc(b.intakeEmail || '')}</span>
         ${sent ? `<span style="font-size:10px;color:var(--text-3);">Sent ${sent}</span>` : ''}
         <div style="display:flex;gap:6px;margin-left:auto;">
-          <button onclick="event.stopPropagation();resendIntake('${esc(b.id)}')" style="font-size:10px;font-weight:700;color:#58a6ff;background:none;border:1px solid rgba(88,166,255,0.4);border-radius:5px;padding:2px 8px;cursor:pointer;font-family:inherit;">Resend</button>
           <button onclick="event.stopPropagation();cancelIntake('${esc(b.id)}')" style="font-size:10px;font-weight:700;color:var(--red);background:none;border:1px solid rgba(230,57,70,0.3);border-radius:5px;padding:2px 8px;cursor:pointer;font-family:inherit;">Cancel</button>
         </div>
       </div>
@@ -471,7 +470,6 @@ function populateBrief(b) {
   setVal('venueZip',     b.venue?.zip);
   setVal('venuePhone',   b.venue?.phone);
   setVal('venueCapacity',b.venue?.capacity);
-  setVal('venueTotalTicketed',b.venue?.totalTicketed);
   setVal('venueType',         b.venue?.type);
   setVal('venueContactEmail', b.venue?.contactEmail);
   updateMapsButtons(); updateNav();
@@ -497,13 +495,22 @@ function populateBrief(b) {
   setVal('timelineNotes', b.timeline?.notes);
   // Restore TBD states
   applyTBDState('arrivalDate',   b.timeline?.arrivalDateTBD);
-  applyTBDState('mediaDate',     b.timeline?.mediaDateTBD);
-  applyTBDState('mediaTime',     b.timeline?.mediaTimeTBD);
   applyTBDState('showDate',      b.timeline?.showDateTBD);
   applyTBDState('doorsTime',     b.timeline?.doorsTimeTBD);
   applyTBDState('showTime',      b.timeline?.showTimeTBD);
   applyTBDState('departureDate', b.timeline?.departureDateTBD);
   renderTimeline();
+
+  setVal('venuePriorIncidents', b.venue?.priorIncidents);
+  const md = b.mediaDay || {};
+  setVal('mediaScheduled',   md.scheduled === true || md.scheduled === 'yes');
+  setVal('mediaTimeWindow',  md.timeWindow);
+  setVal('mediaDayLocation', md.location);
+  setVal('mediaEscort',      md.escort);
+  setVal('mediaDayNotes',    md.notes);
+  toggleMediaDayFields(false);
+
+  setVal('venueBusinessName', b.venue?.businessName);
 
   // Contacts
   setVal('primaryName',  b.contacts?.primary?.name);
@@ -516,6 +523,8 @@ function populateBrief(b) {
   setVal('backupEmail',  b.contacts?.backup?.email);
   setVal('backupPhone',  b.contacts?.backup?.phone);
   setVal('backupCell',   b.contacts?.backup?.cell);
+  setVal('leOnSite',     b.contacts?.leOnSite);
+  setVal('leAgency',     b.contacts?.leAgency);
 
   // Ingress
   const ing = b.ingress || {};
@@ -532,6 +541,14 @@ function populateBrief(b) {
   if (ing.prohibitedItems?.length) {
     ing.prohibitedItems.forEach(t => addTag('prohibitedTagsWrap', t));
   }
+
+  const cr = b.crowd || {};
+  setVal('crowdNeeded',         cr.needed);
+  setVal('crowdAudience',       cr.audience);
+  setVal('crowdBarricadeType',  cr.barricadeType);
+  setVal('crowdStageBarricade', cr.stageBarricade);
+  setVal('crowdNotes',          cr.notes);
+  toggleCrowdFields(false);
 
   // Staffing
   const st = b.staffing || {};
@@ -553,6 +570,7 @@ function populateBrief(b) {
   setVal('firstAidLocations',    med.firstAidLocations);
   setVal('emergencyProtocol',    med.emergencyProtocol);
   setVal('announcementMethod',   med.announcementMethod);
+  setVal('medicalToGreenRoom',   med.toGreenRoom);
 
   // Evacuation
   const evac = b.evacuation || {};
@@ -562,6 +580,9 @@ function populateBrief(b) {
   setVal('eapNotes',         evac.eapNotes);
   setVal('lockdownProtocol', evac.lockdownProtocol);
   if (evac.safeRooms?.length) document.getElementById('safeRoomInput').value = Array.isArray(evac.safeRooms) ? evac.safeRooms.join('\n') : evac.safeRooms;
+
+  setVal('weatherPlan', evac.weatherPlan);
+  if (evac.weatherPlan && String(evac.weatherPlan).trim()) showWeatherPlan();
 
   // Meet & Greet — protocol & gift policy are permanent canned text (read from hidden inputs in brief.html)
   const mg = b.meetgreet || {};
@@ -574,6 +595,7 @@ function populateBrief(b) {
   setVal('securityOpsPhone',comms.securityOpsPhone);
   setVal('cellOk',          comms.cellOk);
   setVal('commsNotes',      comms.notes);
+  setVal('opsCenterOnSite', comms.opsCenterOnSite);
   renderChannels(comms.channels || []);
 
   // Access
@@ -592,6 +614,14 @@ function populateBrief(b) {
   setVal('doorOther',      acc.doorSystems?.includes('Other'));
   setVal('parkingNotes',   acc.parkingNotes);
   renderCredentials(acc.credentials || []);
+  const cc = b.cctv || {};
+  setVal('cctvCoverage',  cc.coverage);
+  setVal('cctvMonitored', cc.monitored);
+  setVal('cctvNotes',     cc.notes);
+  setVal('backstageControlled', acc.backstageControlled);
+  setVal('castCrewAccess',      acc.castCrewAccess);
+  setVal('teamArrival',         acc.teamArrival);
+  setVal('accessAddlCreds',     acc.additionalCredentials);
 
   // Load In/Out
   const li = b.loadinout || {};
@@ -623,7 +653,7 @@ function populateBrief(b) {
 
   // Defensive: re-sync every TBD-pair so an input is only disabled if its
   // checkbox is actually checked. Catches any stale .tbd-active state.
-  ['arrivalDate','mediaDate','mediaTime','showDate','doorsTime','showTime','departureDate'].forEach(id => {
+  ['arrivalDate','showDate','doorsTime','showTime','departureDate'].forEach(id => {
     const inp = document.getElementById(id);
     const cb  = document.getElementById(id + 'TBD');
     if (!inp) return;
@@ -649,6 +679,27 @@ function populateBrief(b) {
   updateDots();
 }
 
+// Collapse toggles for optional brief subsections (media day, crowd, weather)
+function toggleMediaDayFields(save = true) {
+  const on = !!document.getElementById('mediaScheduled')?.checked;
+  const wrap = document.getElementById('mediaDayFields');
+  if (wrap) wrap.style.display = on ? '' : 'none';
+  if (save) scheduleSave();
+}
+function toggleCrowdFields(save = true) {
+  const sel = document.getElementById('crowdNeeded');
+  const wrap = document.getElementById('crowdFields');
+  if (wrap) wrap.style.display = (sel?.value === 'yes') ? '' : 'none';
+  if (save) scheduleSave();
+}
+function showWeatherPlan(focus = false) {
+  const wrap = document.getElementById('weatherWrap');
+  const link = document.getElementById('weatherAddLink');
+  if (wrap) wrap.style.display = '';
+  if (link) link.style.display = 'none';
+  if (focus) document.getElementById('weatherPlan')?.focus();
+}
+
 function initBlankROSAndPeople() {
   renderROSTable([]);
   renderPersonGrid([], 'talentGrid', 'talent');
@@ -668,15 +719,16 @@ function collectBrief() {
   return {
     venue: {
       name:     val('venueName'),
+      businessName: val('venueBusinessName'),
       street:   val('venueStreet'),
       city:     val('venueCity'),
       state:    val('venueState'),
       zip:      val('venueZip'),
       phone:    val('venuePhone'),
       capacity: val('venueCapacity'),
-      totalTicketed: val('venueTotalTicketed'),
       type:         val('venueType'),
-      contactEmail: val('venueContactEmail')
+      contactEmail: val('venueContactEmail'),
+      priorIncidents: val('venuePriorIncidents')
     },
     hotel: {
       name:        val('hotelName'),
@@ -692,9 +744,7 @@ function collectBrief() {
       arrivalDate:      val('arrivalDate'),
       arrivalDateTBD:   val('arrivalDateTBD'),
       mediaDate:        val('mediaDate'),
-      mediaDateTBD:     val('mediaDateTBD'),
       mediaTime:        val('mediaTime'),
-      mediaTimeTBD:     val('mediaTimeTBD'),
       showDate:         val('showDate'),
       showDateTBD:      val('showDateTBD'),
       doorsTime:        val('doorsTime'),
@@ -719,7 +769,9 @@ function collectBrief() {
         email: val('backupEmail'),
         phone: val('backupPhone'),
         cell:  val('backupCell')
-      }
+      },
+      leOnSite: val('leOnSite'),
+      leAgency: val('leAgency')
     },
     ingress: {
       magnetometer:    val('chkMag'),
@@ -733,6 +785,18 @@ function collectBrief() {
       gateOpenTime:    val('gateOpenTime'),
       notes:           val('ingressNotes'),
       prohibitedItems: getTagValues('prohibitedTagsWrap')
+    },
+    crowd: {
+      needed:         val('crowdNeeded'),
+      audience:       val('crowdAudience'),
+      barricadeType:  val('crowdBarricadeType'),
+      stageBarricade: val('crowdStageBarricade'),
+      notes:          val('crowdNotes')
+    },
+    cctv: {
+      coverage:  val('cctvCoverage'),
+      monitored: val('cctvMonitored'),
+      notes:     val('cctvNotes')
     },
     staffing: {
       totalSecurity:    val('totalSecurity'),
@@ -750,7 +814,8 @@ function collectBrief() {
       aedNearStage:        val('aedNearStage'),
       firstAidLocations:   val('firstAidLocations'),
       emergencyProtocol:   val('emergencyProtocol'),
-      announcementMethod:  val('announcementMethod')
+      announcementMethod:  val('announcementMethod'),
+      toGreenRoom:         val('medicalToGreenRoom')
     },
     evacuation: {
       primaryExit:      val('primaryExit'),
@@ -758,7 +823,8 @@ function collectBrief() {
       safeRooms:        (document.getElementById('safeRoomInput')?.value || '').split('\n').map(s => s.trim()).filter(Boolean),
       rallyPoint:       val('rallyPoint'),
       eapNotes:         val('eapNotes'),
-      lockdownProtocol: val('lockdownProtocol')
+      lockdownProtocol: val('lockdownProtocol'),
+      weatherPlan:      val('weatherPlan')
     },
     meetgreet: {
       scheduled:    true,
@@ -768,6 +834,7 @@ function collectBrief() {
     },
     communications: {
       venueShareComms:  val('venueShareComms'),
+      opsCenterOnSite:  val('opsCenterOnSite'),
       channels:         collectChannels(),
       securityOps:      val('securityOps'),
       securityOpsPhone: val('securityOpsPhone'),
@@ -784,7 +851,11 @@ function collectBrief() {
         issuedBy:   val('genxCredIssuedBy'),
         notes:      val('genxCredNotes')
       },
-      parkingNotes:     val('parkingNotes')
+      parkingNotes:     val('parkingNotes'),
+      backstageControlled:   val('backstageControlled'),
+      castCrewAccess:        val('castCrewAccess'),
+      teamArrival:           val('teamArrival'),
+      additionalCredentials: val('accessAddlCreds')
     },
     loadinout: {
       dockLocation:  val('dockLocation'),
@@ -803,6 +874,13 @@ function collectBrief() {
     genxstaff:  collectGenxStaff(),
     emergency:  collectEmergency(),
     maps:       collectMaps(),
+    mediaDay: {
+      scheduled:  val('mediaScheduled'),
+      timeWindow: val('mediaTimeWindow'),
+      location:   val('mediaDayLocation'),
+      escort:     val('mediaEscort'),
+      notes:      val('mediaDayNotes')
+    },
     travel:     window._travelersData || []
   };
 }
@@ -1002,7 +1080,7 @@ function renderTimeline() {
   const isTBD = id => { const el = document.getElementById(id + 'TBD'); return el && el.checked; };
   const events = [
     { label: 'Arrival',   date: val('arrivalDate'),   time: '',               dateTBD: isTBD('arrivalDate'),   timeTBD: false                  },
-    { label: 'Media Day', date: val('mediaDate'),     time: val('mediaTime'), dateTBD: isTBD('mediaDate'),     timeTBD: isTBD('mediaTime')     },
+    { label: 'Media Day', date: val('mediaDate'),     time: val('mediaTime'), dateTBD: false, timeTBD: false },
     { label: 'Show Day',  date: val('showDate'),      time: val('showTime'),  dateTBD: isTBD('showDate'),      timeTBD: isTBD('showTime')      },
     { label: 'Departure', date: val('departureDate'), time: '',               dateTBD: isTBD('departureDate'), timeTBD: false                  }
   ].filter(e => e.date || e.dateTBD);
@@ -1189,7 +1267,10 @@ function renderROSTable(rows) {
   rows.forEach(r => addROSRow(r));
 }
 
-function addROSRow(r = {}) {
+// afterTr (optional): insert the new row directly below that row instead of appending.
+// Time edits no longer auto-sort the table — rows jumping mid-edit made day-of changes
+// painful. Use the explicit "Sort by Time" button instead.
+function addROSRow(r = {}, afterTr = null) {
   const body = document.getElementById('rosBody');
   if (!body) return;
   const tr = document.createElement('tr');
@@ -1197,7 +1278,7 @@ function addROSRow(r = {}) {
   tr.draggable = true;
   tr.innerHTML = `
     <td><span class="drag-handle" title="Drag to reorder">⠿</span></td>
-    <td><input class="ros-time-input" type="time" value="${esc(r.time || '')}" oninput="scheduleSave()" onchange="sortROSByTime();scheduleSave()"></td>
+    <td><input class="ros-time-input" type="text" value="${esc(r.time || '')}" placeholder="19:00 / 1 hr prior" oninput="scheduleSave()"></td>
     <td><input class="ros-text-input" value="${esc(r.activity || '')}" placeholder="Activity description…" oninput="scheduleSave()"></td>
     <td><input class="ros-text-input" value="${esc(r.notes || '')}" placeholder="Security notes…" oninput="scheduleSave()"></td>
     <td style="text-align:center;">
@@ -1206,16 +1287,50 @@ function addROSRow(r = {}) {
         <span class="toggle-slider" style="border-radius:18px;"></span>
       </label>
     </td>
-    <td><button class="btn btn-icon btn-ghost btn-xs" onclick="this.closest('tr').remove();scheduleSave()" title="Delete row">×</button></td>`;
-  body.appendChild(tr);
+    <td style="white-space:nowrap;">
+      <button class="btn btn-icon btn-ghost btn-xs" onclick="insertROSRowBelow(this)" title="Insert a row below this one">⤵</button>
+      <button class="btn btn-icon btn-ghost btn-xs" onclick="this.closest('tr').remove();scheduleSave()" title="Delete row">×</button>
+    </td>`;
+  if (afterTr && afterTr.parentNode === body) body.insertBefore(tr, afterTr.nextSibling);
+  else body.appendChild(tr);
   initROSDrag(tr);
+  return tr;
+}
+
+function insertROSRowBelow(btn) {
+  const tr = btn.closest('tr');
+  const newTr = addROSRow({}, tr);
+  newTr?.querySelector('.ros-time-input')?.focus();
+  scheduleSave();
+}
+
+// Shift every timed row by ±N minutes — for when the whole show slips.
+function shiftROSTimes() {
+  const raw = prompt('Shift all times by how many minutes?\n(e.g. 30 = push everything 30 min later, -15 = pull 15 min earlier)');
+  if (raw === null) return;
+  const mins = parseInt(raw, 10);
+  if (isNaN(mins) || !mins) { alert('Enter a number of minutes, like 30 or -15.'); return; }
+  let shifted = 0;
+  document.querySelectorAll('#rosBody .ros-time-input').forEach(inp => {
+    // Only shift real clock times (HH:MM) — leave offsets like "1 hr prior" or "TBD" alone
+    if (!/^\d{1,2}:\d{2}$/.test(inp.value.trim())) return;
+    const [h, m] = inp.value.trim().split(':').map(Number);
+    let total = ((h * 60 + m + mins) % 1440 + 1440) % 1440;
+    inp.value = String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+    shifted++;
+  });
+  if (shifted) { scheduleSave(); showToast(`Shifted ${shifted} rows by ${mins > 0 ? '+' : ''}${mins} min`); }
+  else showToast('No clock times (HH:MM) to shift — offset rows like "1 hr prior" are left as-is');
 }
 
 function sortROSByTime() {
   const body = document.getElementById('rosBody');
   if (!body) return;
+  // Only clock times (HH:MM) sort; offset/free-text rows ("1 hr prior", "TBD")
+  // keep their manual position relative to each other, after the timed rows.
+  const clock = t => /^\d{1,2}:\d{2}$/.test(t.trim()) ? t.trim().padStart(5, '0') : null;
   [...body.querySelectorAll('tr.ros-row')]
-    .map((tr, idx) => ({ tr, idx, time: tr.querySelector('.ros-time-input')?.value || '' }))
+    .map((tr, idx) => ({ tr, idx, time: clock(tr.querySelector('.ros-time-input')?.value || '') }))
     .sort((a, b) => {
       if (!a.time && !b.time) return a.idx - b.idx;
       if (!a.time) return 1;
@@ -1991,13 +2106,14 @@ function renderBriefView(b, id) {
       const sameAsVenue = hasHotel && vAddr && hAddr && vAddr === hAddr;
       const venueCard = viewPanel('🏛️', 'Venue', `
         <div class="view-kv">
-          ${kv('Name',     v.name)}
+          ${kv('Location', v.name)}
+          ${kv('Business Name', v.businessName)}
           ${kv('Address',  [v.street, v.city, v.state, v.zip].filter(Boolean).join(', '))}
           ${kv('Phone',    v.phone)}
           ${kv('Capacity',       v.capacity)}
-          ${kv('Total Ticketed', v.totalTicketed)}
           ${kv('Type',           v.type)}
         </div>
+        ${isContentValue(v.priorIncidents) ? `<div style="margin-top:10px;"><div class="freetext-label" style="color:var(--red);">Security Concerns — Past 12 Months</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(v.priorIncidents)}</div></div>` : ''}
         ${sameAsVenue ? `<div style="margin-top:12px;font-size:11px;color:var(--text-3);font-style:italic;">Talent lodging on-site at venue${h.checkin ? ` · Check-in ${formatDate(h.checkin)}` : ''}${h.checkout ? ` · Check-out ${formatDate(h.checkout)}` : ''}</div>` : ''}`);
       const hotelCard = hasHotel && !sameAsVenue ? viewPanel('🏨', 'Hotel', `
         <div class="view-kv">
@@ -2045,7 +2161,8 @@ function renderBriefView(b, id) {
             ${kv('Email', ct.backup?.email)}
           </div>
         </div>
-      </div>`)}
+      </div>
+      ${(ct.leOnSite || ct.leAgency) ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">Law Enforcement</div><div class="view-kv">${kv('Officers On-Site', ct.leOnSite === 'yes' ? 'Yes' : ct.leOnSite === 'no' ? 'No' : '')}${kv('Agency', ct.leAgency)}</div></div>` : ''}`)}
 
     <!-- Ingress & Staffing -->
     <div class="grid-2" style="margin-bottom:20px;">
@@ -2057,6 +2174,7 @@ function renderBriefView(b, id) {
           ${kv('Gate Open', ing.gateOpenTime ? formatTime(ing.gateOpenTime) : '')}
         </div>
         ${ing.prohibitedItems?.length ? `<div style="margin-top:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">Prohibited Items</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${ing.prohibitedItems.map(t => `<span class="tag tag-red">${esc(t)}</span>`).join('')}</div></div>` : ''}
+        ${(b.crowd && (b.crowd.needed || b.crowd.audience || b.crowd.barricadeType || b.crowd.stageBarricade || isContentValue(b.crowd.notes))) ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">Crowd &amp; Barricade</div><div class="view-kv">${kv('Barricade Needed', b.crowd.needed === 'yes' ? 'Yes' : b.crowd.needed === 'no' ? 'No' : '')}${kv('Audience', b.crowd.audience)}${kv('Barricade Type', b.crowd.barricadeType)}${kv('Barricade at Stage', b.crowd.stageBarricade === 'yes' ? 'Yes' : b.crowd.stageBarricade === 'no' ? 'No' : '')}</div>${isContentValue(b.crowd.notes) ? `<div style="margin-top:8px;"><div class="freetext-label">Crowd Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(b.crowd.notes)}</div></div>` : ''}</div>` : ''}
         ${isContentValue(ing.notes) ? `<div style="margin-top:14px;"><div class="freetext-label">Prohibited Items / Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ing.notes)}</div></div>` : ''}`)}
       ${viewPanel('👮', 'Staffing', `
         <div class="grid-3" style="gap:8px;margin-bottom:12px;">
@@ -2077,7 +2195,8 @@ function renderBriefView(b, id) {
           ${kv('Medical Personnel', med.firstResponderCount)}
           ${kv('AED On Site', med.aedOnSite ? 'Yes' : 'No')}
           ${kv('AED Near Stage', med.aedNearStage ? 'Yes' : 'No')}
-          ${kv('First Aid', med.firstAidLocations)}
+          ${kv('Closest First Aid to Backstage', med.firstAidLocations)}
+          ${kv('Medical to Green Room', med.toGreenRoom === 'yes' ? 'Yes' : med.toGreenRoom === 'no' ? 'No' : '')}
         </div>
         ${isContentValue(med.emergencyProtocol) ? `<div style="margin-top:10px;"><div class="freetext-label">Emergency Protocol</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(med.emergencyProtocol)}</div></div>` : ''}`)}
       ${viewPanel('🚨', 'Evacuation', `
@@ -2092,7 +2211,8 @@ function renderBriefView(b, id) {
           return sr.length ? `<div style="margin-top:10px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:5px;">Safe Rooms</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${sr.map(r => `<span class="tag tag-blue">${esc(r)}</span>`).join('')}</div></div>` : '';
         })()}
         ${isContentValue(ev.eapNotes) ? `<div style="margin-top:10px;"><div class="freetext-label">EAP Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ev.eapNotes)}</div></div>` : ''}
-        ${isContentValue(ev.lockdownProtocol) ? `<div style="margin-top:10px;"><div class="freetext-label" style="color:var(--red);">Lockdown Protocol</div><div class="freetext-body" style="color:var(--red);white-space:pre-wrap;line-height:1.6;">${esc(ev.lockdownProtocol)}</div></div>` : ''}`)}
+        ${isContentValue(ev.lockdownProtocol) ? `<div style="margin-top:10px;"><div class="freetext-label" style="color:var(--red);">Lockdown Protocol</div><div class="freetext-body" style="color:var(--red);white-space:pre-wrap;line-height:1.6;">${esc(ev.lockdownProtocol)}</div></div>` : ''}
+        ${isContentValue(ev.weatherPlan) ? `<div style="margin-top:10px;"><div class="freetext-label">Weather / Show-Stop Plan</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ev.weatherPlan)}</div></div>` : ''}`)}
     </div>
 
     <!-- Meet & Greet + Communications -->
@@ -2115,12 +2235,24 @@ function renderBriefView(b, id) {
       ${viewPanel('📻', 'Communications', `
         <div class="view-kv">
           ${kv('Venue Shares Comms', co.venueShareComms ? 'Yes' : 'No')}
+          ${kv('Ops Center On Site', co.opsCenterOnSite === 'yes' ? 'Yes' : co.opsCenterOnSite === 'no' ? 'No' : '')}
           ${kv('Security Operations', co.securityOps)}
           ${kv('Sec Ops Phone', co.securityOpsPhone)}
           ${kv('Cell OK', co.cellOk ? 'Yes' : 'No')}
         </div>
         ${(co.channels || []).length ? `<div style="margin-top:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">Radio Channels</div><div class="channel-grid">${co.channels.map(ch => `<div class="channel-row"><div class="channel-num" style="font-weight:800;">${esc(ch.ch)}</div><div class="channel-use">${esc(ch.use)}</div></div>`).join('')}</div></div>` : ''}`)}
     </div>
+
+    <!-- Media / Press Day -->
+    ${(b.mediaDay && ((b.mediaDay.scheduled === true || b.mediaDay.scheduled === 'yes') || isContentValue(b.mediaDay.location) || isContentValue(b.mediaDay.notes))) ? viewPanel('📰', 'Media / Press Day', `
+      <div class="view-kv">
+        ${kv('Scheduled', (b.mediaDay.scheduled === true || b.mediaDay.scheduled === 'yes') ? 'Yes' : (b.mediaDay.scheduled === false || b.mediaDay.scheduled === 'no') ? 'No' : '')}
+        ${kv('Date', tl.mediaDate ? formatDate(tl.mediaDate) : '')}
+        ${kv('Time Window', b.mediaDay.timeWindow)}
+        ${kv('Location', b.mediaDay.location)}
+        ${kv('Escorted', b.mediaDay.escort === 'yes' ? 'Yes' : b.mediaDay.escort === 'no' ? 'No' : '')}
+      </div>
+      ${isContentValue(b.mediaDay.notes) ? `<div style="margin-top:10px;"><div class="freetext-label">Media Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(b.mediaDay.notes)}</div></div>` : ''}`) : ''}
 
     <!-- Access Control -->
     ${viewPanel('🔑', 'Access Control', `
@@ -2148,6 +2280,11 @@ function renderBriefView(b, id) {
             ${ac.genxCred.notes ? `<div style="margin-top:10px;font-size:12px;color:var(--text-2);">${esc(ac.genxCred.notes)}</div>` : ''}
           </div>
         </div>` : ''}
+      ${(b.cctv && (b.cctv.coverage || b.cctv.monitored || isContentValue(b.cctv.notes))) ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">CCTV &amp; Surveillance</div><div class="view-kv">${kv('Coverage', b.cctv.coverage === 'yes' ? 'Yes' : b.cctv.coverage === 'no' ? 'No' : '')}${kv('Monitored Live', b.cctv.monitored === 'yes' ? 'Yes' : b.cctv.monitored === 'no' ? 'No' : '')}</div>${isContentValue(b.cctv.notes) ? `<div style="margin-top:8px;"><div class="freetext-label">Camera Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(b.cctv.notes)}</div></div>` : ''}</div>` : ''}
+      ${(ac.backstageControlled === 'yes' || ac.backstageControlled === 'no') ? `<div style="margin-top:12px;" class="view-kv">${kv('Green Room / Backstage Access-Controlled', ac.backstageControlled === 'yes' ? 'Yes' : 'No')}</div>` : ''}
+      ${isContentValue(ac.castCrewAccess) ? `<div style="margin-top:12px;"><div class="freetext-label">Cast &amp; Crew Access</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.castCrewAccess)}</div></div>` : ''}
+      ${isContentValue(ac.teamArrival) ? `<div style="margin-top:12px;"><div class="freetext-label" style="color:var(--gold);">GenX Arrival — Door / Meet / Time</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.teamArrival)}</div></div>` : ''}
+      ${isContentValue(ac.additionalCredentials) ? `<div style="margin-top:12px;"><div class="freetext-label">Additional Credentials (Venue-Stated)</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.additionalCredentials)}</div></div>` : ''}
       ${isContentValue(ac.parkingNotes) ? `<div style="margin-top:12px;"><div class="freetext-label">Parking Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.parkingNotes)}</div></div>` : ''}`)}
 
     <!-- Load In/Out -->
@@ -2205,7 +2342,7 @@ function renderBriefView(b, id) {
             ${p.notes ? `<div class="person-notes" style="margin-top:8px;white-space:pre-wrap;">${esc(p.notes)}</div>` : ''}
           </div>`;
         }).join('')}
-      </div>`) : ''}
+      </div>`, 'people-panel') : ''}
 
     <!-- Crew -->
     ${(b.crew || []).length ? viewPanel('🎬', 'Crew & Production', `
@@ -2220,7 +2357,7 @@ function renderBriefView(b, id) {
             ${p.phone ? `<div class="person-stage" style="font-style:normal;">${esc(p.phone)}</div>` : ''}
             ${p.notes ? `<div class="person-notes" style="margin-top:8px;">${esc(p.notes)}</div>` : ''}
           </div>`).join('')}
-      </div>`) : ''}
+      </div>`, 'people-panel') : ''}
 
     <!-- GenX Security Staff -->
     ${(b.genxstaff || []).length ? viewPanel('🛡️', 'GenX Security Staff', `
@@ -2236,7 +2373,7 @@ function renderBriefView(b, id) {
             ${p.email ? `<div class="person-stage" style="font-style:normal;font-size:11px;">${esc(p.email)}</div>` : ''}
             ${(p.certs || []).filter(Boolean).length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:3px;">${(p.certs || []).filter(Boolean).map(c => `<span class="tag tag-red" style="font-size:9px;">${esc(c)}</span>`).join('')}</div>` : ''}
           </div>`).join('')}
-      </div>`) : ''}
+      </div>`, 'people-panel') : ''}
 
     <!-- Emergency Contacts -->
     ${(b.emergency || []).length ? viewPanel('🆘', 'Emergency Contacts', `
@@ -2266,7 +2403,7 @@ function renderBriefView(b, id) {
           </div>`).join('')}
       </div>`, 'maps-panel') : ''}
 
-    <div style="text-align:center;padding:32px 0 16px;color:var(--text-3);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">
+    <div class="brief-endmark" style="text-align:center;padding:32px 0 16px;color:var(--text-3);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">
       — GenX Security Brief System — Confidential Document —
     </div>
   `;
