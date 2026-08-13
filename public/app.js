@@ -54,7 +54,9 @@ function formatDate(ds) {
 
 function formatTime(ts) {
   if (!ts) return '';
-  const [h, m] = ts.split(':');
+  // Only convert bare 24h clock times — free text ("2:30 PM", "1 hr prior", "TBD") passes through
+  if (!/^\d{1,2}:\d{2}$/.test(String(ts).trim())) return ts;
+  const [h, m] = String(ts).trim().split(':');
   const hr = parseInt(h);
   return `${hr % 12 || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
 }
@@ -1259,12 +1261,88 @@ function collectCredentials() {
 }
 
 // ── Run of Show ───────────────────────────────────────────────────────────────
+// Supports multiple show days. Storage shape:
+//   single day (legacy):  runofshow = [{time, activity, notes, critical}, ...]
+//   multi-day:            runofshow = [{label, rows: [...]}, {label, rows: [...]}]
+// The table always shows one day at a time; tabs switch between days.
 
-function renderROSTable(rows) {
+let _rosDays = [{ label: 'Day 1', rows: [] }];
+let _rosActiveDay = 0;
+
+function rosNormalizeDays(runofshow) {
+  if (!Array.isArray(runofshow) || !runofshow.length) return [{ label: 'Day 1', rows: [] }];
+  if (runofshow[0] && Array.isArray(runofshow[0].rows)) {
+    return runofshow.map((d, i) => ({ label: d.label || `Day ${i + 1}`, rows: d.rows || [] }));
+  }
+  return [{ label: 'Day 1', rows: runofshow }];
+}
+
+function renderROSTable(runofshow) {
+  _rosDays = rosNormalizeDays(runofshow);
+  _rosActiveDay = 0;
+  renderROSDayTabs();
+  renderROSRows(_rosDays[0].rows);
+}
+
+function renderROSRows(rows) {
   const body = document.getElementById('rosBody');
   if (!body) return;
   body.innerHTML = '';
   rows.forEach(r => addROSRow(r));
+}
+
+function renderROSDayTabs() {
+  const bar = document.getElementById('rosDayTabs');
+  if (!bar) return;
+  bar.innerHTML = _rosDays.map((d, i) => {
+    const active = i === _rosActiveDay;
+    return `<button class="btn btn-sm ${active ? '' : 'btn-ghost'}" style="${active ? 'background:var(--red);border-color:var(--red);color:#fff;font-weight:700;' : ''}" onclick="switchROSDay(${i})" ondblclick="renameROSDay(${i})" title="Double-click to rename">${esc(d.label)}</button>`;
+  }).join('') +
+  `<button class="btn btn-ghost btn-sm" onclick="addROSDay()" title="Add another show day (option to copy this day's schedule)">+ Add Day</button>` +
+  (_rosDays.length > 1 ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:rgba(230,57,70,0.3);" onclick="removeROSDay()" title="Delete the currently shown day">× Remove Day</button>` : '');
+}
+
+function syncActiveROSDay() {
+  _rosDays[_rosActiveDay].rows = collectROSRows();
+}
+
+function switchROSDay(i) {
+  if (i === _rosActiveDay || !_rosDays[i]) return;
+  syncActiveROSDay();
+  _rosActiveDay = i;
+  renderROSDayTabs();
+  renderROSRows(_rosDays[i].rows);
+}
+
+function addROSDay() {
+  syncActiveROSDay();
+  const cur = _rosDays[_rosActiveDay];
+  const copy = cur.rows.length > 0 && confirm(`Copy "${cur.label}" schedule into the new day?\n\nOK = start with a copy of this day's rows\nCancel = start blank`);
+  const label = (prompt('Label for the new day (e.g., "Day 2 — Aug 22")', `Day ${_rosDays.length + 1}`) || `Day ${_rosDays.length + 1}`).trim();
+  _rosDays.push({ label, rows: copy ? JSON.parse(JSON.stringify(cur.rows)) : [] });
+  _rosActiveDay = _rosDays.length - 1;
+  renderROSDayTabs();
+  renderROSRows(_rosDays[_rosActiveDay].rows);
+  scheduleSave();
+}
+
+function renameROSDay(i) {
+  const label = prompt('Rename this day', _rosDays[i].label);
+  if (!label || !label.trim()) return;
+  _rosDays[i].label = label.trim();
+  renderROSDayTabs();
+  scheduleSave();
+}
+
+function removeROSDay() {
+  if (_rosDays.length < 2) return;
+  const cur = _rosDays[_rosActiveDay];
+  if (!confirm(`Delete "${cur.label}" and its ${collectROSRows().length} schedule rows?`)) return;
+  _rosDays.splice(_rosActiveDay, 1);
+  _rosActiveDay = Math.max(0, _rosActiveDay - 1);
+  renderROSDayTabs();
+  renderROSRows(_rosDays[_rosActiveDay].rows);
+  scheduleSave();
 }
 
 // afterTr (optional): insert the new row directly below that row instead of appending.
@@ -1341,7 +1419,8 @@ function sortROSByTime() {
     .forEach(({ tr }) => body.appendChild(tr));
 }
 
-function collectROS() {
+// Rows currently in the visible table (the active day)
+function collectROSRows() {
   const body = document.getElementById('rosBody');
   if (!body) return [];
   return [...body.querySelectorAll('tr.ros-row')].map(tr => {
@@ -1355,8 +1434,16 @@ function collectROS() {
   });
 }
 
+// Full structure for saving: legacy flat array when there's a single day
+// (keeps old briefs/printouts working), day objects when there are several.
+function collectROS() {
+  syncActiveROSDay();
+  if (_rosDays.length === 1) return _rosDays[0].rows;
+  return _rosDays.map(d => ({ label: d.label, rows: d.rows }));
+}
+
 async function saveROSTemplate() {
-  const rows = collectROS();
+  const rows = collectROSRows();
   if (!rows.length) { alert('No rows to save.'); return; }
   if (!confirm(`Save ${rows.length} rows as the standard Run of Show template?`)) return;
   const r = await fetch('/api/ros-template', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows) });
@@ -1368,7 +1455,7 @@ async function loadROSTemplate() {
   const r = await fetch('/api/ros-template');
   const rows = await r.json();
   if (!rows.length) { alert('No template saved yet. Build your Run of Show and click "Save as Standard Template" first.'); return; }
-  const existing = collectROS().length;
+  const existing = collectROSRows().length;
   if (existing && !confirm(`Replace the current ${existing} rows with the standard template?`)) return;
   document.getElementById('rosBody').innerHTML = '';
   rows.forEach(row => addROSRow(row));
@@ -2310,21 +2397,27 @@ function renderBriefView(b, id) {
         </div>
       </div>`)}
 
-    <!-- Run of Show -->
-    ${(b.runofshow || []).length ? viewPanel('📋', 'Run of Show', `
-      <div style="overflow-x:auto;">
-        <table class="ros-table ros-view">
-          <thead><tr><th style="width:14%;">Time</th><th style="width:43%;">Activity</th><th style="width:43%;">Security Notes</th></tr></thead>
-          <tbody>
-            ${(b.runofshow || []).map(r => `
-              <tr class="${r.critical ? 'ros-row-critical' : ''}">
-                <td style="font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;">${esc(r.time ? formatTime(r.time) : r.time)}</td>
-                <td style="font-weight:${r.critical ? '700' : '500'};">${esc(r.activity)}</td>
-                <td style="color:var(--text-2);">${esc(r.notes)}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`, 'ros-panel') : ''}
+    <!-- Run of Show (single or multi-day) -->
+    ${(() => {
+      const days = rosNormalizeDays(b.runofshow || []).filter(d => d.rows.length);
+      if (!days.length) return '';
+      const dayTable = d => `
+        ${days.length > 1 ? `<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:var(--red);margin:14px 0 6px;">${esc(d.label)}</div>` : ''}
+        <div style="overflow-x:auto;">
+          <table class="ros-table ros-view">
+            <thead><tr><th style="width:14%;">Time</th><th style="width:43%;">Activity</th><th style="width:43%;">Security Notes</th></tr></thead>
+            <tbody>
+              ${d.rows.map(r => `
+                <tr class="${r.critical ? 'ros-row-critical' : ''}">
+                  <td style="font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;">${esc(r.time ? formatTime(r.time) : r.time)}</td>
+                  <td style="font-weight:${r.critical ? '700' : '500'};">${esc(r.activity)}</td>
+                  <td style="color:var(--text-2);">${esc(r.notes)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      return viewPanel('📋', 'Run of Show', days.map(dayTable).join(''), 'ros-panel');
+    })()}
 
     <!-- Talent -->
     ${(b.talent || []).length ? viewPanel('🎤', 'Talent', `
