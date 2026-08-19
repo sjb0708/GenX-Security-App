@@ -2411,11 +2411,14 @@ function renderBriefView(b, id) {
       ${isContentValue(b.mediaDay.notes) ? `<div style="margin-top:10px;"><div class="freetext-label">Media Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(b.mediaDay.notes)}</div></div>` : ''}`) : ''}
 
     <!-- Access Control -->
+    <!-- Access Control — ONE box, matching the edit form's single Access
+         Control section (devices, credentials, GenX badges, CCTV, parking).
+         Whatever is grouped in the form stays grouped on the page. -->
     ${viewPanel('🔑', 'Access Control', `
-      ${(ac.doorSystems || []).length ? `<div style="margin-bottom:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">Venue Access Control Devices</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${(ac.doorSystems || []).map(s => `<span class="tag tag-gray">${esc(s)}</span>`).join('')}</div></div>` : ''}
+      ${(ac.doorSystems || []).length ? `<div style="margin-bottom:12px;"><div class="freetext-label">Venue Access Control Devices</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${(ac.doorSystems || []).map(s => `<span class="tag tag-gray">${esc(s)}</span>`).join('')}</div></div>` : ''}
       ${(ac.credentials || []).length ? `
-        <div style="overflow-x:auto;margin-top:4px;">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">Additional Venue-Required Credentials</div>
+        <div style="margin-top:4px;">
+          <div class="freetext-label">Additional Venue-Required Credentials</div>
           <table class="data-table">
             <thead><tr><th>Credential</th><th>Color</th><th>Access Level</th><th>Location</th><th>Image</th></tr></thead>
             <tbody>
@@ -2424,8 +2427,8 @@ function renderBriefView(b, id) {
           </table>
         </div>` : ''}
       ${ac.genxCred && (ac.genxCred.frontImage || ac.genxCred.backImage || ac.genxCred.name) ? `
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:12px;">GenX Security Credentials</div>
+        <div style="margin-top:14px;">
+          <div class="freetext-label">GenX Security Credentials</div>
           <div class="cred-card" style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px;">
             ${ac.genxCred.name ? `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">${esc(ac.genxCred.name)}</div>` : ''}
             ${ac.genxCred.issuedBy ? `<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Issued by: ${esc(ac.genxCred.issuedBy)}</div>` : ''}
@@ -2436,12 +2439,12 @@ function renderBriefView(b, id) {
             ${ac.genxCred.notes ? `<div style="margin-top:10px;font-size:12px;color:var(--text-2);">${esc(ac.genxCred.notes)}</div>` : ''}
           </div>
         </div>` : ''}
-      ${(b.cctv && (b.cctv.coverage || b.cctv.monitored || isContentValue(b.cctv.notes))) ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:6px;">CCTV &amp; Surveillance</div><div class="view-kv">${kv('Coverage', b.cctv.coverage === 'yes' ? 'Yes' : b.cctv.coverage === 'no' ? 'No' : '')}${kv('Monitored Live', b.cctv.monitored === 'yes' ? 'Yes' : b.cctv.monitored === 'no' ? 'No' : '')}</div>${isContentValue(b.cctv.notes) ? `<div style="margin-top:8px;"><div class="freetext-label">Camera Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(b.cctv.notes)}</div></div>` : ''}</div>` : ''}
+      ${(b.cctv && (b.cctv.coverage || b.cctv.monitored || isContentValue(b.cctv.notes))) ? `<div style="margin-top:14px;"><div class="freetext-label">CCTV &amp; Surveillance</div><div class="view-kv">${kv('Coverage', b.cctv.coverage === 'yes' ? 'Yes' : b.cctv.coverage === 'no' ? 'No' : '')}${kv('Monitored Live', b.cctv.monitored === 'yes' ? 'Yes' : b.cctv.monitored === 'no' ? 'No' : '')}</div>${isContentValue(b.cctv.notes) ? `<div style="margin-top:8px;"><div class="freetext-label">Camera Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(b.cctv.notes)}</div></div>` : ''}</div>` : ''}
       ${(ac.backstageControlled === 'yes' || ac.backstageControlled === 'no') ? `<div style="margin-top:12px;" class="view-kv">${kv('Green Room / Backstage Access-Controlled', ac.backstageControlled === 'yes' ? 'Yes' : 'No')}</div>` : ''}
       ${isContentValue(ac.castCrewAccess) ? `<div style="margin-top:12px;"><div class="freetext-label">Cast &amp; Crew Access</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.castCrewAccess)}</div></div>` : ''}
       ${isContentValue(ac.teamArrival) ? `<div style="margin-top:12px;"><div class="freetext-label" style="color:var(--gold);">GenX Arrival — Door / Meet / Time</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.teamArrival)}</div></div>` : ''}
       ${isContentValue(ac.additionalCredentials) ? `<div style="margin-top:12px;"><div class="freetext-label">Additional Credentials (Venue-Stated)</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.additionalCredentials)}</div></div>` : ''}
-      ${isContentValue(ac.parkingNotes) ? `<div style="margin-top:12px;"><div class="freetext-label">Parking Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.parkingNotes)}</div></div>` : ''}`, 'long-panel')}
+      ${isContentValue(ac.parkingNotes) ? `<div style="margin-top:12px;"><div class="freetext-label">Parking Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.parkingNotes)}</div></div>` : ''}`)}
 
     <!-- Load In/Out -->
     ${viewPanel('🚚', 'Load In / Load Out', `
@@ -2471,7 +2474,7 @@ function renderBriefView(b, id) {
       const days = rosNormalizeDays(b.runofshow || []).filter(d => d.rows.length);
       if (!days.length) return '';
       const dayTable = d => `
-        ${days.length > 1 ? `<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:var(--red);margin:14px 0 6px;">${esc(d.label)}</div>` : ''}
+        ${days.length > 1 ? `<div class="ros-day-label" style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:var(--red);margin:14px 0 6px;">${esc(d.label)}</div>` : ''}
         <div style="overflow-x:auto;">
           <table class="ros-table ros-view">
             <thead><tr><th style="width:14%;">Time</th><th style="width:43%;">Activity</th><th style="width:43%;">Security Notes</th></tr></thead>

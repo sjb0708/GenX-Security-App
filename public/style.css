@@ -1289,7 +1289,14 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
     break-inside: auto !important; page-break-inside: auto !important;
   }
   .ros-panel .view-panel-body { overflow: visible !important; }
-  .ros-panel .view-panel-header { break-after: avoid !important; page-break-after: avoid !important; }
+  /* Chain heading -> day label -> table header so Run of Show cannot start
+     with its title alone at the foot of a page. */
+  .ros-panel .view-panel-header,
+  .ros-day-label,
+  .ros-table thead {
+    break-after: avoid !important; page-break-after: avoid !important;
+  }
+  .ros-table tbody tr:first-child { break-before: avoid !important; page-break-before: avoid !important; }
 
   /* Maps panel — the cards are atomic and capped shorter than one page, so
      each map lands on a page whole without any forced break. Forced breaks
