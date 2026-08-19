@@ -2029,10 +2029,19 @@ function pYN(v) {
   return v;
 }
 
-let _pSectionNo = 0;
+// Each section is wrapped so it can be measured and, when it fits, pinned to a
+// single page. See markKeepTogether().
+let _pSectionNo = 0, _pSectionOpen = false;
 function pSection(title) {
   _pSectionNo += 1;
-  return `<h2 class="pb-h2"><span class="pb-num">${_pSectionNo}.</span>${esc(title)}</h2>`;
+  const close = _pSectionOpen ? '</section>' : '';
+  _pSectionOpen = true;
+  return `${close}<section class="pb-sec"><h2 class="pb-h2"><span class="pb-num">${_pSectionNo}.</span>${esc(title)}</h2>`;
+}
+function pSectionsClose() {
+  const close = _pSectionOpen ? '</section>' : '';
+  _pSectionOpen = false;
+  return close;
 }
 function pSub(title) { return `<h3 class="pb-h3">${esc(title)}</h3>`; }
 
@@ -2097,6 +2106,7 @@ function pRoster(people, opts = {}) {
 
 function buildPrintBrief(b) {
   _pSectionNo = 0;
+  _pSectionOpen = false;
   const v = b.venue || {}, h = b.hotel || {}, tl = b.timeline || {}, ct = b.contacts || {};
   const ing = b.ingress || {}, st = b.staffing || {}, med = b.medical || {}, ev = b.evacuation || {};
   const mg = b.meetgreet || {}, comm = b.communications || {}, ac = b.access || {}, li = b.loadinout || {};
@@ -2295,6 +2305,7 @@ function buildPrintBrief(b) {
     out.push(`<p class="pb-p">No maps provided to security team.</p>`);
   }
 
+  out.push(pSectionsClose());
   out.push(`<div class="pb-end">— End of Brief —</div>`);
   out.push(`<div class="brief-print-tail" aria-hidden="true"></div>`);
   return out.filter(Boolean).join('\n');
@@ -2310,30 +2321,6 @@ function buildPrintBrief(b) {
 // if it doesn't, so a corrupted shrink never blanks a photo; (3) no timeout
 // fallback on restore — only afterprint — so a slow Save dialog never reverts
 // to full-res originals mid-print.
-// Safari sizes a print job from the document's NATURAL height, then paginating
-// adds white space — every box that will not fit in the room left on a page is
-// pushed whole to the next one — so the laid-out document ends up taller than
-// the estimate and everything past the estimate is silently dropped. Measured:
-// a brief whose Safari preview showed 8 pages saved 8 pages that ended at
-// Talent, with Crew, GenX Staff and Emergency Contacts missing entirely.
-//
-// Keeping sections whole is what makes the brief readable, and it is also what
-// creates that white space, so the shortfall grows with the number of sections.
-// Real trailing height raises the estimate; anything unused is clipped
-// harmlessly. Applied only in Safari — Chrome paginates from the real layout
-// and would just emit blank pages.
-function sizePrintTail() {
-  const tail = document.querySelector('.brief-print-tail');
-  if (!tail) return;
-  const ua = navigator.userAgent;
-  const isSafari = /safari/i.test(ua) && !/chrome|chromium|crios|android|edg|opr/i.test(ua);
-  if (!isSafari) { tail.style.height = '0'; return; }
-  const boxes = document.querySelectorAll('#briefDocument .view-panel').length;
-  // A box that does not fit can strand most of a page. Budget generously —
-  // trailing blank pages are recoverable, dropped personnel are not.
-  tail.style.height = Math.min(34, 8 + boxes * 1.2).toFixed(1) + 'in';
-}
-
 // ── Print preview ────────────────────────────────────────────────────────────
 // Shows the printed brief on screen at true letter width with a dashed rule
 // drawn at every page boundary, so page breaks are visible before printing
@@ -2358,16 +2345,23 @@ function drawPreviewPageBreaks() {
   if (!doc) return;
   doc.querySelectorAll('.pp-break').forEach(el => el.remove());
 
+  markKeepTogether();
+
   const pageH  = (11 - 0.7 - 1.15) * 96;   // letter less the printed margins, at 96dpi
   const docTop = doc.getBoundingClientRect().top + window.scrollY;
 
-  // The atomic units the print rules guarantee are never split.
+  // The atomic units the print rules guarantee are never split. A section that
+  // fits on a page is a single unit; a taller one is broken into its rows.
   const units = [];
-  for (const el of doc.children) {
-    if (el.classList.contains('pp-break')) continue;
-    if (el.tagName === 'TABLE') el.querySelectorAll('tr').forEach(tr => units.push(tr));
-    else units.push(el);
-  }
+  const push = el => {
+    if (!el.classList) return;
+    if (el.classList.contains('pp-break')) return;
+    if (el.classList.contains('pb-keep')) { units.push(el); return; }
+    if (el.tagName === 'TABLE') { el.querySelectorAll('tr').forEach(tr => units.push(tr)); return; }
+    if (el.tagName === 'SECTION') { for (const c of el.children) push(c); return; }
+    units.push(el);
+  };
+  for (const el of doc.children) push(el);
 
   let pageStart = 0, page = 1, oversize = 0;
   for (const u of units) {
@@ -2395,12 +2389,34 @@ function drawPreviewPageBreaks() {
 // Safari now reaches the end on its own, and the slack only produced a blank
 // final page. Kept at zero rather than deleted so the mechanism is here if a
 // much longer brief ever needs it.
+// A section that fits inside a page should never be split across two. Measure
+// each one and pin ONLY those that actually fit — pinning a section taller than
+// a page is what made print engines drop content earlier today. The document is
+// display:none on screen, so it is measured off-screen at true page width.
+function markKeepTogether() {
+  const doc = document.getElementById('printDocument');
+  if (!doc) return;
+  const inPreview = document.body.classList.contains('print-preview');
+  const prev = doc.getAttribute('style');
+  if (!inPreview) doc.style.cssText = 'display:block;position:absolute;left:-10000px;top:0;width:7.4in;';
+
+  const pageH = (11 - 0.7 - 1.15) * 96;   // letter less the printed margins, at 96dpi
+  doc.querySelectorAll('.pb-sec').forEach(sec => {
+    sec.classList.toggle('pb-keep', sec.getBoundingClientRect().height <= pageH);
+  });
+
+  if (!inPreview) {
+    if (prev === null) doc.removeAttribute('style'); else doc.setAttribute('style', prev);
+  }
+}
+
 function sizePrintTail() {
   const tail = document.querySelector('#printDocument .brief-print-tail');
   if (tail) tail.style.height = '0';
 }
 
 async function downloadEmailPDF() {
+  markKeepTogether();
   sizePrintTail();
 
   sizePrintTail();

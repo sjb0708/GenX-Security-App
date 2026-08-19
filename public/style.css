@@ -1615,6 +1615,11 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   color: #6b7280; vertical-align: top; }
 #printDocument table.pb-control td { padding: 3pt 18pt 3pt 0; font-size: 9.5pt; vertical-align: top; }
 
+/* A section short enough to fit a page is pinned to one page. Sections taller
+   than a page are deliberately left breakable — pinning those is what made
+   print engines drop content. markKeepTogether() decides which is which. */
+#printDocument .pb-sec.pb-keep { break-inside: avoid; page-break-inside: avoid; }
+
 #printDocument .pb-h2 { font-size: 9.5pt; font-weight: 800; text-transform: uppercase;
   letter-spacing: 1.4pt; color: #111827; margin: 15pt 0 6pt; padding-bottom: 2.5pt;
   border-bottom: 1pt solid #111827;
