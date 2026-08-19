@@ -1231,11 +1231,14 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
     border-radius: 0 !important;
     overflow: visible !important;
     margin-bottom: 14pt !important;
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
+    /* NEVER make a panel atomic. WebKit drops (does not fragment) an
+       unbreakable box taller than one page, so a long panel would vanish
+       from Save-as-PDF entirely. Atomicity lives on the leaf items below,
+       which are always shorter than a page. */
+    break-inside: auto !important;
+    page-break-inside: auto !important;
   }
-  /* Treat each side-by-side panel grid row as one unit when possible */
-  .grid-2 { break-inside: avoid-page; }
+  .grid-2 { break-inside: auto !important; page-break-inside: auto !important; }
   .view-panel-header {
     background: transparent !important;
     border-bottom: 1.5pt solid #c1121f !important;
@@ -1248,23 +1251,21 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   /* Bring back subtle separation between sections without panel chrome */
   .view-panel + .view-panel { margin-top: 4pt !important; }
 
-  /* Run of Show — start on a new page so the section header and table
-     stay together; allow the table itself to break across pages if long.
-     The thead is set to table-header-group below so column headers repeat. */
+  /* Run of Show — flows naturally; the thead is table-header-group below so
+     column headers repeat on every page the table spans. No forced break:
+     see the pagination note above .view-panel. */
   .ros-panel {
-    break-before: page !important; page-break-before: always !important;
     break-inside: auto !important; page-break-inside: auto !important;
   }
   .ros-panel .view-panel-body { overflow: visible !important; }
   .ros-panel .view-panel-header { break-after: avoid !important; page-break-after: avoid !important; }
 
-  /* Maps panel — each map gets its own page so Safari's Save-As-PDF can't
-     drop overflow content. The Safari print preview is misleading for content
-     near page boundaries; forcing one-map-per-page sidesteps that entirely.
-     Safari ignores break-before:page on children of a flex container, so the
-     inline display:flex wrapper around the cards must be neutralised in print. */
+  /* Maps panel — the cards are atomic and capped shorter than one page, so
+     each map lands on a page whole without any forced break. Forced breaks
+     here were dropping the final map from Save-as-PDF (see the pagination
+     note above .view-panel). Safari mis-paginates children of a flex
+     container, so the inline display:flex wrapper is neutralised below. */
   .view-panel.maps-panel {
-    break-before: page !important; page-break-before: always !important;
     break-inside: auto !important; page-break-inside: auto !important;
     overflow: visible !important;
   }
@@ -1278,17 +1279,15 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
     overflow: visible !important;
     margin: 0 !important;
   }
-  /* Page-break AFTER every card except the last. break-after is more reliable
-     than chained break-before in Safari when several cards live in one parent. */
   .view-panel.maps-panel .map-card:not(:last-child) {
-    break-after: page !important; page-break-after: always !important;
+    margin-bottom: 14pt !important;
   }
   .view-panel.maps-panel .map-card img {
     display: block !important;
     width: 100% !important;
     height: auto !important;
     max-width: 100% !important;
-    max-height: 8in !important;
+    max-height: 7.4in !important;
     object-fit: contain !important;
     background: #fff !important;
   }
@@ -1318,7 +1317,16 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   .tag-gray { background: #f3f4f6 !important; color: #374151 !important; border-color: #d1d5db !important; }
 
   /* ── Contact cards ── */
-  .contact-cards-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10pt !important; }
+  /* Block container + inline-block cards, NOT grid — WebKit's print engine
+     ignores break-inside:avoid on grid items and slices them at page
+     boundaries. Inline-blocks are atomic. Same fix as .person-grid. */
+  .contact-cards-grid { display: block !important; font-size: 0 !important; }
+  .contact-card {
+    display: inline-block !important; vertical-align: top !important;
+    width: 48% !important; margin: 0 3% 10pt 0 !important;
+    font-size: 9pt !important;
+  }
+  .contact-card:nth-child(2n) { margin-right: 0 !important; }
   .contact-card { background: #f3f4f6 !important; border: 1px solid #d1d5db !important; border-radius: 6pt !important; overflow: visible !important; }
   .contact-card.primary { border-left: 3px solid #c1121f !important; }
   .contact-card.backup  { border-left: 3px solid #92680a !important; }
@@ -1429,9 +1437,19 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   img { max-width: 100% !important; height: auto !important; }
   .view-panel img { max-width: 100% !important; }
 
-  /* ── Page breaks ── */
+  /* ── Page breaks ──
+     Everything atomic here is a leaf that is always shorter than one page.
+     Containers stay breakable on purpose — see the note above .view-panel. */
   .brief-header-block { page-break-after: avoid; }
-  .mini-stat, .person-card, .contact-card, .kv-row { page-break-inside: avoid; }
+  .mini-stat, .person-card, .contact-card, .kv-row,
+  .map-card, .freetext-body, .channel-row,
+  .data-table tr, .ros-table tr {
+    break-inside: avoid !important; page-break-inside: avoid !important;
+  }
+  /* Don't strand one or two lines of a paragraph across a page break. */
+  .freetext-body, .view-panel-body, p { orphans: 3; widows: 3; }
+  /* Keep a section header glued to the start of its own body. */
+  .view-panel-body > *:first-child { break-before: avoid !important; page-break-before: avoid !important; }
 
   /* Tighter credential card so the page after Access Control doesn't strand
      the Load In / Load Out block on a near-empty page. */
