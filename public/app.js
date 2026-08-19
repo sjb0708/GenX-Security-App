@@ -2223,7 +2223,9 @@ function renderBriefView(b, id) {
     const catRow = (key, label) => cats[key] != null
       ? `<div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:${cats[key] >= 80 ? '#57cc99' : cats[key] >= 60 ? '#e9c46a' : '#e63946'};">${cats[key]}</div><div style="font-size:9px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-top:2px;">${label}</div></div>`
       : '';
-    return `<div class="view-panel" style="margin-bottom:20px;border:1px solid ${color}55;background:${color}0a;">
+    // Screen only. The risk assessment is its own document and must not print
+    // as part of the security brief.
+    return `<div class="view-panel risk-panel no-print" style="margin-bottom:20px;border:1px solid ${color}55;background:${color}0a;">
       <div class="view-panel-head">
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:18px;">⚡</span>
