@@ -2013,6 +2013,107 @@ function initSidebarSpy() {
 // BRIEF VIEW
 // ══════════════════════════════════════════════════════════════════════════════
 
+// ── Word export ──────────────────────────────────────────────────────────────
+// Produces an editable .doc from the exact brief that is on screen, so spacing
+// and page breaks can be adjusted by hand in Word. Word opens HTML-based .doc
+// files natively, which keeps the tables, headings and colours intact — a real
+// .docx would mean re-authoring the whole layout in OOXML primitives and would
+// lose the design.
+
+// Pull the @media print rules out of the live stylesheet and flatten them into
+// unconditional CSS, so the Word file matches the printed brief without
+// maintaining a second copy of the styling.
+async function flattenedPrintCss() {
+  const css = await fetch('/style.css', { cache: 'no-store' }).then(r => r.text());
+  const at = css.indexOf('@media print');
+  if (at < 0) return '';
+  let depth = 0, i = css.indexOf('{', at);
+  const start = i + 1;
+  for (; i < css.length; i++) {
+    if (css[i] === '{') depth++;
+    else if (css[i] === '}' && --depth === 0) break;
+  }
+  let out = css.slice(start, i);
+  // Strip the @page rule — the Word file declares its own page setup — and the
+  // fixed-position running footer, which Word cannot reproduce and which would
+  // otherwise land on top of the body text.
+  out = out.replace(/@page[^{]*\{[^}]*\}/g, '');
+  out = out.replace(/\.brief-print-footer[^{]*\{[^}]*\}/g, '');
+  out = out.replace(/position:\s*fixed\s*!important;?/g, '');
+  return out;
+}
+
+// Word will not fetch relative URLs out of a downloaded file, so every image
+// has to travel inside it as a data URI.
+async function inlineImagesForWord(root) {
+  const imgs = [...root.querySelectorAll('img')];
+  await Promise.all(imgs.map(async img => {
+    const src = img.getAttribute('src') || '';
+    if (!src || src.startsWith('data:')) return;
+    try {
+      const blob = await fetch(src, { cache: 'force-cache' }).then(r => r.blob());
+      img.setAttribute('src', await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      }));
+    } catch (_) { img.removeAttribute('src'); }
+  }));
+}
+
+async function downloadWordDoc() {
+  const btn   = document.getElementById('downloadWordBtn');
+  const label = document.getElementById('downloadWordBtnLabel');
+  const doc   = document.getElementById('briefDocument');
+  if (!doc) return;
+  const prev = label?.textContent;
+  const reset = () => { if (btn) btn.disabled = false; if (label) label.textContent = prev || 'Word'; };
+  if (btn) btn.disabled = true;
+  if (label) label.textContent = 'Building…';
+
+  try {
+    const clone = doc.cloneNode(true);
+    // Screen-only chrome and the repeating print footer have no place in a
+    // document someone is going to edit by hand.
+    clone.querySelectorAll('.no-print, .brief-print-footer, .brief-print-tail').forEach(el => el.remove());
+    await inlineImagesForWord(clone);
+
+    const b   = window._viewBrief || {};
+    const name = (b.venue?.name || 'Security Brief').replace(/[\\/:*?"<>|]/g, '-');
+    const css = await flattenedPrintCss();
+
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8">
+<title>${esc(name)} — Security Brief</title>
+<style>
+@page WordSection1 { size: 8.5in 11.0in; margin: 0.7in 0.55in 0.85in 0.55in; }
+div.WordSection1 { page: WordSection1; }
+body { font-family: Calibri, Arial, sans-serif; font-size: 10.5pt; color: #111827; }
+img { max-width: 100%; height: auto; }
+table { border-collapse: collapse; }
+${css}
+</style></head>
+<body><div class="WordSection1">${clone.innerHTML}</div></body></html>`;
+
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `${name} — Security Brief.doc`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast('Word document downloaded', 'success');
+  } catch (e) {
+    console.error('[Word export]', e);
+    toast('Could not build the Word file — see console', 'error');
+  } finally {
+    reset();
+  }
+}
+
 // ── Email-friendly PDF export ────────────────────────────────────────────────
 // Uses the browser's print pipeline (which is the only thing that renders the
 // brief layout correctly) and pre-shrinks every photo to ~800px JPEG before
