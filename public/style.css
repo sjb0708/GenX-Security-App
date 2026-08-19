@@ -1643,7 +1643,12 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 #printDocument table.pb-table td { font-size: 9.5pt; vertical-align: top; color: #111827;
   padding: 3.5pt 10pt 3.5pt 0; border: none; border-bottom: 0.4pt solid #e5e7eb; background: none; }
 #printDocument table.pb-table tr { break-inside: avoid; page-break-inside: avoid; }
-#printDocument table.pb-table tbody tr:nth-child(-n+3) { break-before: avoid; page-break-before: avoid; }
+/* The lead row group — the first rows under the column header — is
+   unbreakable, so a section heading can never be left at the foot of a page
+   with its column header and no data beneath it. */
+#printDocument table.pb-table tbody.pb-lead {
+  break-inside: avoid; page-break-inside: avoid;
+}
 #printDocument .pb-time { font-weight: 700; white-space: nowrap; }
 
 #printDocument table.pb-roster { width: 100%; border-collapse: collapse; margin: 3pt 0 8pt;

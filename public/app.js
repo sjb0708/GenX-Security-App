@@ -2047,12 +2047,26 @@ function pText(label, body) {
   return `${label ? `<h3 class="pb-h3">${esc(label)}</h3>` : ''}<p class="pb-p">${esc(body).replace(/\n/g, '<br>')}</p>`;
 }
 
+// A table is emitted as two tables: a lead chunk holding the column header and
+// the first few rows, marked unbreakable, then the remainder. That guarantees a
+// section heading can never sit at the foot of a page with its column header
+// and no data under it — the lead chunk moves as one unit. Relying on
+// break-before:avoid on individual rows did not do this reliably.
+const PB_LEAD_ROWS = 4;
+
 function pTable(headers, rows) {
   if (!rows.length) return '';
-  return `<table class="pb-table">
-    <thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
-  </table>`;
+  const head = `<thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>`;
+  const body = rs => `<tbody>${rs.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  const lead = rows.slice(0, PB_LEAD_ROWS);
+  const rest = rows.slice(PB_LEAD_ROWS);
+  // One table, two row groups. The lead group is unbreakable, so the column
+  // header and the first rows always travel together; the rest flows freely.
+  // Two separate tables would repeat the column header mid-section.
+  return `<table class="pb-table">${head}` +
+         `<tbody class="pb-lead">${lead.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>` +
+         (rest.length ? body(rest) : '') +
+         `</table>`;
 }
 
 // Personnel as a plain roster table: photo, name, role, contact. No cards.
