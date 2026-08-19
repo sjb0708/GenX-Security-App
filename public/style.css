@@ -1104,7 +1104,7 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   .brief-print-footer {
     display: flex !important;
     position: fixed !important;
-    bottom: -0.6in !important;
+    bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
     justify-content: space-between !important;
@@ -1293,9 +1293,11 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   }
 
   /* ── Grids ── */
-  .grid-2 { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10pt !important; }
-  .grid-3 { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 7pt !important; }
-  .grid-4 { display: grid !important; grid-template-columns: repeat(4,1fr) !important; gap: 7pt !important; }
+  /* minmax(0,1fr), not 1fr — a bare 1fr track can't shrink below its content's
+     min-content width, which pushed the last column off the right edge. */
+  .grid-2 { display: grid !important; grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 10pt !important; }
+  .grid-3 { display: grid !important; grid-template-columns: repeat(3, minmax(0,1fr)) !important; gap: 7pt !important; }
+  .grid-4 { display: grid !important; grid-template-columns: repeat(4, minmax(0,1fr)) !important; gap: 7pt !important; }
 
   /* ── Mini stats ── */
   .mini-stat { background: #f3f4f6 !important; border: 1px solid #d1d5db !important; border-radius: 5pt !important; padding: 8pt !important; break-inside: avoid; }
@@ -1303,11 +1305,23 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   .mini-stat-lbl { color: #6b7280 !important; font-size: 7.5pt !important; text-transform: uppercase !important; }
   .mini-stat-sub { color: #374151 !important; font-size: 8.5pt !important; }
 
-  /* ── KV rows ── */
-  .view-kv { display: flex !important; flex-direction: column !important; gap: 0 !important; }
-  .kv-row { display: flex !important; padding: 4pt 0 !important; border-bottom: 1px solid #e9ebee !important; gap: 8pt !important; }
-  .kv-label { color: #6b7280 !important; font-size: 7.5pt !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.3pt !important; min-width: 90pt !important; flex-shrink: 0 !important; }
-  .kv-value { color: #111827 !important; font-size: 9.5pt !important; }
+  /* ── KV rows ──
+     kv() emits .view-key / .view-val as SIBLINGS inside .view-kv — there is no
+     .kv-row wrapper in the markup. Style those classes, and keep the two-column
+     grid the screen view uses; a flex column here stacks every label above its
+     value and the whole brief reads like a broken list. */
+  .view-kv {
+    display: grid !important;
+    grid-template-columns: 92pt 1fr !important;
+    gap: 0 8pt !important;
+    align-items: baseline !important;
+  }
+  .view-key, .view-val {
+    padding: 3.5pt 0 !important;
+    border-bottom: 1px solid #e9ebee !important;
+  }
+  .view-key { color: #6b7280 !important; font-size: 7.5pt !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.3pt !important; }
+  .view-val { color: #111827 !important; font-size: 9.5pt !important; font-weight: 500 !important; }
 
   /* ── Tags ── */
   .tag { border-radius: 3pt !important; font-size: 7.5pt !important; padding: 1.5pt 5pt !important; font-weight: 700 !important; border: 1px solid transparent !important; }
@@ -1428,7 +1442,7 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   }
 
   /* ── Channel grid ── */
-  .channel-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 5pt !important; }
+  .channel-grid { display: grid !important; grid-template-columns: repeat(3, minmax(0,1fr)) !important; gap: 5pt !important; }
   .channel-row  { background: #f3f4f6 !important; border: 1px solid #d1d5db !important; border-radius: 4pt !important; padding: 5pt 8pt !important; }
   .channel-num  { color: #c1121f !important; font-size: 11pt !important; font-weight: 800 !important; }
   .channel-use  { color: #374151 !important; font-size: 8.5pt !important; }

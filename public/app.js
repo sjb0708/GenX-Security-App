@@ -2116,15 +2116,30 @@ async function downloadEmailPDF() {
         setTimeout(resolve, 5000);
       });
     }));
+    // 3b. Wait for the webfont too. Montserrat loads from Google Fonts, and if
+    //     it lands *after* the print job has been paginated the text metrics
+    //     change underneath it — the document grows past the page count the
+    //     engine already committed to and the tail is silently cut. This is a
+    //     classic cause of "it printed but the last page is missing".
+    if (document.fonts && document.fonts.ready) {
+      await Promise.race([
+        document.fonts.ready,
+        new Promise(r => setTimeout(r, 5000))
+      ]);
+    }
+
     // One more rAF for layout to settle.
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     if (label) label.textContent = 'Print dialog…';
 
-    // 3. Restore on afterprint only. If it never fires, the on-screen view
-    //    stays slightly downscaled until reload — small price to pay vs.
-    //    risking a mid-print revert that re-bloats the PDF.
-    window.addEventListener('afterprint', () => { restore(); resetButton(); }, { once: true });
+    // 4. Do NOT swap the full-resolution images back in. afterprint fires when
+    //    the print sheet closes, but Safari's "Save as PDF" writes the file
+    //    after that — restoring there re-lays-out the document mid-capture and
+    //    can cost the last page. The on-screen view keeps the 800px versions
+    //    until the next reload, which is indistinguishable at display size.
+    originals.clear();
+    window.addEventListener('afterprint', resetButton, { once: true });
     window.print();
     resetButton();
   } catch (e) {
@@ -2591,12 +2606,15 @@ function kv(key, value) {
   return `<div class="view-key">${esc(key)}</div><div class="view-val">${esc(String(value))}</div>`;
 }
 
+// The class names matter: the print stylesheet targets .mini-stat* to restyle
+// these tiles for paper. The inline styles stay for the screen view; the print
+// rules are !important so they still win.
 function miniStat(label, value, sub) {
   return `
-    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
-      <div style="font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;">${esc(String(value))}</div>
-      <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;">${esc(label)}</div>
-      ${sub ? `<div style="font-size:11px;color:var(--text-2);margin-top:2px;">${esc(sub)}</div>` : ''}
+    <div class="mini-stat" style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+      <div class="mini-stat-val" style="font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;">${esc(String(value))}</div>
+      <div class="mini-stat-lbl" style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;">${esc(label)}</div>
+      ${sub ? `<div class="mini-stat-sub" style="font-size:11px;color:var(--text-2);margin-top:2px;">${esc(sub)}</div>` : ''}
     </div>`;
 }
 
