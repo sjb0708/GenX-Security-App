@@ -1688,7 +1688,7 @@ body.print-preview #printDocument {
   position: relative;
   width: 7.4in;                      /* letter less the 0.55in side margins */
   margin: 140px auto 80px;   /* clears the fixed top nav + view toolbar */
-  padding: 0.35in 0;
+  padding: 0;                /* no padding: it would shift where breaks fall */
   background: #fff;
   color: #111827;
   font-family: 'Montserrat', Arial, sans-serif;

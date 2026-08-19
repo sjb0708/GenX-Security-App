@@ -2328,25 +2328,51 @@ function togglePrintPreview() {
   const on = document.body.classList.toggle('print-preview');
   const label = document.getElementById('previewBtnLabel');
   if (label) label.textContent = on ? 'Exit Preview' : 'Preview Pages';
-  if (on) drawPreviewPageBreaks();
+  if (on) requestAnimationFrame(() => requestAnimationFrame(drawPreviewPageBreaks));
   else document.querySelectorAll('.pp-break').forEach(el => el.remove());
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Marks where each page actually begins, not where a ruler would fall. The
+// printer never splits a table row, a roster line, a figure or the badge pair
+// — anything that would straddle the boundary is pushed whole to the next page
+// — so the preview walks those same units and breaks where the printer will.
+// Drawing a line every page-height instead put the marker through the middle
+// of rows that never get cut.
 function drawPreviewPageBreaks() {
   const doc = document.getElementById('printDocument');
   if (!doc) return;
   doc.querySelectorAll('.pp-break').forEach(el => el.remove());
-  // Letter page less the printed top/bottom margins, at 96dpi.
-  const pageH = (11 - 0.7 - 1.15) * 96;
-  const total = doc.scrollHeight;
-  for (let n = 1; n * pageH < total; n++) {
-    const rule = document.createElement('div');
-    rule.className = 'pp-break';
-    rule.style.top = (n * pageH) + 'px';
-    rule.dataset.page = 'Page ' + (n + 1);
-    doc.appendChild(rule);
+
+  const pageH  = (11 - 0.7 - 1.15) * 96;   // letter less the printed margins, at 96dpi
+  const docTop = doc.getBoundingClientRect().top + window.scrollY;
+
+  // The atomic units the print rules guarantee are never split.
+  const units = [];
+  for (const el of doc.children) {
+    if (el.classList.contains('pp-break')) continue;
+    if (el.tagName === 'TABLE') el.querySelectorAll('tr').forEach(tr => units.push(tr));
+    else units.push(el);
   }
+
+  let pageStart = 0, page = 1, oversize = 0;
+  for (const u of units) {
+    const r   = u.getBoundingClientRect();
+    const top = r.top + window.scrollY - docTop;
+    if (r.height > pageH) { oversize++; continue; }   // taller than a page: it must split
+    if (top + r.height - pageStart > pageH) {
+      pageStart = top;
+      page += 1;
+      const rule = document.createElement('div');
+      rule.className = 'pp-break';
+      rule.style.top = top + 'px';
+      rule.dataset.page = 'Page ' + page;
+      doc.appendChild(rule);
+    }
+  }
+  const label = document.getElementById('previewBtnLabel');
+  if (label) label.textContent = `Exit Preview · ${page} page${page === 1 ? '' : 's'}`;
+  if (oversize) console.warn('[preview] %d block(s) taller than a page will split', oversize);
 }
 
 // Safari sizes a print job from the document's natural height, then pagination
