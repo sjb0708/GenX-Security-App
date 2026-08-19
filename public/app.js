@@ -2375,18 +2375,15 @@ function drawPreviewPageBreaks() {
   if (oversize) console.warn('[preview] %d block(s) taller than a page will split', oversize);
 }
 
-// Safari sizes a print job from the document's natural height, then pagination
-// adds white space and anything past the estimate is dropped. Real trailing
-// height raises the estimate; unused slack is clipped harmlessly. Safari only —
-// Chrome paginates from the real layout and would just emit blank pages.
+// Trailing slack is no longer needed. It existed because the old card layout
+// stranded whole boxes, so pagination added far more height than Safari's
+// estimate and the tail was dropped. The flat document wastes almost nothing,
+// Safari now reaches the end on its own, and the slack only produced a blank
+// final page. Kept at zero rather than deleted so the mechanism is here if a
+// much longer brief ever needs it.
 function sizePrintTail() {
   const tail = document.querySelector('#printDocument .brief-print-tail');
-  if (!tail) return;
-  const ua = navigator.userAgent;
-  const isSafari = /safari/i.test(ua) && !/chrome|chromium|crios|android|edg|opr/i.test(ua);
-  if (!isSafari) { tail.style.height = '0'; return; }
-  const blocks = document.querySelectorAll('#printDocument .pb-h2, #printDocument table').length;
-  tail.style.height = Math.min(24, 4 + blocks * 0.4).toFixed(1) + 'in';
+  if (tail) tail.style.height = '0';
 }
 
 async function downloadEmailPDF() {
