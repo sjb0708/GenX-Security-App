@@ -652,6 +652,9 @@ function populateBrief(b) {
 
   // Maps
   renderMaps(b.maps || []);
+  const noMapsCb = document.getElementById('noMapsProvided');
+  if (noMapsCb) noMapsCb.checked = !!b.noMapsProvided;
+  toggleNoMaps(false);
 
   // Defensive: re-sync every TBD-pair so an input is only disabled if its
   // checkbox is actually checked. Catches any stale .tbd-active state.
@@ -676,6 +679,9 @@ function populateBrief(b) {
 
   // Refresh empty-state class on every date/time input so blue placeholders disappear
   syncDateTimeEmptyClasses();
+
+  // Reflect whether the hotel address already mirrors the venue
+  syncSameAsVenueToggle();
 
   // Light up the green section-ready dots based on what's already filled in
   updateDots();
@@ -703,6 +709,7 @@ function showWeatherPlan(focus = false) {
 }
 
 function initBlankROSAndPeople() {
+  toggleNoMaps(false);
   renderROSTable([]);
   renderPersonGrid([], 'talentGrid', 'talent');
   renderPersonGrid([], 'crewGrid', 'crew');
@@ -876,6 +883,7 @@ function collectBrief() {
     genxstaff:  collectGenxStaff(),
     emergency:  collectEmergency(),
     maps:       collectMaps(),
+    noMapsProvided: !!document.getElementById('noMapsProvided')?.checked,
     mediaDay: {
       scheduled:  val('mediaScheduled'),
       timeWindow: val('mediaTimeWindow'),
@@ -1042,28 +1050,64 @@ function updateMapsButtons() {
   if (wz) wz.href = `https://waze.com/ul?q=${enc}`;
 }
 
-// ── Copy venue address into hotel ─────────────────────────────────────────────
+// ── Same as Venue toggle (hotel address mirrors venue) ────────────────────────
+
+const ADDR_PARTS = ['Street', 'City', 'State', 'Zip'];
+
+// Normalized address key, matching how the view page decides "same as venue"
+function addrKey(prefix) {
+  return ADDR_PARTS
+    .map(part => (document.getElementById(prefix + part)?.value || '').trim())
+    .filter(Boolean).join(', ').toLowerCase();
+}
 
 function copyVenueToHotel() {
-  const map = {
-    hotelStreet: 'venueStreet',
-    hotelCity:   'venueCity',
-    hotelState:  'venueState',
-    hotelZip:    'venueZip'
-  };
   let copied = 0;
-  for (const [hotelId, venueId] of Object.entries(map)) {
-    const src = document.getElementById(venueId);
-    const dst = document.getElementById(hotelId);
+  for (const part of ADDR_PARTS) {
+    const src = document.getElementById('venue' + part);
+    const dst = document.getElementById('hotel' + part);
     if (!src || !dst) continue;
     dst.value = src.value || '';
     copied++;
   }
-  if (copied) {
-    syncDateTimeEmptyClasses();
-    scheduleSave();
-  }
+  if (copied) syncDateTimeEmptyClasses();
 }
+
+function clearHotelAddress() {
+  for (const part of ADDR_PARTS) {
+    const dst = document.getElementById('hotel' + part);
+    if (dst) dst.value = '';
+  }
+  syncDateTimeEmptyClasses();
+}
+
+// Reflect the real state: on only when the hotel address already matches the venue
+function syncSameAsVenueToggle() {
+  const cb = document.getElementById('hotelSameAsVenue');
+  if (!cb) return;
+  const v = addrKey('venue');
+  cb.checked = !!v && v === addrKey('hotel');
+}
+
+function toggleSameAsVenue() {
+  const cb = document.getElementById('hotelSameAsVenue');
+  if (!cb) return;
+  if (cb.checked) copyVenueToHotel(); else clearHotelAddress();
+  scheduleSave();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  for (const part of ADDR_PARTS) {
+    // Venue edits flow through to the hotel while the toggle is on
+    document.getElementById('venue' + part)?.addEventListener('input', () => {
+      if (document.getElementById('hotelSameAsVenue')?.checked) copyVenueToHotel();
+      else syncSameAsVenueToggle();
+    });
+    // Hand-editing the hotel address turns the toggle off
+    document.getElementById('hotel' + part)?.addEventListener('input', syncSameAsVenueToggle);
+  }
+  syncSameAsVenueToggle();
+});
 
 // ── Uniform toggle ────────────────────────────────────────────────────────────
 
@@ -1864,6 +1908,17 @@ function replaceMapImage(btn) {
   if (input) input.click();
 }
 
+// When on, the maps grid is hidden but kept in the DOM so any already-uploaded
+// maps still round-trip through collectMaps() untouched.
+function toggleNoMaps(save = true) {
+  const on   = !!document.getElementById('noMapsProvided')?.checked;
+  const grid = document.getElementById('mapsGrid');
+  const add  = document.getElementById('addMapBtn');
+  if (grid) grid.style.display = on ? 'none' : '';
+  if (add)  add.style.display  = on ? 'none' : '';
+  if (save) { scheduleSave(); updateDots(); }
+}
+
 function promptAddMap() {
   const title = prompt('Map title (e.g. "Venue Floor Plan"):');
   if (title !== null) { addMapZone({ title }); scheduleSave(); }
@@ -1924,6 +1979,7 @@ function updateDots() {
     crew:       () => document.querySelectorAll('#crewGrid .person-card').length > 0,
     emergency:  () => document.querySelectorAll('#emergencyBody tr').length > 0,
     maps:       () => document.querySelectorAll('#mapsGrid .map-zone').length > 0
+                        || !!document.getElementById('noMapsProvided')?.checked
   };
   Object.entries(checks).forEach(([id, fn]) => {
     const dot = document.getElementById(`dot-${id}`);
@@ -2201,7 +2257,7 @@ function renderBriefView(b, id) {
           ${kv('Type',           v.type)}
         </div>
         ${isContentValue(v.priorIncidents) ? `<div style="margin-top:10px;"><div class="freetext-label" style="color:var(--red);">Security Concerns — Past 12 Months</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(v.priorIncidents)}</div></div>` : ''}
-        ${sameAsVenue ? `<div style="margin-top:12px;font-size:11px;color:var(--text-3);font-style:italic;">Talent lodging on-site at venue${h.checkin ? ` · Check-in ${formatDate(h.checkin)}` : ''}${h.checkout ? ` · Check-out ${formatDate(h.checkout)}` : ''}</div>` : ''}`);
+        ${sameAsVenue ? `<div style="margin-top:12px;font-size:14px;font-weight:600;color:var(--text-2);font-style:italic;">Talent lodging on-site at venue${h.checkin ? ` · Check-in ${formatDate(h.checkin)}` : ''}${h.checkout ? ` · Check-out ${formatDate(h.checkout)}` : ''}</div>` : ''}`);
       const hotelCard = hasHotel && !sameAsVenue ? viewPanel('🏨', 'Hotel', `
         <div class="view-kv">
           ${kv('Name',      h.name)}
@@ -2494,7 +2550,12 @@ function renderBriefView(b, id) {
             </div>
             <img src="${esc(m.image)}" alt="${esc(m.title)}" style="display:block;width:100%;height:auto;object-fit:contain;max-height:600px;background:#000;">
           </div>`).join('')}
-      </div>`, 'maps-panel') : ''}
+      </div>`, 'maps-panel')
+      : (b.noMapsProvided
+          ? viewPanel('\u{1F5FA}\uFE0F', 'Venue Maps &amp; Diagrams',
+              `<div style="font-size:14px;font-weight:600;color:var(--text-2);font-style:italic;">No maps provided to security team</div>`,
+              'maps-panel')
+          : '')}
 
     <div class="brief-endmark" style="text-align:center;padding:32px 0 16px;color:var(--text-3);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">
       — GenX Security Brief System — Confidential Document —

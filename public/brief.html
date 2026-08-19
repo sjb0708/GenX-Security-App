@@ -366,7 +366,13 @@
         <div class="section-icon">🏨</div>
         <h2>Hotel Information</h2>
       </div>
-      <button type="button" class="btn btn-sm btn-ghost" onclick="copyVenueToHotel()" title="Copy venue address into hotel fields">Same as Venue</button>
+      <div class="toggle-row" style="padding:0;gap:10px;" title="On when talent is lodging on-site — mirrors the venue address into the hotel fields">
+        <div class="toggle-label" style="font-size:12px;">Same as Venue</div>
+        <label class="toggle">
+          <input type="checkbox" id="hotelSameAsVenue" onchange="toggleSameAsVenue()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </div>
     <div class="panel-body">
       <div class="grid-2">
@@ -1257,8 +1263,18 @@
       <h2>Venue Maps &amp; Diagrams</h2>
     </div>
     <div class="panel-body">
+      <div class="toggle-row" style="padding:0 0 16px;">
+        <div class="toggle-info">
+          <div class="toggle-label">No Maps Provided to Security Team</div>
+          <div class="toggle-desc">The venue did not supply floor plans or diagrams</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="noMapsProvided" onchange="toggleNoMaps()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
       <div class="maps-grid" id="mapsGrid"></div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:16px;" onclick="promptAddMap()">+ Add Map</button>
+      <button class="btn btn-ghost btn-sm" id="addMapBtn" style="margin-top:16px;" onclick="promptAddMap()">+ Add Map</button>
     </div>
   </section>
 
