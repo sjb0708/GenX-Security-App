@@ -2426,7 +2426,7 @@ function renderBriefView(b, id) {
       ${ac.genxCred && (ac.genxCred.frontImage || ac.genxCred.backImage || ac.genxCred.name) ? `
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);margin-bottom:12px;">GenX Security Credentials</div>
-          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px;">
+          <div class="cred-card" style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px;">
             ${ac.genxCred.name ? `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">${esc(ac.genxCred.name)}</div>` : ''}
             ${ac.genxCred.issuedBy ? `<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Issued by: ${esc(ac.genxCred.issuedBy)}</div>` : ''}
             <div class="cred-img-row" style="display:flex;gap:16px;flex-wrap:wrap;">
@@ -2441,7 +2441,7 @@ function renderBriefView(b, id) {
       ${isContentValue(ac.castCrewAccess) ? `<div style="margin-top:12px;"><div class="freetext-label">Cast &amp; Crew Access</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.castCrewAccess)}</div></div>` : ''}
       ${isContentValue(ac.teamArrival) ? `<div style="margin-top:12px;"><div class="freetext-label" style="color:var(--gold);">GenX Arrival — Door / Meet / Time</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.teamArrival)}</div></div>` : ''}
       ${isContentValue(ac.additionalCredentials) ? `<div style="margin-top:12px;"><div class="freetext-label">Additional Credentials (Venue-Stated)</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.additionalCredentials)}</div></div>` : ''}
-      ${isContentValue(ac.parkingNotes) ? `<div style="margin-top:12px;"><div class="freetext-label">Parking Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.parkingNotes)}</div></div>` : ''}`)}
+      ${isContentValue(ac.parkingNotes) ? `<div style="margin-top:12px;"><div class="freetext-label">Parking Notes</div><div class="freetext-body" style="white-space:pre-wrap;line-height:1.6;">${esc(ac.parkingNotes)}</div></div>` : ''}`, 'long-panel')}
 
     <!-- Load In/Out -->
     ${viewPanel('🚚', 'Load In / Load Out', `

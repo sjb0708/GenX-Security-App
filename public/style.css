@@ -1252,14 +1252,24 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
     border-radius: 0 !important;
     overflow: visible !important;
     margin-bottom: 14pt !important;
-    /* NEVER make a panel atomic. WebKit drops (does not fragment) an
-       unbreakable box taller than one page, so a long panel would vanish
-       from Save-as-PDF entirely. Atomicity lives on the leaf items below,
-       which are always shorter than a page. */
+    /* A boxed section prints as one unit — a heading stranded at the foot of a
+       page with its content overleaf is the single worst thing this document
+       did. The sections that can legitimately run longer than a page are
+       exempted below (.ros-panel, .people-panel, .maps-panel, .long-panel);
+       everything else is short enough to keep together safely. That exemption
+       matters: WebKit DROPS an unbreakable box taller than a page instead of
+       splitting it, so only sections that always fit may be atomic. */
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  .grid-2 { break-inside: avoid !important; page-break-inside: avoid !important; }
+
+  /* Sections with no upper bound on length stay breakable. */
+  .view-panel.long-panel,
+  .view-panel.long-panel .view-panel-body {
     break-inside: auto !important;
     page-break-inside: auto !important;
   }
-  .grid-2 { break-inside: auto !important; page-break-inside: auto !important; }
   .view-panel-header {
     background: transparent !important;
     border-bottom: 1.5pt solid #c1121f !important;
@@ -1500,7 +1510,8 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
      Containers stay breakable on purpose — see the note above .view-panel. */
   .brief-header-block { page-break-after: avoid; }
   .mini-stat, .person-card, .contact-card, .kv-row,
-  .map-card, .freetext-body, .channel-row,
+  .map-card, .freetext-body, .channel-row, .cred-card,
+  .view-kv, .contact-cards-grid,
   .data-table tr, .ros-table tr {
     break-inside: avoid !important; page-break-inside: avoid !important;
   }
