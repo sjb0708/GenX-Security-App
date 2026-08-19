@@ -2328,9 +2328,12 @@ function buildPrintBrief(b) {
 function togglePrintPreview() {
   const on = document.body.classList.toggle('print-preview');
   const label = document.getElementById('previewBtnLabel');
-  if (label) label.textContent = on ? 'Exit Preview' : 'Preview Pages';
-  if (on) requestAnimationFrame(() => requestAnimationFrame(drawPreviewPageBreaks));
-  else document.querySelectorAll('.pp-break').forEach(el => el.remove());
+  if (on) {
+    const pages = paginatePrintDocument(window._printBrief || {});
+    if (label) label.textContent = `Exit Preview · ${pages} page${pages === 1 ? '' : 's'}`;
+  } else if (label) {
+    label.textContent = 'Preview Pages';
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -2389,6 +2392,143 @@ function drawPreviewPageBreaks() {
 // Safari now reaches the end on its own, and the slack only produced a blank
 // final page. Kept at zero rather than deleted so the mechanism is here if a
 // much longer brief ever needs it.
+// ── Pagination ───────────────────────────────────────────────────────────────
+// The browser is not allowed to decide where pages break. The document is laid
+// out into fixed-height sheets in code — the same approach a hand-built brief
+// uses — so a page break can only happen where we put one. That removes the
+// entire class of problems this file kept hitting: stranded headings, sections
+// sliced in half, content dropped off the end by an engine that mis-estimated
+// the page count, and Safari and Chrome disagreeing about any of it.
+//
+// It also means real page numbers, and a running header and footer on every
+// page, neither of which CSS can generate in a browser.
+
+const SHEET_W_IN   = 7.5;    // Letter less the 0.5in @page margins
+const SHEET_H_IN   = 9.85;   // just under the 10in printable area, so a sheet
+                             // can never tip onto a second physical page
+const SHEET_PAD_T  = 0.30;   // running header sits in this band
+const SHEET_PAD_B  = 0.34;   // running footer sits in this band
+const SHEET_BODY_H = (SHEET_H_IN - SHEET_PAD_T - SHEET_PAD_B) * 96;
+
+function sheetChrome(brief, page) {
+  const v = brief.venue || {}, tl = brief.timeline || {};
+  const when = tl.showDate ? formatDate(tl.showDate) : '';
+  return {
+    head: `<div class="pb-runhead"><span><b>GenX Corporate Security</b> &nbsp;·&nbsp; ${esc(v.name || 'Security Brief')}</span><span>Confidential — Not For Distribution</span></div>`,
+    foot: `<div class="pb-runfoot"><span>${esc(when || v.name || '')}</span><span>Prepared ${esc(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }))}</span><span class="pb-pageno" data-page="${page}"></span></div>`
+  };
+}
+
+// Split a too-tall node so it can continue on the next sheet. Tables are cut
+// between rows and the continuation carries the column header; anything else is
+// handed back whole and simply overflows rather than being silently clipped.
+function splitNode(node, room) {
+  if (node.tagName === 'SECTION') {
+    const kids = [...node.children];
+    const head = node.cloneNode(false);
+    const tail = node.cloneNode(false);
+    let used = 0, i = 0;
+    for (; i < kids.length; i++) {
+      const h = kids[i].getBoundingClientRect().height;
+      if (used + h > room && i > 0) break;
+      head.appendChild(kids[i]); used += h;
+    }
+    if (!head.children.length) return null;
+    for (; i < kids.length; i++) tail.appendChild(kids[i]);
+    return tail.children.length ? [head, tail] : [head];
+  }
+
+  if (node.tagName === 'TABLE') {
+    const rows = [...node.querySelectorAll('tbody tr')];
+    const head = node.cloneNode(true);
+    const tail = node.cloneNode(true);
+    head.querySelectorAll('tbody').forEach(tb => tb.remove());
+    tail.querySelectorAll('tbody').forEach(tb => tb.remove());
+    const hb = document.createElement('tbody'), tb = document.createElement('tbody');
+    const theadH = (node.querySelector('thead')?.getBoundingClientRect().height) || 0;
+    let used = theadH, split = 0;
+    for (; split < rows.length; split++) {
+      const h = rows[split].getBoundingClientRect().height;
+      if (used + h > room) break;
+      hb.appendChild(rows[split].cloneNode(true)); used += h;
+    }
+    if (!hb.children.length) return null;
+    for (let j = split; j < rows.length; j++) tb.appendChild(rows[j].cloneNode(true));
+    head.appendChild(hb);
+    if (!tb.children.length) return [head];
+    tail.appendChild(tb);
+    return [head, tail];
+  }
+
+  return null;
+}
+
+function paginatePrintDocument(brief) {
+  const doc = document.getElementById('printDocument');
+  if (!doc || !doc.dataset.raw) return;
+
+  const inPreview = document.body.classList.contains('print-preview');
+  const prevStyle = doc.getAttribute('style');
+  if (!inPreview) doc.style.cssText = `display:block;position:absolute;left:-10000px;top:0;width:${SHEET_W_IN}in;`;
+
+  // Start from the unpaginated markup every time so repeated prints are stable.
+  doc.innerHTML = doc.dataset.raw;
+
+  const flow = [...doc.children].filter(n => !n.classList.contains('brief-print-tail'));
+  flow.forEach(n => n.remove());
+  doc.innerHTML = '';
+
+  let sheets = [], sheet = null, body = null, page = 0;
+  const newSheet = () => {
+    page += 1;
+    sheet = document.createElement('div');
+    sheet.className = 'pb-sheet';
+    const c = sheetChrome(brief, page);
+    sheet.innerHTML = c.head + '<div class="pb-sheet-body"></div>' + c.foot;
+    body = sheet.querySelector('.pb-sheet-body');
+    doc.appendChild(sheet);
+    sheets.push(sheet);
+  };
+  newSheet();
+
+  const queue = [...flow];
+  let guard = 0;
+  while (queue.length && guard++ < 2000) {
+    const node = queue.shift();
+    body.appendChild(node);
+    if (body.scrollHeight <= SHEET_BODY_H) continue;
+
+    node.remove();
+    const room = SHEET_BODY_H - body.scrollHeight;
+
+    // Try to place part of it on this sheet, but only if there is real room.
+    let parts = null;
+    if (room > 72) {                       // ~0.75in — not worth splitting for less
+      body.appendChild(node);
+      parts = splitNode(node, room);
+      node.remove();
+    }
+    if (parts) {
+      body.appendChild(parts[0]);
+      if (parts[1]) queue.unshift(parts[1]);
+    } else if (!body.children.length) {
+      body.appendChild(node);            // taller than a whole sheet: let it ride
+    } else {
+      queue.unshift(node);
+      newSheet();
+    }
+  }
+
+  doc.querySelectorAll('.pb-pageno').forEach(el => {
+    el.textContent = `Page ${el.dataset.page} of ${sheets.length}`;
+  });
+
+  if (!inPreview) {
+    if (prevStyle === null) doc.removeAttribute('style'); else doc.setAttribute('style', prevStyle);
+  }
+  return sheets.length;
+}
+
 // A section that fits inside a page should never be split across two. Measure
 // each one and pin ONLY those that actually fit — pinning a section taller than
 // a page is what made print engines drop content earlier today. The document is
@@ -2416,11 +2556,9 @@ function sizePrintTail() {
 }
 
 async function downloadEmailPDF() {
-  // Never print the preview. Its page-width frame and the dashed break markers
-  // are screen aids; printing from preview mode baked both into the PDF.
+  // Never print the preview. Its page frame is a screen aid.
   if (document.body.classList.contains('print-preview')) togglePrintPreview();
-  markKeepTogether();
-  sizePrintTail();
+  paginatePrintDocument(window._printBrief || {});
 
   sizePrintTail();
 
@@ -2623,8 +2761,11 @@ function renderBriefView(b, id) {
   // shows #briefDocument, paper shows #printDocument; print CSS swaps them.
   const printDoc = document.getElementById('printDocument');
   if (printDoc) {
-    try { printDoc.innerHTML = buildPrintBrief(b); }
-    catch (e) { console.error('[print brief]', e); }
+    try {
+      printDoc.dataset.raw = buildPrintBrief(b);
+      printDoc.innerHTML = printDoc.dataset.raw;
+      window._printBrief = b;
+    } catch (e) { console.error('[print brief]', e); }
   }
 
   const _preparedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
