@@ -1111,6 +1111,17 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   #briefDocument { display: none !important; }
   #printDocument { display: block !important; }
 
+  /* Belt and braces: if a print is started while the on-screen preview is
+     open, none of the preview's screen furniture may reach the paper. */
+  .pp-break { display: none !important; }
+  body.print-preview #printDocument {
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    position: static !important;
+  }
+
   .brief-print-footer {
     justify-content: center !important;
     letter-spacing: 1.4pt !important;

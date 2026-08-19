@@ -2416,6 +2416,9 @@ function sizePrintTail() {
 }
 
 async function downloadEmailPDF() {
+  // Never print the preview. Its page-width frame and the dashed break markers
+  // are screen aids; printing from preview mode baked both into the PDF.
+  if (document.body.classList.contains('print-preview')) togglePrintPreview();
   markKeepTogether();
   sizePrintTail();
 
