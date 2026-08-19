@@ -2207,12 +2207,14 @@ const pub = path.join(__dirname, 'public');
 // their ?v= rewritten to this at serve time, so a deploy can never ship HTML
 // pointing at a stale app.js/style.css because someone forgot to bump a
 // hard-coded number. /api/build lets an already-open tab notice it is stale.
+// Hash the file CONTENTS, not their mtimes — Vercel gives every deployed file
+// the same fixed mtime, so an mtime-derived stamp never changes and the
+// staleness check silently does nothing.
 const BUILD = (() => {
   try {
-    const newest = ['app.js', 'style.css']
-      .map(f => fs.statSync(path.join(pub, f)).mtimeMs)
-      .reduce((a, b) => Math.max(a, b), 0);
-    return Math.floor(newest).toString(36);
+    const h = require('crypto').createHash('md5');
+    for (const f of ['app.js', 'style.css']) h.update(fs.readFileSync(path.join(pub, f)));
+    return h.digest('hex').slice(0, 10);
   } catch (_) { return Date.now().toString(36); }
 })();
 
