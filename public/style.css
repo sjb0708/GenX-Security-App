@@ -1289,14 +1289,18 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
     break-inside: auto !important; page-break-inside: auto !important;
   }
   .ros-panel .view-panel-body { overflow: visible !important; }
-  /* Chain heading -> day label -> table header so Run of Show cannot start
-     with its title alone at the foot of a page. */
+  /* Chain heading -> day label -> the first few rows, so a day cannot start
+     with its title and a single row stranded at the foot of a page. Four rows
+     is enough to be worth starting; if they don't fit, the whole group moves.
+     NOTE: no break-after on thead — that suppresses Chrome's repetition of
+     table-header-group, which left continuation pages with no column header. */
   .ros-panel .view-panel-header,
-  .ros-day-label,
-  .ros-table thead {
+  .ros-day-label {
     break-after: avoid !important; page-break-after: avoid !important;
   }
-  .ros-table tbody tr:first-child { break-before: avoid !important; page-break-before: avoid !important; }
+  .ros-table tbody tr:nth-child(-n+4) {
+    break-before: avoid !important; page-break-before: avoid !important;
+  }
 
   /* Maps panel — the cards are atomic and capped shorter than one page, so
      each map lands on a page whole without any forced break. Forced breaks
@@ -1418,8 +1422,11 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
      any unbreakable block taller than a page — cards silently vanish.
      Let the panel fragment; each card stays atomic below. Same escape
      hatch as .ros-panel / .maps-panel. */
+  /* People sections are boxes too — heading and cards stay together. Only
+     Run of Show and Maps stay breakable, because those two have no upper
+     bound on length. */
   .view-panel.people-panel {
-    break-inside: auto !important; page-break-inside: auto !important;
+    break-inside: avoid !important; page-break-inside: avoid !important;
   }
   .view-panel.people-panel .view-panel-body { overflow: visible !important; }
   /* NO forced page break before personnel — Safari computes total page
