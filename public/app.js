@@ -2034,6 +2034,11 @@ function pSec(title)      { return `<h2 class="sec mt">${esc(title)}</h2>`; }
 function pSub(title)      { return `<h3 class="sub">${esc(title)}</h3>`; }
 function pChip(label, val){ return pHas(val) ? `<div class="chip"><b>${esc(label)}</b>${esc(String(val))}</div>` : ''; }
 
+function pRow(left, right) {
+  if (!left && !right) return '';
+  return `<div class="row"><div class="col">${left || ''}</div><div class="col">${right || ''}</div></div>`;
+}
+
 function pData(pairs) {
   const rows = pairs.filter(x => pHas(x[1]))
     .map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td class="v">${esc(String(v))}</td></tr>`).join('');
@@ -2093,72 +2098,60 @@ function buildPrintBrief(b) {
   // ── Cover block ────────────────────────────────────────────────────────────
   out.push(`<div class="eyebrow">Security Brief · Confidential</div>
     <h1>${esc(v.name || 'Security Brief')}</h1>
-    <div class="lede">${esc([[v.city, v.state].filter(Boolean).join(', '), v.businessName].filter(Boolean).join(' · '))}</div>`);
+    ${v.businessName && v.businessName !== v.name ? `<div class="lede">${esc(v.businessName)}</div>` : ''}
+    <div class="chips mt">
+      ${pChip('Date', dt(tl.showDate, tl.showDateTBD))}
+      ${pChip('Location', [v.city, v.state].filter(Boolean).join(', '))}
+      ${pChip('Doors', tm(tl.doorsTime, tl.doorsTimeTBD))}
+      ${pChip('Show', tm(tl.showTime, tl.showTimeTBD))}
+      ${pChip('Capacity', v.capacity)}
+    </div>
+    <div class="lede" style="font-size:8.4pt;margin-top:7pt;">Prepared by GenX Corporate Security · ${esc(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }))}</div>`);
 
-  const days = rosNormalizeDays(b.runofshow || []).filter(d => d.rows.length);
-  out.push(`<div class="chips mt">
-    ${pChip('Show Days', dt(tl.showDate, tl.showDateTBD))}
-    ${pChip('Doors', tm(tl.doorsTime, tl.doorsTimeTBD))}
-    ${pChip('Show', tm(tl.showTime, tl.showTimeTBD))}
-    ${pChip('Capacity', v.capacity)}
-    ${pChip('Configuration', cw.audienceType)}
-    ${pChip('Venue Type', v.type)}
-  </div>`);
+  const sameLodging = addr(v) && addr(h) && addr(v).toLowerCase() === addr(h).toLowerCase();
+
+  out.push(pSec('Venue'));
+  out.push(pRow(
+    pData([['Location', v.name], ['Business Name', v.businessName], ['Address', addr(v)]]),
+    pData([['Phone', v.phone], ['Capacity', v.capacity], ['Type', v.type]])));
+  if (sameLodging) out.push(`<div class="lede" style="font-size:9pt;font-style:italic;margin-top:6pt;">Talent lodging on-site at venue</div>`);
+  else if (h.name || addr(h)) out.push(pRow(pData([['Hotel', h.name], ['Address', addr(h)], ['Phone', h.phone]]),
+    pData([['Check-In', h.checkin ? formatDate(h.checkin) : ''], ['Check-Out', h.checkout ? formatDate(h.checkout) : '']])));
+  out.push(pCallout('Security Concerns — Past 12 Months', v.priorIncidents));
 
   // Timeline strip
   const steps = [
-    { d: dt(tl.arrivalDate, tl.arrivalDateTBD), v: 'Arrival', x: (addr(v) && addr(h) && addr(v).toLowerCase() === addr(h).toLowerCase()) ? 'Talent lodging on-site' : (h.name || '') },
-    { d: dt(tl.showDate, tl.showDateTBD), v: 'Show Day', x: [tm(tl.doorsTime, tl.doorsTimeTBD) && 'Doors ' + tm(tl.doorsTime, tl.doorsTimeTBD), tm(tl.showTime, tl.showTimeTBD) && 'Show ' + tm(tl.showTime, tl.showTimeTBD)].filter(Boolean).join(' · '), hot: true },
-    { d: li.loadoutDate ? formatDate(li.loadoutDate) : '', v: 'Load-Out', x: li.loadoutTime ? formatTime(li.loadoutTime) : '' },
-    { d: dt(tl.departureDate, tl.departureDateTBD), v: 'Departure', x: 'Tour movement' }
-  ].filter(s => s.d || s.x);
-  if (steps.length) out.push(`<div class="tl mt">${steps.map(s => `
-    <div class="step${s.hot ? ' hot' : ''}">
-      <div class="d">${esc(s.d || '')}</div>
-      <div class="v">${esc(s.v)}</div>
-      ${s.x ? `<div class="x">${esc(s.x)}</div>` : ''}
-    </div>`).join('')}</div>`);
+    { d: dt(tl.arrivalDate, tl.arrivalDateTBD), v: 'Arrival', x: sameLodging ? 'Talent lodging on-site' : (h.name || '') },
+    { d: dt(tl.showDate, tl.showDateTBD), v: 'Show Day', x: tm(tl.showTime, tl.showTimeTBD) ? 'Show ' + tm(tl.showTime, tl.showTimeTBD) : '', hot: true },
+    { d: tm(tl.doorsTime, tl.doorsTimeTBD), v: 'Doors', x: '' },
+    { d: dt(tl.departureDate, tl.departureDateTBD), v: 'Departure', x: '' }
+  ].filter(x => x.d);
+  if (steps.length) {
+    out.push(pSec('Event Timeline'));
+    out.push(`<div class="tl">${steps.map(x => `
+      <div class="step${x.hot ? ' hot' : ''}">
+        <div class="d">${esc(x.d)}</div><div class="v">${esc(x.v)}</div>
+        ${x.x ? `<div class="x">${esc(x.x)}</div>` : ''}
+      </div>`).join('')}</div>`);
+    out.push(pCallout('Timeline Notes', tl.notes));
+  }
 
-  // Venue + critical contacts, side by side
   const person = (o, role) => o ? pContact(role, o.name, o.title || o.role, o.cell || o.phone, o.email) : '';
-  const lead = (b.genxstaff || [])[0];
-  out.push(`<div class="row mt">
-    <div class="col">
-      <h2 class="sec">Venue</h2>
-      ${pData([['Business Name', v.businessName || v.name], ['Address', addr(v)], ['Main Phone', v.phone],
-        ['Capacity', v.capacity], ['Venue Type', v.type],
-        ['Law Enforcement', [pYN(ct.leOnSite) === 'Yes' ? ct.leAgency : '', pYN(ct.leOnSite) === 'Yes' ? '— officers on-site' : ''].filter(Boolean).join(' ')],
-        ['Talent Lodging', (addr(v) && addr(h) && addr(v).toLowerCase() === addr(h).toLowerCase()) ? 'On-site at venue' : (h.name || addr(h))],
-        ['Ops Center', pYN(comm.opsCenterOnSite) === 'Yes' ? 'On-site' + (pYN(comm.venueShareComms) === 'No' ? ' — venue does not share comms' : '') : '']])}
-    </div>
-    <div class="col">
-      <h2 class="sec">Critical Contacts</h2>
-      ${person(ct.primary, 'Venue Security — Primary')}
-      ${person(ct.backup, 'Venue Security — Backup')}
-      ${lead ? pContact('GenX — Security Lead', lead.name, lead.role, lead.phone, lead.email) : ''}
-    </div>
-  </div>`);
+  out.push(pSec('Security Contacts'));
+  out.push(pRow(
+    pSub('Law Enforcement') + pData([['Officers On-Site', pYN(ct.leOnSite)], ['Agency', ct.leAgency]]),
+    person(ct.primary, 'Primary') + person(ct.backup, 'Backup')));
 
-  // Outstanding items, called out like the reference brief.
-  const gaps = [];
-  const gapIf = (label, val) => { if (!pHas(val)) gaps.push(label); };
-  gapIf('evacuation routing', ev.primaryExit); gapIf('rally point', ev.rallyPoint);
-  gapIf('safe rooms', (ev.safeRooms || []).filter(x => pHas(x)).join(''));
-  gapIf('EAP', ev.eapNotes); gapIf('lockdown protocol', ev.lockdownProtocol);
-  gapIf('venue staffing counts', st.totalSecurity); gapIf('cast & crew access route', ac.castCrewAccess);
-  gapIf('GenX arrival door/time', ac.teamArrival);
-  if (gaps.length) out.push(pCallout(`Advance status — ${gaps.length} item${gaps.length === 1 ? '' : 's'} outstanding from venue`,
-    gaps.join(', ').replace(/^./, c => c.toUpperCase()) + ' were not provided by the venue at time of publication. Close all items during the on-site walkthrough before doors.', true));
-
-  // ── Body sections ──────────────────────────────────────────────────────────
-  out.push(pSec('Entry & Guest Screening'));
+  out.push(pSec('Ingress & Screening'));
   const methods = [['evolv', 'Evolv'], ['magnetometer', 'Magnetometer'], ['wand', 'Wand'],
     ['bagCheck', 'Bag Check'], ['patDown', 'Pat Down'], ['visualInspection', 'Visual Inspection']]
     .filter(([k]) => ing[k]).map(([, l]) => l).join(', ');
-  out.push(pData([['Screening Methods', methods], ['Ticketing', ing.ticketingType],
-    ['Entry Points', ing.gateCount], ['Gates Open', ing.gateOpenTime ? formatTime(ing.gateOpenTime) : ''],
-    ['Barricade Needed', pYN(cw.barricadeNeeded)], ['Audience', cw.audienceType],
-    ['Barricade At Stage', pYN(cw.barricadeAtStage)]]));
+  out.push(pRow(
+    pData([['Methods', methods], ['Ticketing', ing.ticketingType], ['Entry Points', ing.gateCount],
+      ['Gates Open', ing.gateOpenTime ? formatTime(ing.gateOpenTime) : '']]),
+    pSub('Crowd & Barricade') + pData([['Barricade Needed', pYN(cw.needed)],
+      ['Audience', cw.audience], ['Barricade Type', cw.barricadeType],
+      ['Barricade At Stage', pYN(cw.stageBarricade)]])));
   if ((ing.prohibitedItems || []).length) {
     out.push(pSub('Prohibited Items'));
     out.push(`<div class="chips">${(ing.prohibitedItems || []).map(i => `<div class="ban">${esc(i)}</div>`).join('')}</div>`);
@@ -2167,53 +2160,51 @@ function buildPrintBrief(b) {
 
   out.push(pSec('Staffing'));
   out.push(`<div class="stats">
-    ${[['Total Security', st.totalSecurity], ['Law Enforcement', st.leo], ['Backstage', st.backstageSecurity], ['GenX Security', st.genxSecurity]]
+    ${[['Security', st.totalSecurity], ['LEO', st.leo], ['Backstage', st.backstageSecurity], ['GenX Security', st.genxSecurity]]
       .map(([l, n]) => `<div class="stat"><div class="n${pHas(n) ? '' : ' gap'}">${pHas(n) ? esc(String(n)) : '—'}</div><div class="l">${esc(l)}</div></div>`).join('')}
   </div>`);
-  out.push(pData([['Uniformed', pYN(st.uniformed)], ['Uniform', st.uniformDesc]]));
-  out.push(pCallout('Staffing Notes', st.notes));
+  out.push(pRow(pCallout('Uniform', st.uniformDesc), pCallout('Staffing Notes', st.notes)));
+
+  out.push(pSec('Communications'));
+  out.push(pRow(
+    pData([['Venue Shares Comms', pYN(comm.venueShareComms)], ['Ops Center On Site', pYN(comm.opsCenterOnSite)],
+      ['Cell OK', pYN(comm.cellOk)], ['Security Operations', comm.securityOps], ['Ops Phone', comm.securityOpsPhone]]),
+    pSub('CCTV & Surveillance') + pData([['Coverage', pYN((b.cctv || {}).coverage)], ['Monitored Live', pYN((b.cctv || {}).monitored)]])));
+  const chans = (comm.channels || []).filter(c => c && (c.num || c.use));
+  if (chans.length) { out.push(pSub('Radio Channels'));
+    out.push(`<div class="chips">${chans.map(c => `<div class="chip"><b>Ch ${esc(String(c.num || ''))}</b>${esc(c.use || '')}</div>`).join('')}</div>`); }
+  out.push(pRow(pCallout('Comms Notes', comm.notes), pCallout('Camera Notes', (b.cctv || {}).notes)));
 
   out.push(pSec('Medical & Emergency'));
-  out.push(pData([['Trained Medical Staff On-Site', pYN(med.onSite)], ['Responder Count', med.firstResponderCount],
-    ['First Aid Location', med.firstAidLocations], ['AED On Site', pYN(med.aedOnSite)],
-    ['AED Near Stage', pYN(med.aedNearStage)], ['Medical To Green Room', pYN(med.toGreenRoom)],
-    ['Announcement Method', med.announcementMethod]]));
+  out.push(pRow(
+    pData([['Trained Medical Staff On-Site', pYN(med.onSite)], ['Responder Count', med.firstResponderCount],
+      ['First Aid Location', med.firstAidLocations]]),
+    pData([['AED On Site', pYN(med.aedOnSite)], ['AED Near Stage', pYN(med.aedNearStage)],
+      ['Medical To Green Room', pYN(med.toGreenRoom)], ['Announcement Method', med.announcementMethod]])));
   out.push(pCallout('Emergency Protocol', med.emergencyProtocol));
 
   out.push(pSec('Evacuation'));
-  out.push(pData([['Primary Exit', ev.primaryExit], ['Secondary Exit', ev.secondaryExit],
-    ['Rally Point', ev.rallyPoint], ['Safe Rooms', (ev.safeRooms || []).filter(x => pHas(x)).join(', ')]]));
-  out.push(pCallout('EAP Notes', ev.eapNotes));
-  out.push(pCallout('Lockdown Protocol', ev.lockdownProtocol));
+  out.push(pRow(
+    pData([['Primary Exit', ev.primaryExit], ['Secondary Exit', ev.secondaryExit]]),
+    pData([['Rally Point', ev.rallyPoint], ['Safe Rooms', (ev.safeRooms || []).filter(x => pHas(x)).join(', ')]])));
+  out.push(pRow(pCallout('EAP Notes', ev.eapNotes), pCallout('Lockdown Protocol', ev.lockdownProtocol)));
   out.push(pCallout('Weather Plan', ev.weatherPlan));
 
   out.push(pSec('Meet & Greet / Gift Policy'));
-  out.push(pData([['Scheduled', pYN(mg.scheduled)], ['Time', mg.time], ['Duration', mg.duration],
-    ['Location', mg.location], ['Total VIPs', mg.totalVips], ['GenX Staff Assigned', mg.genxStaff]]));
-  out.push(pCallout('M&G Protocol', mg.protocol));
-  out.push(pCallout('Gift Policy', mg.giftPolicy));
-
-  out.push(pSec('Communications'));
-  out.push(pData([['Venue Shares Comms', pYN(comm.venueShareComms)], ['Ops Center On Site', pYN(comm.opsCenterOnSite)],
-    ['Security Operations', comm.securityOps], ['Ops Phone', comm.securityOpsPhone], ['Cell Coverage OK', pYN(comm.cellOk)]]));
-  const chans = (comm.channels || []).filter(c => c && (c.num || c.use));
-  if (chans.length) {
-    out.push(pSub('Radio Channels'));
-    out.push(`<div class="chips">${chans.map(c => `<div class="chip"><b>Ch ${esc(String(c.num || ''))}</b>${esc(c.use || '')}</div>`).join('')}</div>`);
-  }
-  out.push(pCallout('Comms Notes', comm.notes));
+  out.push(pRow(
+    pData([['Scheduled', pYN(mg.scheduled)], ['Time', mg.time], ['Duration', mg.duration]]),
+    pData([['Location', mg.location], ['Total VIPs', mg.totalVips], ['GenX Staff Assigned', mg.genxStaff]])));
+  out.push(pRow(pCallout('M&G Protocol', mg.protocol), pCallout('Gift Policy', mg.giftPolicy)));
 
   out.push(pSec('Access Control'));
-  out.push(pData([['Venue Access Devices', (ac.doorSystems || []).join(', ')],
-    ['Backstage Access-Controlled', pYN(ac.backstageControlled)],
-    ['Additional Credentials (Venue-Stated)', ac.additionalCredentials],
-    ['CCTV Coverage', pYN((b.cctv || {}).coverage)], ['CCTV Monitored Live', pYN((b.cctv || {}).monitored)]]));
+  out.push(pRow(
+    pData([['Venue Access Devices', (ac.doorSystems || []).join(', ')],
+      ['Backstage Access-Controlled', pYN(ac.backstageControlled)]]),
+    pData([['Additional Credentials (Venue-Stated)', ac.additionalCredentials]])));
   const creds = (ac.credentials || []).filter(c => c && c.name);
-  if (creds.length) {
-    out.push(pSub('Venue-Required Credentials'));
+  if (creds.length) { out.push(pSub('Venue-Required Credentials'));
     out.push(`<table class="sched"><thead><tr><th>Credential</th><th>Color</th><th>Access Level</th><th>Location</th></tr></thead>
-      <tbody>${creds.map(c => `<tr><td>${esc(c.name || '')}</td><td>${esc(c.color || '')}</td><td>${esc(c.level || '')}</td><td>${esc(c.location || '')}</td></tr>`).join('')}</tbody></table>`);
-  }
+      <tbody>${creds.map(c => `<tr><td>${esc(c.name || '')}</td><td>${esc(c.color || '')}</td><td>${esc(c.level || '')}</td><td>${esc(c.location || '')}</td></tr>`).join('')}</tbody></table>`); }
   const gc = ac.genxCred || {};
   if (gc.frontImage || gc.backImage || gc.name) {
     out.push(pSub(`GenX Security Credentials${gc.name ? ' — ' + gc.name : ''}`));
@@ -2223,25 +2214,23 @@ function buildPrintBrief(b) {
       <div class="kv-inline">${gc.issuedBy ? `<div>Issued by <b>${esc(gc.issuedBy)}</b></div>` : ''}${gc.notes ? `<div class="muted">${esc(gc.notes)}</div>` : ''}</div>
     </div>`);
   }
-  out.push(pCallout('Cast & Crew Access', ac.castCrewAccess));
-  out.push(pCallout('GenX Arrival — Door / Meet / Time', ac.teamArrival));
+  out.push(pRow(pCallout('Cast & Crew Access', ac.castCrewAccess), pCallout('GenX Arrival — Door / Meet / Time', ac.teamArrival)));
   out.push(pCallout('Parking Notes', ac.parkingNotes));
-  out.push(pCallout('Camera Notes', (b.cctv || {}).notes));
 
   out.push(pSec('Load In / Load Out'));
-  out.push(pData([['Load In', [li.loadinDate ? formatDate(li.loadinDate) : '', li.loadinTime ? formatTime(li.loadinTime) : ''].filter(Boolean).join(' · ')],
-    ['Dock Location', li.dockLocation],
-    ['Load Out', [li.loadoutDate ? formatDate(li.loadoutDate) : '', li.loadoutTime ? formatTime(li.loadoutTime) : ''].filter(Boolean).join(' · ')],
-    ['Vehicle Count', li.vehicleCount], ['Security At Dock', pYN(li.securityAtDock)]]));
-  out.push(pCallout('Load In Notes', li.loadinNotes));
-  out.push(pCallout('Load Out Notes', li.loadoutNotes));
+  out.push(pRow(
+    pData([['Load In', [li.loadinDate ? formatDate(li.loadinDate) : '', li.loadinTime ? formatTime(li.loadinTime) : ''].filter(Boolean).join(' · ')],
+      ['Dock Location', li.dockLocation], ['Security At Dock', pYN(li.securityAtDock)]]),
+    pData([['Load Out', [li.loadoutDate ? formatDate(li.loadoutDate) : '', li.loadoutTime ? formatTime(li.loadoutTime) : ''].filter(Boolean).join(' · ')],
+      ['Vehicle Count', li.vehicleCount]])));
+  out.push(pRow(pCallout('Load In Notes', li.loadinNotes), pCallout('Load Out Notes', li.loadoutNotes)));
 
+  const days = rosNormalizeDays(b.runofshow || []).filter(d => d.rows.length);
   if (days.length) {
     out.push(pSec('Run of Show'));
     days.forEach(d => { if (days.length > 1) out.push(pSub(d.label)); out.push(pSched(d.rows)); });
   }
 
-  // No credential tag on talent — their role line already carries it.
   if ((b.talent || []).length)    { out.push(pSec('Talent'));              out.push(pRoster(b.talent, '')); }
   if ((b.crew || []).length)      { out.push(pSec('Crew & Production'));   out.push(pRoster(b.crew, '')); }
   if ((b.genxstaff || []).length) { out.push(pSec('GenX Security Staff')); out.push(pRoster(b.genxstaff, 'GenX')); }
@@ -2256,7 +2245,7 @@ function buildPrintBrief(b) {
   if (maps.length) {
     out.push(pSec('Venue Maps & Diagrams'));
     maps.forEach(m => out.push(`<div class="mt-s"><img src="${esc(m.image)}" alt="" style="width:100%;max-height:6.4in;object-fit:contain;border:0.8pt solid var(--line);">
-      <div class="cap muted" style="font-size:7.4pt;margin-top:3pt;">${esc(m.title || '')}${m.description ? ' — ' + esc(m.description) : ''}</div></div>`));
+      <div class="muted" style="font-size:7.4pt;margin-top:3pt;">${esc(m.title || '')}${m.description ? ' — ' + esc(m.description) : ''}</div></div>`));
   } else if (b.noMapsProvided) {
     out.push(pSec('Venue Maps & Diagrams'));
     out.push(`<div class="callout amber mt-s"><div class="t">No maps provided</div>The venue did not supply floor plans or diagrams.</div>`);
@@ -2392,8 +2381,32 @@ function paginatePrintDocument(brief) {
     }
   }
 
+  // A heading must never be left as the last thing on a sheet. If one ends up
+  // there, move it (and any heading immediately before it) to the next sheet.
+  sheets.forEach((sh, i) => {
+    const next = sheets[i + 1];
+    if (!next) return;
+    const body = sh.querySelector('.pb-sheet-body');
+    const nextBody = next.querySelector('.pb-sheet-body');
+    let last = body.lastElementChild;
+    while (last && /^H[23]$/.test(last.tagName)) {
+      nextBody.insertBefore(last, nextBody.firstChild);
+      last = body.lastElementChild;
+    }
+  });
+
   doc.querySelectorAll('.pb-pageno').forEach(el => {
     el.textContent = `Page ${el.dataset.page} of ${sheets.length}`;
+  });
+
+  // Name what is actually on each page in the footer, as the reference does.
+  sheets.forEach(sh => {
+    const titles = [...sh.querySelectorAll('h2.sec')].map(h => h.textContent.trim());
+    const label = titles.length
+      ? (titles.length > 3 ? titles.slice(0, 3).join(', ') + '…' : titles.join(' · '))
+      : (brief.venue?.name || '');
+    const cell = sh.querySelector('.pb-runfoot span');
+    if (cell) cell.textContent = label;
   });
 
   if (!inPreview) {
