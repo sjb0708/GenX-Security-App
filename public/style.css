@@ -1456,7 +1456,8 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
      what made the old break-before:page rules lose pages in the first place. */
   .brief-print-tail {
     display: block !important;
-    height: 5in !important;
+    /* Height is set at print time by sizePrintTail() in app.js. */
+    height: 0;
   }
 
   /* ── Person cards (bigger, head-safe framing) ──

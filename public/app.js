@@ -2023,7 +2023,33 @@ function initSidebarSpy() {
 // if it doesn't, so a corrupted shrink never blanks a photo; (3) no timeout
 // fallback on restore — only afterprint — so a slow Save dialog never reverts
 // to full-res originals mid-print.
+// Safari sizes a print job from the document's NATURAL height, then paginating
+// adds white space — every box that will not fit in the room left on a page is
+// pushed whole to the next one — so the laid-out document ends up taller than
+// the estimate and everything past the estimate is silently dropped. Measured:
+// a brief whose Safari preview showed 8 pages saved 8 pages that ended at
+// Talent, with Crew, GenX Staff and Emergency Contacts missing entirely.
+//
+// Keeping sections whole is what makes the brief readable, and it is also what
+// creates that white space, so the shortfall grows with the number of sections.
+// Real trailing height raises the estimate; anything unused is clipped
+// harmlessly. Applied only in Safari — Chrome paginates from the real layout
+// and would just emit blank pages.
+function sizePrintTail() {
+  const tail = document.querySelector('.brief-print-tail');
+  if (!tail) return;
+  const ua = navigator.userAgent;
+  const isSafari = /safari/i.test(ua) && !/chrome|chromium|crios|android|edg|opr/i.test(ua);
+  if (!isSafari) { tail.style.height = '0'; return; }
+  const boxes = document.querySelectorAll('#briefDocument .view-panel').length;
+  // A box that does not fit can strand most of a page. Budget generously —
+  // trailing blank pages are recoverable, dropped personnel are not.
+  tail.style.height = Math.min(34, 8 + boxes * 1.2).toFixed(1) + 'in';
+}
+
 async function downloadEmailPDF() {
+  sizePrintTail();
+
   const btn   = document.getElementById('downloadPdfBtn');
   const label = document.getElementById('downloadPdfBtnLabel');
   const doc   = document.getElementById('briefDocument');
