@@ -2575,6 +2575,9 @@ function renderBriefView(b, id) {
     <div class="brief-endmark" style="text-align:center;padding:32px 0 16px;color:var(--text-3);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">
       — GenX Security Brief System — Confidential Document —
     </div>
+    <!-- Print-only trailing slack so the last page can't be cut. See
+         .brief-print-tail in style.css for why this is height and not a break. -->
+    <div class="brief-print-tail no-screen" aria-hidden="true"></div>
   `;
 }
 

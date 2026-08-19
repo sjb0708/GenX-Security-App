@@ -1387,9 +1387,30 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
      past it by break-before:page (the whole Talent/Crew page vanished from
      Save-as-PDF). Natural flow + atomic inline-block cards paginate fine;
      a rare orphaned section header is the accepted trade-off. */
-  /* Redundant with the running footer in print, and its padding can spill
-     a near-empty final page. */
-  .brief-endmark { display: none !important; }
+  .brief-endmark {
+    display: block !important;
+    text-align: center !important;
+    color: #9ca3af !important;
+    font-size: 7.5pt !important;
+    letter-spacing: 1pt !important;
+    text-transform: uppercase !important;
+    padding: 18pt 0 0 !important;
+  }
+
+  /* Trailing slack — the reason the last page kept getting cut.
+     Safari sizes a print job from the document's NATURAL height, then
+     paginating adds whitespace (a block that won't fit gets pushed to the
+     next page) so the laid-out document is taller than the estimate. Once
+     content runs past the page count Safari already committed to, it is
+     dropped — the brief ended mid-row with no page 8.
+     This spacer is real height, so it raises the estimate; anything left
+     over is clipped harmlessly instead of eating live content. A forced
+     page break here would NOT work: it adds no natural height, which is
+     what made the old break-before:page rules lose pages in the first place. */
+  .brief-print-tail {
+    display: block !important;
+    height: 3in !important;
+  }
 
   /* ── Person cards (bigger, head-safe framing) ──
      block container + inline-block cards, NOT flex or grid — WebKit's
@@ -1468,13 +1489,18 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   /* Tighter credential card so the page after Access Control doesn't strand
      the Load In / Load Out block on a near-empty page. */
   .brief-cred-img {
-    max-height: 200pt !important;
-    max-width: 140pt !important;
-    width: auto !important;
+    width: 130pt !important;
     height: auto !important;
+    max-width: 130pt !important;
+    max-height: 200pt !important;
+    aspect-ratio: auto !important;
+    object-fit: contain !important;
     box-shadow: none !important;
   }
 }
+
+/* Print-only helper: takes no room on screen. */
+.no-screen { display: none; }
 
 /* ── Travel mode buttons ──────────────────────────────────────────────────── */
 .travel-mode-btn {
