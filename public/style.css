@@ -1493,7 +1493,25 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 
   /* Tighter credential card so the page after Access Control doesn't strand
      the Load In / Load Out block on a near-empty page. */
+  /* Credential badges sat in an inline display:flex row. WebKit's print
+     engine mishandles flex containers — the same reason .person-grid and the
+     maps wrapper are neutralised to block elsewhere in this file. The badges
+     were laid out (the card kept their height) but never painted, so Safari's
+     PDF showed an empty grey card while the on-screen preview looked right.
+     Block container + inline-block children, like everywhere else. */
+  .cred-img-row { display: block !important; font-size: 0 !important; }
+  .cred-img-row > div {
+    display: inline-block !important;
+    vertical-align: top !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 14pt 0 0 !important;
+    font-size: 7pt !important;
+  }
+
   .brief-cred-img {
+    border-radius: 0 !important;
     width: 130pt !important;
     height: auto !important;
     max-width: 130pt !important;

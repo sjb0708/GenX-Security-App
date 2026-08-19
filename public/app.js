@@ -2455,7 +2455,7 @@ function renderBriefView(b, id) {
           <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px;">
             ${ac.genxCred.name ? `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">${esc(ac.genxCred.name)}</div>` : ''}
             ${ac.genxCred.issuedBy ? `<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Issued by: ${esc(ac.genxCred.issuedBy)}</div>` : ''}
-            <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <div class="cred-img-row" style="display:flex;gap:16px;flex-wrap:wrap;">
               ${ac.genxCred.frontImage ? `<div style="flex:1;min-width:120px;max-width:200px;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">Front</div><img class="brief-cred-img" src="${esc(ac.genxCred.frontImage)}" style="width:100%;border-radius:8px;aspect-ratio:0.63;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.4);"></div>` : ''}
               ${ac.genxCred.backImage  ? `<div style="flex:1;min-width:120px;max-width:200px;"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">Back</div><img class="brief-cred-img" src="${esc(ac.genxCred.backImage)}" style="width:100%;border-radius:8px;aspect-ratio:0.63;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.4);"></div>` : ''}
             </div>
