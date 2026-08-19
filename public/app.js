@@ -2240,22 +2240,70 @@ function buildWordHtml(b) {
 }
 
 // Word will not fetch relative URLs out of a downloaded file, so every image
-// has to travel inside it as a data URI.
+// has to travel inside it as a data URI — and it has to be SMALL first. The
+// originals are camera-resolution (one head shot is 5464x8192, 9.5MB); pasting
+// those in verbatim produced a 75MB .doc that Word cannot lay out sensibly.
+// Downscale to the size the document actually displays before embedding.
+// Fetch to a blob first and decode from a blob: URL. A blob URL is same-origin
+// no matter where the bytes came from, so the canvas is never tainted and no
+// CORS header is required. If anything in the downscale path fails, fall back
+// to embedding the original bytes rather than dropping the image — silently
+// losing pictures is worse than a large file.
+function blobToDataUri(blob) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = rej;
+    fr.readAsDataURL(blob);
+  });
+}
+
+async function shrinkToDataUri(src, maxDim) {
+  let blob;
+  try { blob = await fetch(src, { cache: 'force-cache' }).then(r => r.ok ? r.blob() : Promise.reject()); }
+  catch (_) { return null; }
+
+  const url = URL.createObjectURL(blob);
+  try {
+    const im = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      setTimeout(rej, 15000);
+      i.src = url;
+    });
+    const w = im.naturalWidth, h = im.naturalHeight;
+    if (!w || !h) throw new Error('no intrinsic size');
+    const scale = Math.min(1, maxDim / Math.max(w, h));
+    const c = document.createElement('canvas');
+    c.width  = Math.max(1, Math.round(w * scale));
+    c.height = Math.max(1, Math.round(h * scale));
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(im, 0, 0, c.width, c.height);
+    const out = c.toDataURL('image/jpeg', 0.82);
+    if (out && out.length > 200) return out;
+    throw new Error('empty encode');
+  } catch (_) {
+    try { return await blobToDataUri(blob); } catch (__) { return null; }
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 async function inlineWordImages(html) {
   const holder = document.createElement('div');
   holder.innerHTML = html;
-  await Promise.all([...holder.querySelectorAll('img')].map(async img => {
+  const imgs = [...holder.querySelectorAll('img')];
+  await Promise.all(imgs.map(async img => {
     const src = img.getAttribute('src') || '';
-    if (!src || src.startsWith('data:')) return;
-    try {
-      const blob = await fetch(src, { cache: 'force-cache' }).then(r => r.blob());
-      img.setAttribute('src', await new Promise((res, rej) => {
-        const fr = new FileReader();
-        fr.onload = () => res(fr.result);
-        fr.onerror = rej;
-        fr.readAsDataURL(blob);
-      }));
-    } catch (_) { img.remove(); }
+    if (!src) { img.remove(); return; }
+    // Headshots render at 86px, credentials at 150px, maps at 620px. Give each
+    // roughly 2x its display size so it still looks sharp in print.
+    const shown = parseInt(img.getAttribute('width') || '0', 10) || 200;
+    const out = await shrinkToDataUri(src, Math.min(1000, Math.max(180, shown * 2)));
+    if (out) img.setAttribute('src', out); else img.remove();
   }));
   return holder.innerHTML;
 }
