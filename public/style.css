@@ -1095,6 +1095,18 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 }
 
 @media print {
+  /* The page margin area is painted from the ROOT element, not body. With no
+     background on <html>, Chrome fills it with its dark-mode canvas (#121212),
+     so the printed page came out with black borders around a white content
+     box. Safari left it transparent, which is why this only showed up after
+     switching browsers. Force a white canvas and opt the document out of any
+     dark-mode treatment. */
+  html, :root {
+    background: #ffffff !important;
+    color-scheme: light !important;
+    forced-color-adjust: none !important;
+  }
+
   /* Bottom margin carries the running footer band: 0.85in of page margin
      plus 0.3in of clearance so the last line of a full page is never sliced
      by the footer (a Run of Show row was being cut in half by it). */
