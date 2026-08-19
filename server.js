@@ -2202,12 +2202,33 @@ app.post('/api/roster/import-from-briefs', requireAdmin, async (req, res, next) 
 
 // ── Page routes ──────────────────────────────────────────────────────────────
 const pub = path.join(__dirname, 'public');
+
+// Asset build stamp, derived from the front-end files themselves. Pages get
+// their ?v= rewritten to this at serve time, so a deploy can never ship HTML
+// pointing at a stale app.js/style.css because someone forgot to bump a
+// hard-coded number. /api/build lets an already-open tab notice it is stale.
+const BUILD = (() => {
+  try {
+    const newest = ['app.js', 'style.css']
+      .map(f => fs.statSync(path.join(pub, f)).mtimeMs)
+      .reduce((a, b) => Math.max(a, b), 0);
+    return Math.floor(newest).toString(36);
+  } catch (_) { return Date.now().toString(36); }
+})();
+
 function sendHtml(res, file) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  res.sendFile(path.join(pub, file));
+  let html;
+  try { html = fs.readFileSync(path.join(pub, file), 'utf8'); }
+  catch (_) { return res.sendFile(path.join(pub, file)); }
+  html = html
+    .replace(/\?v=\d+/g, '?v=' + BUILD)
+    .replace('<head>', '<head>\n  <meta name="build" content="' + BUILD + '">');
+  res.type('html').send(html);
 }
+app.get('/api/build', (_, res) => res.json({ build: BUILD }));
 app.get('/',           (_, res) => sendHtml(res, 'index.html'));
 app.get('/brief',      (_, res) => sendHtml(res, 'brief.html'));
 app.get('/view',       (_, res) => sendHtml(res, 'view.html'));

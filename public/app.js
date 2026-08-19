@@ -2028,6 +2028,26 @@ async function downloadEmailPDF() {
   const label = document.getElementById('downloadPdfBtnLabel');
   const doc   = document.getElementById('briefDocument');
   if (!doc) return;
+  // A tab that has been open across a deploy still holds the OLD app.js and
+  // style.css, so it prints the old layout no matter what has been fixed
+  // server-side. Check the build stamp first and reload once if we are stale,
+  // resuming the print automatically afterwards.
+  if (!sessionStorage.getItem('gxPrintReloaded')) {
+    try {
+      const meta = document.querySelector('meta[name="build"]')?.content;
+      const live = await fetch('/api/build', { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null).catch(() => null);
+      if (meta && live?.build && String(live.build) !== String(meta)) {
+        sessionStorage.setItem('gxPrintReloaded', '1');
+        sessionStorage.setItem('gxPrintAfterReload', '1');
+        if (label) label.textContent = 'Updating…';
+        location.reload();
+        return;
+      }
+    } catch (_) { /* build check is best-effort — never block printing */ }
+  }
+  sessionStorage.removeItem('gxPrintReloaded');
+
   const prevLabel = label?.textContent;
   const resetButton = () => {
     if (btn)   btn.disabled = false;
@@ -2156,6 +2176,10 @@ async function initBriefView(id) {
     if (!res.ok) throw new Error('Not found');
     const brief = await res.json();
     renderBriefView(brief, id);
+    if (sessionStorage.getItem('gxPrintAfterReload')) {
+      sessionStorage.removeItem('gxPrintAfterReload');
+      setTimeout(() => downloadEmailPDF(), 300);
+    }
   } catch (e) {
     const doc = document.getElementById('briefDocument');
     if (doc) doc.innerHTML = '<div style="text-align:center;padding:80px;color:var(--text-2);">Brief not found.</div>';

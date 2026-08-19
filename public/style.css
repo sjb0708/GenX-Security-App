@@ -1104,9 +1104,14 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   .brief-print-footer {
     display: flex !important;
     position: fixed !important;
+    /* bottom:0, NOT a negative offset. A negative bottom puts the footer
+       outside the page box and Chrome then paints it across the TOP of every
+       page, straight over the body text (verified). Opaque white so a page
+       that fills to the last line reads as a footer rule, not a collision. */
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
+    background: #ffffff !important;
     justify-content: space-between !important;
     align-items: center !important;
     padding: 0 !important;
@@ -1409,7 +1414,7 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
      what made the old break-before:page rules lose pages in the first place. */
   .brief-print-tail {
     display: block !important;
-    height: 3in !important;
+    height: 5in !important;
   }
 
   /* ── Person cards (bigger, head-safe framing) ──
