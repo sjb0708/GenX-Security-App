@@ -1095,7 +1095,10 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 }
 
 @media print {
-  @page { margin: 0.7in 0.55in 0.85in 0.55in; size: letter portrait; }
+  /* Bottom margin carries the running footer band: 0.85in of page margin
+     plus 0.3in of clearance so the last line of a full page is never sliced
+     by the footer (a Run of Show row was being cut in half by it). */
+  @page { margin: 0.7in 0.55in 1.15in 0.55in; size: letter portrait; }
 
   /* Force all colors to print */
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box !important; }
@@ -1109,6 +1112,7 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
        page, straight over the body text (verified). Opaque white so a page
        that fills to the last line reads as a footer rule, not a collision. */
     bottom: 0 !important;
+    margin-bottom: -0.42in !important;
     left: 0 !important;
     right: 0 !important;
     background: #ffffff !important;
@@ -1305,8 +1309,10 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
   .grid-4 { display: grid !important; grid-template-columns: repeat(4, minmax(0,1fr)) !important; gap: 7pt !important; }
 
   /* ── Mini stats ── */
-  .mini-stat { background: #f3f4f6 !important; border: 1px solid #d1d5db !important; border-radius: 5pt !important; padding: 8pt !important; break-inside: avoid; }
-  .mini-stat-val { color: #111827 !important; font-size: 13pt !important; font-weight: 700 !important; }
+  .mini-stat { background: #f3f4f6 !important; border: 1px solid #d1d5db !important; border-radius: 5pt !important; padding: 7pt 4pt !important; break-inside: avoid; }
+  /* 11pt, not 13pt — a full date at 13pt is wider than the 128pt column these
+     tiles get in a 4-up row and wrapped onto a second line. */
+  .mini-stat-val { color: #111827 !important; font-size: 11pt !important; font-weight: 700 !important; white-space: nowrap !important; }
   .mini-stat-lbl { color: #6b7280 !important; font-size: 7.5pt !important; text-transform: uppercase !important; }
   .mini-stat-sub { color: #374151 !important; font-size: 8.5pt !important; }
 
