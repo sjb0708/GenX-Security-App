@@ -11,6 +11,7 @@ const fs         = require('fs');
 const Anthropic  = require('@anthropic-ai/sdk');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const sharp = require('sharp');
 const cookieParser = require('cookie-parser');
 const db = require('./db');
 
@@ -1349,11 +1350,27 @@ ${crimePromptSection}`;
   }
 });
 
-app.post('/api/upload', requireAdmin, upload.single('file'), (req, res) => {
+// Safari's print pipeline silently omits PNGs that carry an alpha channel —
+// the image is laid out but never painted, so a printed brief shows an empty
+// box where the picture should be. Flatten any transparent PNG onto white and
+// store it as JPEG at upload time so nothing downstream has to cope with it.
+async function flattenIfTransparent(buffer, mimetype) {
+  if (!/^image\/png$/i.test(mimetype || '')) return { buffer, mimetype };
+  try {
+    const meta = await sharp(buffer).metadata();
+    if (!meta.hasAlpha) return { buffer, mimetype };
+    const out = await sharp(buffer)
+      .flatten({ background: '#ffffff' })
+      .jpeg({ quality: 88 })
+      .toBuffer();
+    return { buffer: out, mimetype: 'image/jpeg' };
+  } catch (_) { return { buffer, mimetype }; }
+}
+
+app.post('/api/upload', requireAdmin, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
-  const b64  = req.file.buffer.toString('base64');
-  const mime = req.file.mimetype;
-  res.json({ url: `data:${mime};base64,${b64}` });
+  const { buffer, mimetype } = await flattenIfTransparent(req.file.buffer, req.file.mimetype);
+  res.json({ url: `data:${mimetype};base64,${buffer.toString('base64')}` });
 });
 
 // ── Photo Library ─────────────────────────────────────────────────────────────
@@ -1365,11 +1382,14 @@ app.get('/api/photos', requireAdmin, async (req, res, next) => {
 app.post('/api/photos', requireAdmin, photoUpload.array('files', 100), async (req, res, next) => {
   try {
     if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files' });
-    const added = req.files.map(f => ({
-      id: uuidv4(),
-      name: f.originalname,
-      url: `data:${f.mimetype};base64,${f.buffer.toString('base64')}`,
-      addedAt: new Date().toISOString()
+    const added = await Promise.all(req.files.map(async f => {
+      const { buffer, mimetype } = await flattenIfTransparent(f.buffer, f.mimetype);
+      return {
+        id: uuidv4(),
+        name: f.originalname,
+        url: `data:${mimetype};base64,${buffer.toString('base64')}`,
+        addedAt: new Date().toISOString()
+      };
     }));
     await db.insertPhotos(added);
     res.json({ added: added.length, photos: added });

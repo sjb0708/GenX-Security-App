@@ -2088,7 +2088,13 @@ async function downloadEmailPDF() {
     for (const img of imgs) {
       const w = img.naturalWidth, h = img.naturalHeight;
       if (!w || !h) continue;
-      if (Math.max(w, h) <= MAX_DIM && !/^data:image\/png/i.test(img.src || '')) continue;
+      // Always re-encode PNGs, whatever their size. Safari's print pipeline
+      // silently omits PNGs carrying an alpha channel — the image is laid out
+      // (the box keeps its height) but never painted, so the PDF shows an
+      // empty space where the credential badges should be. Drawing onto a
+      // white-filled canvas and re-encoding as JPEG removes the alpha.
+      const isPng = /^data:image\/png/i.test(img.src || '') || /\.png(\?|$)/i.test(img.src || '');
+      if (Math.max(w, h) <= MAX_DIM && !isPng) continue;
 
       const scale = Math.min(1, MAX_DIM / Math.max(w, h));
       const cw = Math.max(1, Math.round(w * scale));
