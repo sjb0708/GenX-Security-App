@@ -1702,6 +1702,36 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 /* ── Printed brief (flat layout) — hidden on screen ───────────────────────── */
 #printDocument { display: none; }
 
+/* Print preview: the printed brief shown on screen at true letter width with
+   the page boundaries marked. */
+body.print-preview .view-content,
+body.print-preview .brief-print-footer { display: none !important; }
+body.print-preview #printDocument {
+  display: block;
+  position: relative;
+  width: 7.4in;                      /* letter less the 0.55in side margins */
+  margin: 96px auto 80px;
+  padding: 0;
+  background: #fff;
+  color: #111827;
+  font-family: 'Montserrat', Arial, sans-serif;
+  font-size: 12.7px;
+  line-height: 1.5;
+  box-shadow: 0 0 0 1px var(--border), 0 20px 60px rgba(0,0,0,0.5);
+}
+body.print-preview #printDocument * { color: inherit; }
+body.print-preview .pp-break {
+  position: absolute; left: 0; right: 0; height: 0;
+  border-top: 1px dashed #e63946;
+  pointer-events: none;
+}
+body.print-preview .pp-break::after {
+  content: attr(data-page);
+  position: absolute; right: 0; top: 2px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  color: #e63946; background: #fff; padding: 1px 5px;
+}
+
 /* ── Travel mode buttons ──────────────────────────────────────────────────── */
 .travel-mode-btn {
   padding: 7px 14px;

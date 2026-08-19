@@ -2320,6 +2320,35 @@ function sizePrintTail() {
   tail.style.height = Math.min(34, 8 + boxes * 1.2).toFixed(1) + 'in';
 }
 
+// ── Print preview ────────────────────────────────────────────────────────────
+// Shows the printed brief on screen at true letter width with a dashed rule
+// drawn at every page boundary, so page breaks are visible before printing
+// rather than after. Same markup and the same measurements the printer uses.
+function togglePrintPreview() {
+  const on = document.body.classList.toggle('print-preview');
+  const label = document.getElementById('previewBtnLabel');
+  if (label) label.textContent = on ? 'Exit Preview' : 'Preview Pages';
+  if (on) drawPreviewPageBreaks();
+  else document.querySelectorAll('.pp-break').forEach(el => el.remove());
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function drawPreviewPageBreaks() {
+  const doc = document.getElementById('printDocument');
+  if (!doc) return;
+  doc.querySelectorAll('.pp-break').forEach(el => el.remove());
+  // Letter page less the printed top/bottom margins, at 96dpi.
+  const pageH = (11 - 0.7 - 1.15) * 96;
+  const total = doc.scrollHeight;
+  for (let n = 1; n * pageH < total; n++) {
+    const rule = document.createElement('div');
+    rule.className = 'pp-break';
+    rule.style.top = (n * pageH) + 'px';
+    rule.dataset.page = 'Page ' + (n + 1);
+    doc.appendChild(rule);
+  }
+}
+
 // Safari sizes a print job from the document's natural height, then pagination
 // adds white space and anything past the estimate is dropped. Real trailing
 // height raises the estimate; unused slack is clipped harmlessly. Safari only —
