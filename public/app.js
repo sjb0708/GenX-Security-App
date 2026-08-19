@@ -2093,16 +2093,29 @@ function buildPrintBrief(b) {
   const out = [];
 
   // ── Heading block ──────────────────────────────────────────────────────────
+  const prepared = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Classification banner, repeated on every printed page. It has to live in
+  // this document — the screen view is display:none in print, so anything
+  // inside it never renders.
+  out.push(`<div class="brief-print-footer">
+    <span></span>
+    <span>Confidential // GenX Corporate Security // ${esc((v.name || 'Security Brief').slice(0, 60))}</span>
+    <span></span>
+  </div>`);
+
   out.push(`<header class="pb-head">
     <img class="pb-logo" src="/genx-logo.png" alt="GenX Corporate Security">
-    <div class="pb-class">Security Brief — Confidential</div>
+    <div class="pb-doctype">Event Security Brief</div>
     <h1 class="pb-title">${esc(v.name || 'Security Brief')}</h1>
-    <div class="pb-sub">${[
-      [v.city, v.state].filter(Boolean).join(', '),
-      dt(tl.showDate, tl.showDateTBD),
-      tm(tl.showTime, tl.showTimeTBD) ? 'Show ' + tm(tl.showTime, tl.showTimeTBD) : ''
-    ].filter(Boolean).map(esc).join(' &nbsp;·&nbsp; ')}</div>
-    <div class="pb-prep">Prepared by GenX Corporate Security · ${esc(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }))}</div>
+    <table class="pb-control">
+      <tr><th>Event Date</th><td>${esc(dt(tl.showDate, tl.showDateTBD) || '—')}</td>
+          <th>Location</th><td>${esc([v.city, v.state].filter(Boolean).join(', ') || '—')}</td></tr>
+      <tr><th>Show Time</th><td>${esc(tm(tl.showTime, tl.showTimeTBD) || '—')}</td>
+          <th>Doors</th><td>${esc(tm(tl.doorsTime, tl.doorsTimeTBD) || '—')}</td></tr>
+      <tr><th>Prepared By</th><td>GenX Corporate Security</td>
+          <th>Prepared</th><td>${esc(prepared)}</td></tr>
+    </table>
   </header>`);
 
   // 1. Venue
@@ -2269,6 +2282,7 @@ function buildPrintBrief(b) {
   }
 
   out.push(`<div class="pb-end">— End of Brief —</div>`);
+  out.push(`<div class="brief-print-tail" aria-hidden="true"></div>`);
   return out.filter(Boolean).join('\n');
 }
 
@@ -2306,7 +2320,23 @@ function sizePrintTail() {
   tail.style.height = Math.min(34, 8 + boxes * 1.2).toFixed(1) + 'in';
 }
 
+// Safari sizes a print job from the document's natural height, then pagination
+// adds white space and anything past the estimate is dropped. Real trailing
+// height raises the estimate; unused slack is clipped harmlessly. Safari only —
+// Chrome paginates from the real layout and would just emit blank pages.
+function sizePrintTail() {
+  const tail = document.querySelector('#printDocument .brief-print-tail');
+  if (!tail) return;
+  const ua = navigator.userAgent;
+  const isSafari = /safari/i.test(ua) && !/chrome|chromium|crios|android|edg|opr/i.test(ua);
+  if (!isSafari) { tail.style.height = '0'; return; }
+  const blocks = document.querySelectorAll('#printDocument .pb-h2, #printDocument table').length;
+  tail.style.height = Math.min(24, 4 + blocks * 0.4).toFixed(1) + 'in';
+}
+
 async function downloadEmailPDF() {
+  sizePrintTail();
+
   sizePrintTail();
 
   const btn   = document.getElementById('downloadPdfBtn');
@@ -2518,8 +2548,8 @@ function renderBriefView(b, id) {
   doc.innerHTML = `
     <!-- Print-only running footer (repeats on every printed page) -->
     <div class="brief-print-footer">
-      <span>CONFIDENTIAL · GenX Corporate Security</span>
-      <span>${esc(_footerVenue)}${_footerDate ? ' · ' + esc(_footerDate) : ''}</span>
+      <span>CONFIDENTIAL</span>
+      <span>Confidential // GenX Corporate Security // ${esc(_footerVenue)}</span>
       <span>Prepared ${esc(_preparedDate)}</span>
     </div>
 
