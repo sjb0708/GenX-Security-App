@@ -1633,102 +1633,134 @@ input:checked + .toggle-slider::before { transform: translateX(18px); }
 /* The old whole-page banner is replaced by the per-sheet running header. */
 #printDocument .brief-print-footer { display: none !important; }
 
-/* ── Printed brief: document styling ──────────────────────────────────────────
-   Shared by the on-screen page preview and the printed page so the preview is
-   an honest representation. Only the display swap and the repeating
-   classification banner live in the @media print block. */
-#printDocument {
-  font-family: 'Montserrat', Arial, sans-serif;
-  font-size: 9.5pt;
-  color: #111827;
-  line-height: 1.5;
-  background: #fff;
+
+/* ── Printed brief: design ───────────────────────────────────────────────────
+   Adapted from the reference brief Steve supplied — same type scale, chips,
+   timeline strip, contact cards, schedule tables, roster and callouts. Scoped
+   to #printDocument so it applies to the printed sheets and the on-screen page
+   preview alike, and never to the editing view. */
+#printDocument{
+  --red:#B3122B; --red-dk:#7E0C1E; --ink:#141821; --body:#2B3038;
+  --muted:#6E7681; --line:#DFE3E8; --soft:#F5F6F8; --amber:#B45309;
+  font-family:'Carlito','Calibri','Segoe UI',Helvetica,Arial,sans-serif;
+  color:var(--body); font-size:9.5pt; line-height:1.35;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
 }
-#printDocument .pb-head { position: relative; margin: 0 0 14pt 0; }
-#printDocument .pb-logo { position: absolute; top: 0; right: 0;
-  width: 54pt; height: 54pt; object-fit: contain; }
-#printDocument .pb-doctype { font-size: 7.5pt; font-weight: 800; letter-spacing: 2.4pt;
-  text-transform: uppercase; color: #6b7280; }
-#printDocument .pb-title { font-size: 19pt; font-weight: 800; letter-spacing: -0.3pt;
-  margin: 2pt 0 8pt; line-height: 1.12; color: #111827; }
-
-#printDocument table.pb-control { width: 100%; border-collapse: collapse;
-  border-top: 1.25pt solid #111827; border-bottom: 1.25pt solid #111827; }
-#printDocument table.pb-control th { text-align: left; width: 0.95in; padding: 3pt 8pt 3pt 0;
-  font-size: 7pt; font-weight: 800; letter-spacing: 0.6pt; text-transform: uppercase;
-  color: #6b7280; vertical-align: top; }
-#printDocument table.pb-control td { padding: 3pt 18pt 3pt 0; font-size: 9.5pt; vertical-align: top; }
-
-/* A section short enough to fit a page is pinned to one page. Sections taller
-   than a page are deliberately left breakable — pinning those is what made
-   print engines drop content. markKeepTogether() decides which is which. */
-#printDocument .pb-sec.pb-keep { break-inside: avoid; page-break-inside: avoid; }
-
-#printDocument .pb-h2 { font-size: 9.5pt; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 1.4pt; color: #111827; margin: 15pt 0 6pt; padding-bottom: 2.5pt;
-  border-bottom: 1pt solid #111827;
-  break-after: avoid; page-break-after: avoid; }
-#printDocument .pb-num { color: #111827; margin-right: 7pt; }
-#printDocument .pb-h3 { font-size: 7.5pt; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 0.9pt; color: #6b7280; margin: 9pt 0 2pt;
-  break-after: avoid; page-break-after: avoid; }
-
-#printDocument table.pb-kv { width: 100%; border-collapse: collapse; margin: 0 0 2pt; }
-#printDocument table.pb-kv tr { break-inside: avoid; page-break-inside: avoid; }
-#printDocument table.pb-kv tr:nth-child(-n+3) { break-before: avoid; page-break-before: avoid; }
-#printDocument table.pb-kv th.pb-k { width: 1.75in; text-align: left; vertical-align: baseline;
-  font-size: 7.5pt; font-weight: 800; letter-spacing: 0.5pt; text-transform: uppercase;
-  color: #6b7280; padding: 2.5pt 12pt 2.5pt 0; border: none; background: none; }
-#printDocument table.pb-kv td.pb-v { vertical-align: baseline; font-size: 9.5pt; color: #111827;
-  padding: 2.5pt 0; border: none; }
-#printDocument .pb-p { font-size: 9.5pt; color: #1f2937; margin: 1pt 0 6pt; padding-left: 1.75in; }
-
-#printDocument table.pb-table { width: 100%; border-collapse: collapse; margin: 3pt 0 8pt;
-  border: none; border-bottom: 0.5pt solid #9ca3af; }
-#printDocument table.pb-table thead { display: table-header-group; }
-#printDocument table.pb-table th { text-align: left; font-size: 7.5pt; font-weight: 800;
-  text-transform: uppercase; letter-spacing: 0.7pt; color: #6b7280; background: none;
-  border: none; border-bottom: 1pt solid #111827; padding: 3pt 10pt 3pt 0; }
-#printDocument table.pb-table td { font-size: 9.5pt; vertical-align: top; color: #111827;
-  padding: 3.5pt 10pt 3.5pt 0; border: none; border-bottom: 0.4pt solid #e5e7eb; background: none; }
-#printDocument table.pb-table tr { break-inside: avoid; page-break-inside: avoid; }
-/* The lead row group — the first rows under the column header — is
-   unbreakable, so a section heading can never be left at the foot of a page
-   with its column header and no data beneath it. */
-#printDocument table.pb-table tbody.pb-lead {
-  break-inside: avoid; page-break-inside: avoid;
-}
-#printDocument .pb-time { font-weight: 700; white-space: nowrap; }
-
-#printDocument table.pb-roster { width: 100%; border-collapse: collapse; margin: 3pt 0 8pt;
-  border: none; border-bottom: 0.5pt solid #9ca3af; }
-#printDocument table.pb-roster tr { break-inside: avoid; page-break-inside: avoid; }
-#printDocument table.pb-roster tr:nth-child(-n+2) { break-before: avoid; page-break-before: avoid; }
-#printDocument table.pb-roster td { padding: 4pt 10pt 4pt 0; border: none;
-  border-bottom: 0.4pt solid #e5e7eb; vertical-align: middle; background: none; }
-#printDocument td.pb-photo { width: 46pt; }
-#printDocument td.pb-photo img { width: 40pt; height: 40pt; object-fit: cover; display: block; }
-#printDocument .pb-initials { display: inline-block; width: 40pt; height: 40pt; line-height: 40pt;
-  text-align: center; background: #f3f4f6; color: #374151; font-weight: 700; font-size: 11pt; }
-#printDocument .pb-name { display: block; font-size: 10pt; font-weight: 700; color: #111827; }
-#printDocument .pb-role { display: block; font-size: 8.5pt; color: #6b7280; }
-#printDocument td.pb-contact { width: 2.1in; font-size: 8.5pt; color: #374151; text-align: right; }
-
-#printDocument .pb-creds { margin: 4pt 0 8pt; break-inside: avoid; page-break-inside: avoid; }
-#printDocument .pb-creds figure { display: inline-block; margin: 0 16pt 0 0; vertical-align: top; }
-#printDocument .pb-creds img { display: block; width: auto; height: 196pt; max-width: 150pt;
-  object-fit: contain; }
-#printDocument .pb-creds figcaption { font-size: 7pt; color: #6b7280; text-transform: uppercase;
-  letter-spacing: 0.7pt; margin-top: 2pt; }
-
-#printDocument figure.pb-map { margin: 6pt 0 12pt; break-inside: avoid; page-break-inside: avoid; }
-#printDocument figure.pb-map img { display: block; width: 100%; max-height: 7in; height: auto;
-  object-fit: contain; }
-#printDocument figure.pb-map figcaption { font-size: 8.5pt; color: #374151; margin-top: 3pt; }
-
-#printDocument .pb-end { text-align: center; font-size: 7.5pt; letter-spacing: 1.8pt;
-  text-transform: uppercase; color: #9ca3af; margin-top: 16pt;
-  border-top: 0.5pt solid #d1d5db; padding-top: 8pt; }
+#printDocument *{ box-sizing:border-box; }
+#printDocument /* ---------- PAGE SHELL: fixed sheets, #printDocument no orphan breaks ---------- */
+  .sheet{width:7.5in;
+    height:10.0in;
+    position:relative;
+    overflow:hidden;
+    break-after:page;
+    page-break-after:always;
+    margin:0 auto;
+    padding-top:0.30in;
+    padding-bottom:0.34in;}
+#printDocument /* ---------- TYPE ---------- */
+  h1{font-size:26pt; line-height:1.05; margin:0; color:var(--ink); letter-spacing:-.015em;}
+#printDocument h2.sec{font-size:10pt; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--red); margin:0 0 6pt; padding-bottom:3pt;
+    border-bottom:1.6pt solid var(--red); font-weight:700;}
+#printDocument h3.sub{font-size:7.4pt; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); margin:9pt 0 4pt; font-weight:700;}
+#printDocument .eyebrow{font-size:8pt; letter-spacing:.20em; text-transform:uppercase;
+    color:var(--red); font-weight:700; margin:0 0 5pt;}
+#printDocument .lede{font-size:11pt; color:var(--muted); margin:3pt 0 0;}
+#printDocument /* ---------- GRID ---------- */
+  .row{display:flex; gap:16pt;}
+#printDocument .col{flex:1; min-width:0;}
+#printDocument .mt{margin-top:12pt;}
+#printDocument .mt-s{margin-top:8pt;}
+#printDocument h2.sec.mt, #printDocument h3.sub.mt{margin-top:16pt;}
+#printDocument h2.sec.mt-s, #printDocument h3.sub.mt-s{margin-top:10pt;}
+#printDocument .row + h2.sec, #printDocument table + h2.sec, #printDocument .roster + h2.sec, #printDocument .chips + h2.sec{margin-top:16pt;}
+#printDocument .row + h3.sub, #printDocument table + h3.sub, #printDocument .callout + h3.sub{margin-top:12pt;}
+#printDocument table.data, #printDocument table.sched{margin-bottom:2pt;}
+#printDocument /* ---------- DATA TABLES ---------- */
+  table.data{width:100%; border-collapse:collapse;}
+#printDocument table.data td{padding:3.6pt 0; border-bottom:0.6pt solid var(--line); vertical-align:top;}
+#printDocument table.data tr:last-child td{border-bottom:none;}
+#printDocument table.data td.k{width:40%; font-size:7.2pt; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--muted); font-weight:700; padding-right:8pt;}
+#printDocument table.data td.v{font-size:9.5pt; color:var(--ink);}
+#printDocument /* ---------- SCHEDULE TABLES ---------- */
+  table.sched{width:100%; border-collapse:collapse;}
+#printDocument table.sched th{text-align:left; font-size:6.9pt; letter-spacing:.10em; text-transform:uppercase;
+    color:#fff; background:var(--ink); padding:4pt 6pt; font-weight:700;}
+#printDocument table.sched td{padding:3.6pt 6pt; border-bottom:0.6pt solid var(--line); font-size:9pt; vertical-align:top;}
+#printDocument table.sched tr:nth-child(even) td{background:#FAFBFC;}
+#printDocument td.time{width:0.78in; font-weight:700; color:var(--ink); white-space:nowrap; font-variant-numeric:tabular-nums;}
+#printDocument td.dur{width:0.52in; color:var(--muted); font-size:8pt; white-space:nowrap;}
+#printDocument td.note{width:1.85in; color:var(--muted); font-size:8pt;}
+#printDocument tr.key td{background:#FDF3F5 !important;}
+#printDocument tr.key td.time{color:var(--red);}
+#printDocument /* ---------- CHIPS / PILLS ---------- */
+  .chips{display:flex; flex-wrap:wrap; gap:5pt;}
+#printDocument .chip{border:0.8pt solid var(--line); background:#fff; border-radius:2pt;
+    padding:3pt 7pt; font-size:8pt; color:var(--ink);}
+#printDocument .chip b{color:var(--red); letter-spacing:.06em; text-transform:uppercase; font-size:6.8pt; display:block;}
+#printDocument .ban{border:0.8pt solid #F0C7CE; background:#FDF3F5; color:var(--red-dk);
+    border-radius:2pt; padding:3.4pt 7pt; font-size:8.2pt; font-weight:600;}
+#printDocument /* ---------- STAT BLOCKS ---------- */
+  .stats{display:flex; gap:7pt;}
+#printDocument .stat{flex:1; border:0.8pt solid var(--line); border-top:2.2pt solid var(--ink);
+    padding:6pt 4pt; text-align:center; background:#fff;}
+#printDocument .stat .n{font-size:17pt; font-weight:700; color:var(--ink); line-height:1;}
+#printDocument .stat .n.gap{color:#C9CDD3;}
+#printDocument .stat .l{font-size:6.6pt; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); margin-top:3pt;}
+#printDocument /* ---------- CALLOUTS ---------- */
+  .callout{border-left:2.5pt solid var(--red); background:var(--soft);
+    padding:7pt 10pt; font-size:8.8pt;}
+#printDocument .callout.amber{border-left-color:var(--amber); background:#FFFBEB;}
+#printDocument .callout .t{font-size:7.2pt; letter-spacing:.11em; text-transform:uppercase;
+    font-weight:700; color:var(--red); margin-bottom:3pt;}
+#printDocument .callout.amber .t{color:var(--amber);}
+#printDocument .gap-tag{display:inline-block; font-size:7pt; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--amber); border:0.8pt solid #F3D9A4; background:#FFFBEB;
+    padding:1pt 5pt; border-radius:2pt; font-weight:700;}
+#printDocument ol.checks{margin:4pt 0 0; padding-left:0; list-style:none; counter-reset:c;}
+#printDocument ol.checks li{counter-increment:c; position:relative; padding:4.2pt 0 4.2pt 26pt;
+    border-bottom:0.6pt dotted var(--line); font-size:8.6pt;}
+#printDocument ol.checks li:before{content:counter(c,decimal-leading-zero); position:absolute; left:0; top:4.2pt;
+    font-size:7.4pt; font-weight:700; color:var(--red);
+    border:0.8pt solid #F0C7CE; background:#fff; border-radius:2pt;
+    width:16pt; text-align:center; padding:0.5pt 0;}
+#printDocument ol.checks li span.owner{color:var(--muted); font-size:7.6pt; text-transform:uppercase; letter-spacing:.06em;}
+#printDocument /* ---------- CONTACT CARDS ---------- */
+  .contact{border:0.8pt solid var(--line); border-left:2.5pt solid var(--red);
+    padding:7pt 9pt; margin-bottom:6pt; background:#fff;}
+#printDocument .contact .role{font-size:6.8pt; letter-spacing:.10em; text-transform:uppercase; color:var(--red); font-weight:700;}
+#printDocument .contact .name{font-size:11pt; font-weight:700; color:var(--ink); line-height:1.15;}
+#printDocument .contact .title{font-size:8pt; color:var(--muted);}
+#printDocument .contact .meta{font-size:8.6pt; color:var(--ink); margin-top:3pt; font-variant-numeric:tabular-nums;}
+#printDocument .contact .meta span{color:var(--muted);}
+#printDocument /* ---------- TIMELINE ---------- */
+  .tl{display:flex; gap:0; border:0.8pt solid var(--line);}
+#printDocument .tl .step{flex:1; padding:7pt 9pt; border-right:0.8pt solid var(--line);}
+#printDocument .tl .step:last-child{border-right:none;}
+#printDocument .tl .step.hot{background:#FDF3F5;}
+#printDocument .tl .d{font-size:6.8pt; letter-spacing:.10em; text-transform:uppercase; color:var(--muted); font-weight:700;}
+#printDocument .tl .v{font-size:10.5pt; font-weight:700; color:var(--ink); margin-top:1pt;}
+#printDocument .tl .x{font-size:7.8pt; color:var(--muted);}
+#printDocument .tl .step.hot .v{color:var(--red);}
+#printDocument /* ---------- ROSTER ---------- */
+  .roster{display:flex; flex-wrap:wrap; gap:7pt;}
+#printDocument .person{width:1.415in; border:0.8pt solid var(--line); padding:6pt 5pt; text-align:center; background:#fff;}
+#printDocument .person img{width:0.70in; height:0.70in; border-radius:50%; object-fit:cover; display:block; margin:0 auto 4pt;}
+#printDocument .person .pn{font-size:8.8pt; font-weight:700; color:var(--ink); line-height:1.15;}
+#printDocument .person .pr{font-size:7.1pt; color:var(--muted); margin-top:1.5pt;}
+#printDocument .person .pt{font-size:6.6pt; letter-spacing:.08em; text-transform:uppercase; color:var(--red); margin-top:3pt; font-weight:700;}
+#printDocument .person .pc{font-size:7.4pt; color:var(--body); margin-top:3pt; font-variant-numeric:tabular-nums;}
+#printDocument /* ---------- BADGES ---------- */
+  .badges{display:flex; gap:14pt; align-items:flex-start;}
+#printDocument .badgecard{text-align:center;}
+#printDocument .badgecard img{width:1.55in; border:0.8pt solid var(--line); display:block;}
+#printDocument .badgecard .cap{font-size:6.8pt; letter-spacing:.10em; text-transform:uppercase; color:var(--muted); margin-top:4pt; font-weight:700;}
+#printDocument .kv-inline{font-size:8.8pt;}
+#printDocument .kv-inline b{color:var(--ink);}
+#printDocument .muted{color:var(--muted);}
+#printDocument .nowrap{white-space:nowrap;}
 
 /* ── Printed brief (flat layout) — hidden on screen ───────────────────────── */
 #printDocument { display: none; }

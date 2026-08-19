@@ -2028,85 +2028,59 @@ function pYN(v) {
   if (v === false || v === 'no')  return 'No';
   return v;
 }
+const pHas = v => isContentValue(v);
 
-// Each section is wrapped so it can be measured and, when it fits, pinned to a
-// single page. See markKeepTogether().
-let _pSectionNo = 0, _pSectionOpen = false;
-function pSection(title) {
-  _pSectionNo += 1;
-  const close = _pSectionOpen ? '</section>' : '';
-  _pSectionOpen = true;
-  return `${close}<section class="pb-sec"><h2 class="pb-h2"><span class="pb-num">${_pSectionNo}.</span>${esc(title)}</h2>`;
-}
-function pSectionsClose() {
-  const close = _pSectionOpen ? '</section>' : '';
-  _pSectionOpen = false;
-  return close;
-}
-function pSub(title) { return `<h3 class="pb-h3">${esc(title)}</h3>`; }
+function pSec(title)      { return `<h2 class="sec mt">${esc(title)}</h2>`; }
+function pSub(title)      { return `<h3 class="sub">${esc(title)}</h3>`; }
+function pChip(label, val){ return pHas(val) ? `<div class="chip"><b>${esc(label)}</b>${esc(String(val))}</div>` : ''; }
 
-function pKv(pairs) {
-  const rows = pairs.filter(p => isContentValue(p[1])).map(([k, v]) =>
-    `<tr><th class="pb-k">${esc(k)}</th><td class="pb-v">${esc(String(v))}</td></tr>`).join('');
-  return rows ? `<table class="pb-kv">${rows}</table>` : '';
+function pData(pairs) {
+  const rows = pairs.filter(x => pHas(x[1]))
+    .map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td class="v">${esc(String(v))}</td></tr>`).join('');
+  return rows ? `<table class="data">${rows}</table>` : '';
 }
 
-function pText(label, body) {
-  if (!isContentValue(body)) return '';
-  return `${label ? `<h3 class="pb-h3">${esc(label)}</h3>` : ''}<p class="pb-p">${esc(body).replace(/\n/g, '<br>')}</p>`;
+function pCallout(title, body, amber) {
+  if (!pHas(body)) return '';
+  return `<div class="callout${amber ? ' amber' : ''} mt-s">
+    ${title ? `<div class="t">${esc(title)}</div>` : ''}${esc(body).replace(/\n/g, '<br>')}</div>`;
 }
 
-// A table is emitted as two tables: a lead chunk holding the column header and
-// the first few rows, marked unbreakable, then the remainder. That guarantees a
-// section heading can never sit at the foot of a page with its column header
-// and no data under it — the lead chunk moves as one unit. Relying on
-// break-before:avoid on individual rows did not do this reliably.
-const PB_LEAD_ROWS = 4;
+function pContact(role, name, title, phone, email) {
+  if (!name && !phone && !email) return '';
+  return `<div class="contact">
+    <div class="role">${esc(role)}</div>
+    <div class="name">${esc(name || '')}</div>
+    ${title ? `<div class="title">${esc(title)}</div>` : ''}
+    ${(phone || email) ? `<div class="meta">${phone ? `<span>C</span> ${esc(phone)}` : ''}${phone && email ? ' &nbsp; ' : ''}${email ? `<span>E</span> ${esc(email)}` : ''}</div>` : ''}
+  </div>`;
+}
 
-function pTable(headers, rows) {
+function pSched(rows) {
   if (!rows.length) return '';
-  const head = `<thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>`;
-  const body = rs => `<tbody>${rs.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>`;
-  const lead = rows.slice(0, PB_LEAD_ROWS);
-  const rest = rows.slice(PB_LEAD_ROWS);
-  // One table, two row groups. The lead group is unbreakable, so the column
-  // header and the first rows always travel together; the rest flows freely.
-  // Two separate tables would repeat the column header mid-section.
-  return `<table class="pb-table">${head}` +
-         `<tbody class="pb-lead">${lead.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>` +
-         (rest.length ? body(rest) : '') +
-         `</table>`;
+  return `<table class="sched">
+    <thead><tr><th>Time</th><th>Activity</th><th>Security Notes</th></tr></thead>
+    <tbody>${rows.map(r => `<tr${r.critical ? ' class="key"' : ''}>
+      <td class="time">${esc(r.time ? formatTime(r.time) : '')}</td>
+      <td>${esc(r.activity || '')}</td>
+      <td class="note">${esc(r.notes || '')}</td></tr>`).join('')}</tbody>
+  </table>`;
 }
 
-// Personnel as a plain roster table: photo, name, role, contact. No cards.
-function pRoster(people, opts = {}) {
+function pRoster(people, tag) {
   if (!people.length) return '';
-  // Only carry a contact column when somebody in this group actually has
-  // contact details — an empty column is dead space on the page.
-  const anyContact = people.some(p => p.phone || p.email);
-  const rows = people.map(p => {
-    const detail = [p.role || p.function, p.stageName && p.stageName !== p.name ? p.stageName : '']
-      .filter(Boolean).join(' — ');
-    const contact = [p.phone, p.email].filter(Boolean).join('<br>');
-    return `<tr>
-      <td class="pb-photo">${p.photo
-        ? `<img src="${esc(p.photo)}" alt="">`
-        : `<span class="pb-initials">${esc(getInitials(p.name))}</span>`}</td>
-      <td class="pb-person">
-        <span class="pb-name">${esc(p.name || '')}</span>
-        ${detail ? `<span class="pb-role">${esc(detail)}</span>` : ''}
-        ${(p.certs || []).filter(Boolean).length ? `<span class="pb-role">${esc((p.certs || []).filter(Boolean).join(', '))}</span>` : ''}
-        ${p.notes ? `<span class="pb-role">${esc(p.notes)}</span>` : ''}
-      </td>
-      ${anyContact ? `<td class="pb-contact">${contact || ''}</td>` : ''}
-    </tr>`;
-  }).join('');
-  return `<table class="pb-roster">${rows}</table>`;
+  return `<div class="roster">${people.map(p => `
+    <div class="person">
+      ${p.photo ? `<img src="${esc(p.photo)}" alt="">` : ''}
+      <div class="pn">${esc(p.name || '')}</div>
+      ${(p.role || p.function) ? `<div class="pr">${esc(p.role || p.function)}</div>` : ''}
+      ${p.stageName && p.stageName !== p.name ? `<div class="pr">${esc(p.stageName)}</div>` : ''}
+      ${tag ? `<div class="pt">${esc(tag)}</div>` : ''}
+      ${(p.phone || p.email) ? `<div class="pc">${esc([p.phone, p.email].filter(Boolean).join(' · '))}</div>` : ''}
+    </div>`).join('')}</div>`;
 }
 
 function buildPrintBrief(b) {
-  _pSectionNo = 0;
-  _pSectionOpen = false;
   const v = b.venue || {}, h = b.hotel || {}, tl = b.timeline || {}, ct = b.contacts || {};
   const ing = b.ingress || {}, st = b.staffing || {}, med = b.medical || {}, ev = b.evacuation || {};
   const mg = b.meetgreet || {}, comm = b.communications || {}, ac = b.access || {}, li = b.loadinout || {};
@@ -2116,282 +2090,181 @@ function buildPrintBrief(b) {
   const tm = (t, tbd) => tbd ? 'TBD' : (t ? formatTime(t) : '');
   const out = [];
 
-  // ── Heading block ──────────────────────────────────────────────────────────
-  const prepared = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  // ── Cover block ────────────────────────────────────────────────────────────
+  out.push(`<div class="eyebrow">Security Brief · Confidential</div>
+    <h1>${esc(v.name || 'Security Brief')}</h1>
+    <div class="lede">${esc([[v.city, v.state].filter(Boolean).join(', '), v.businessName].filter(Boolean).join(' · '))}</div>`);
 
-  // Classification banner, repeated on every printed page. It has to live in
-  // this document — the screen view is display:none in print, so anything
-  // inside it never renders.
-  out.push(`<div class="brief-print-footer">
-    <span></span>
-    <span>Confidential // GenX Corporate Security // ${esc((v.name || 'Security Brief').slice(0, 60))}</span>
-    <span></span>
+  const days = rosNormalizeDays(b.runofshow || []).filter(d => d.rows.length);
+  out.push(`<div class="chips mt">
+    ${pChip('Show Days', dt(tl.showDate, tl.showDateTBD))}
+    ${pChip('Doors', tm(tl.doorsTime, tl.doorsTimeTBD))}
+    ${pChip('Show', tm(tl.showTime, tl.showTimeTBD))}
+    ${pChip('Capacity', v.capacity)}
+    ${pChip('Configuration', cw.audienceType)}
+    ${pChip('Venue Type', v.type)}
   </div>`);
 
-  out.push(`<header class="pb-head">
-    <img class="pb-logo" src="/genx-logo.png" alt="GenX Corporate Security">
-    <div class="pb-doctype">Event Security Brief</div>
-    <h1 class="pb-title">${esc(v.name || 'Security Brief')}</h1>
-    <table class="pb-control">
-      <tr><th>Event Date</th><td>${esc(dt(tl.showDate, tl.showDateTBD) || '—')}</td>
-          <th>Location</th><td>${esc([v.city, v.state].filter(Boolean).join(', ') || '—')}</td></tr>
-      <tr><th>Show Time</th><td>${esc(tm(tl.showTime, tl.showTimeTBD) || '—')}</td>
-          <th>Doors</th><td>${esc(tm(tl.doorsTime, tl.doorsTimeTBD) || '—')}</td></tr>
-      <tr><th>Prepared By</th><td>GenX Corporate Security</td>
-          <th>Prepared</th><td>${esc(prepared)}</td></tr>
-    </table>
-  </header>`);
+  // Timeline strip
+  const steps = [
+    { d: dt(tl.arrivalDate, tl.arrivalDateTBD), v: 'Arrival', x: (addr(v) && addr(h) && addr(v).toLowerCase() === addr(h).toLowerCase()) ? 'Talent lodging on-site' : (h.name || '') },
+    { d: dt(tl.showDate, tl.showDateTBD), v: 'Show Day', x: [tm(tl.doorsTime, tl.doorsTimeTBD) && 'Doors ' + tm(tl.doorsTime, tl.doorsTimeTBD), tm(tl.showTime, tl.showTimeTBD) && 'Show ' + tm(tl.showTime, tl.showTimeTBD)].filter(Boolean).join(' · '), hot: true },
+    { d: li.loadoutDate ? formatDate(li.loadoutDate) : '', v: 'Load-Out', x: li.loadoutTime ? formatTime(li.loadoutTime) : '' },
+    { d: dt(tl.departureDate, tl.departureDateTBD), v: 'Departure', x: 'Tour movement' }
+  ].filter(s => s.d || s.x);
+  if (steps.length) out.push(`<div class="tl mt">${steps.map(s => `
+    <div class="step${s.hot ? ' hot' : ''}">
+      <div class="d">${esc(s.d || '')}</div>
+      <div class="v">${esc(s.v)}</div>
+      ${s.x ? `<div class="x">${esc(s.x)}</div>` : ''}
+    </div>`).join('')}</div>`);
 
-  // 1. Venue
-  out.push(pSection('Venue'));
-  out.push(pKv([['Location', v.name], ['Business Name', v.businessName], ['Address', addr(v)],
-    ['Phone', v.phone], ['Capacity', v.capacity], ['Type', v.type]]));
-  out.push(pText('Security Concerns — Past 12 Months', v.priorIncidents));
+  // Venue + critical contacts, side by side
+  const person = (o, role) => o ? pContact(role, o.name, o.title || o.role, o.cell || o.phone, o.email) : '';
+  const lead = (b.genxstaff || [])[0];
+  out.push(`<div class="row mt">
+    <div class="col">
+      <h2 class="sec">Venue</h2>
+      ${pData([['Business Name', v.businessName || v.name], ['Address', addr(v)], ['Main Phone', v.phone],
+        ['Capacity', v.capacity], ['Venue Type', v.type],
+        ['Law Enforcement', [pYN(ct.leOnSite) === 'Yes' ? ct.leAgency : '', pYN(ct.leOnSite) === 'Yes' ? '— officers on-site' : ''].filter(Boolean).join(' ')],
+        ['Talent Lodging', (addr(v) && addr(h) && addr(v).toLowerCase() === addr(h).toLowerCase()) ? 'On-site at venue' : (h.name || addr(h))],
+        ['Ops Center', pYN(comm.opsCenterOnSite) === 'Yes' ? 'On-site' + (pYN(comm.venueShareComms) === 'No' ? ' — venue does not share comms' : '') : '']])}
+    </div>
+    <div class="col">
+      <h2 class="sec">Critical Contacts</h2>
+      ${person(ct.primary, 'Venue Security — Primary')}
+      ${person(ct.backup, 'Venue Security — Backup')}
+      ${lead ? pContact('GenX — Security Lead', lead.name, lead.role, lead.phone, lead.email) : ''}
+    </div>
+  </div>`);
 
-  // 2. Lodging
-  const hasHotel = h.name || h.street || h.phone || h.checkin || h.checkout;
-  const sameAsVenue = hasHotel && addr(v) && addr(v).toLowerCase() === addr(h).toLowerCase();
-  if (hasHotel) {
-    out.push(pSection('Lodging'));
-    out.push(sameAsVenue
-      ? pKv([['Lodging', 'Talent lodging on-site at venue'],
-             ['Check-In', h.checkin ? formatDate(h.checkin) : ''],
-             ['Check-Out', h.checkout ? formatDate(h.checkout) : '']])
-      : pKv([['Hotel', h.name], ['Address', addr(h)], ['Phone', h.phone],
-             ['Check-In', h.checkin ? formatDate(h.checkin) : ''],
-             ['Check-Out', h.checkout ? formatDate(h.checkout) : '']]));
-  }
+  // Outstanding items, called out like the reference brief.
+  const gaps = [];
+  const gapIf = (label, val) => { if (!pHas(val)) gaps.push(label); };
+  gapIf('evacuation routing', ev.primaryExit); gapIf('rally point', ev.rallyPoint);
+  gapIf('safe rooms', (ev.safeRooms || []).filter(x => pHas(x)).join(''));
+  gapIf('EAP', ev.eapNotes); gapIf('lockdown protocol', ev.lockdownProtocol);
+  gapIf('venue staffing counts', st.totalSecurity); gapIf('cast & crew access route', ac.castCrewAccess);
+  gapIf('GenX arrival door/time', ac.teamArrival);
+  if (gaps.length) out.push(pCallout(`Advance status — ${gaps.length} item${gaps.length === 1 ? '' : 's'} outstanding from venue`,
+    gaps.join(', ').replace(/^./, c => c.toUpperCase()) + ' were not provided by the venue at time of publication. Close all items during the on-site walkthrough before doors.', true));
 
-  // 3. Timeline
-  out.push(pSection('Event Timeline'));
-  out.push(pKv([['Arrival', dt(tl.arrivalDate, tl.arrivalDateTBD)],
-    ['Show Day', dt(tl.showDate, tl.showDateTBD)], ['Show Time', tm(tl.showTime, tl.showTimeTBD)],
-    ['Doors', tm(tl.doorsTime, tl.doorsTimeTBD)], ['Departure', dt(tl.departureDate, tl.departureDateTBD)]]));
-  out.push(pText('Timeline Notes', tl.notes));
-
-  // 4. Security contacts
-  out.push(pSection('Security Contacts'));
-  const per = (o, label) => o && (o.name || o.cell || o.phone || o.email) ? [
-    [label + ' — Name', o.name], [label + ' — Title', o.title || o.role],
-    [label + ' — Cell', o.cell || o.phone], [label + ' — Email', o.email]] : [];
-  out.push(pKv([...per(ct.primary, 'Primary'), ...per(ct.backup, 'Backup'),
-    ['Law Enforcement On-Site', pYN(ct.leOnSite)], ['Agency', ct.leAgency]]));
-
-  // 5. Entry & screening
-  out.push(pSection('Entry & Guest Screening'));
+  // ── Body sections ──────────────────────────────────────────────────────────
+  out.push(pSec('Entry & Guest Screening'));
   const methods = [['evolv', 'Evolv'], ['magnetometer', 'Magnetometer'], ['wand', 'Wand'],
     ['bagCheck', 'Bag Check'], ['patDown', 'Pat Down'], ['visualInspection', 'Visual Inspection']]
     .filter(([k]) => ing[k]).map(([, l]) => l).join(', ');
-  out.push(pKv([['Screening Methods', methods], ['Ticketing', ing.ticketingType],
+  out.push(pData([['Screening Methods', methods], ['Ticketing', ing.ticketingType],
     ['Entry Points', ing.gateCount], ['Gates Open', ing.gateOpenTime ? formatTime(ing.gateOpenTime) : ''],
-    ['Prohibited Items', (ing.prohibitedItems || []).join(', ')]]));
-  out.push(pText('Entry Notes', ing.notes));
-  const crowdRows = pKv([['Barricade Needed', pYN(cw.barricadeNeeded)], ['Audience', cw.audienceType],
-    ['Barricade at Stage', pYN(cw.barricadeAtStage)]]);
-  if (crowdRows) { out.push(pSub('Crowd & Barricade')); out.push(crowdRows); }
+    ['Barricade Needed', pYN(cw.barricadeNeeded)], ['Audience', cw.audienceType],
+    ['Barricade At Stage', pYN(cw.barricadeAtStage)]]));
+  if ((ing.prohibitedItems || []).length) {
+    out.push(pSub('Prohibited Items'));
+    out.push(`<div class="chips">${(ing.prohibitedItems || []).map(i => `<div class="ban">${esc(i)}</div>`).join('')}</div>`);
+  }
+  out.push(pCallout('Entry Notes', ing.notes));
 
-  // 6. Staffing
-  out.push(pSection('Staffing'));
-  out.push(pKv([['Total Security', st.totalSecurity], ['Law Enforcement', st.leo],
-    ['Backstage Security', st.backstageSecurity], ['GenX Security', st.genxSecurity],
-    ['Uniformed', pYN(st.uniformed)], ['Uniform', st.uniformDesc]]));
-  out.push(pText('Staffing Notes', st.notes));
+  out.push(pSec('Staffing'));
+  out.push(`<div class="stats">
+    ${[['Total Security', st.totalSecurity], ['Law Enforcement', st.leo], ['Backstage', st.backstageSecurity], ['GenX Security', st.genxSecurity]]
+      .map(([l, n]) => `<div class="stat"><div class="n${pHas(n) ? '' : ' gap'}">${pHas(n) ? esc(String(n)) : '—'}</div><div class="l">${esc(l)}</div></div>`).join('')}
+  </div>`);
+  out.push(pData([['Uniformed', pYN(st.uniformed)], ['Uniform', st.uniformDesc]]));
+  out.push(pCallout('Staffing Notes', st.notes));
 
-  // 7. Medical
-  out.push(pSection('Medical & Emergency'));
-  out.push(pKv([['Trained Medical Staff On-Site', pYN(med.onSite)], ['Responder Count', med.firstResponderCount],
+  out.push(pSec('Medical & Emergency'));
+  out.push(pData([['Trained Medical Staff On-Site', pYN(med.onSite)], ['Responder Count', med.firstResponderCount],
     ['First Aid Location', med.firstAidLocations], ['AED On Site', pYN(med.aedOnSite)],
-    ['AED Near Stage', pYN(med.aedNearStage)], ['Medical to Green Room', pYN(med.toGreenRoom)]]));
-  out.push(pText('Emergency Protocol', med.emergencyProtocol));
-
-  // 8. Evacuation
-  out.push(pSection('Evacuation'));
-  out.push(pKv([['Primary Exit', ev.primaryExit], ['Secondary Exit', ev.secondaryExit],
-    ['Rally Point', ev.rallyPoint], ['Safe Rooms', (ev.safeRooms || []).join(', ')],
+    ['AED Near Stage', pYN(med.aedNearStage)], ['Medical To Green Room', pYN(med.toGreenRoom)],
     ['Announcement Method', med.announcementMethod]]));
-  out.push(pText('EAP Notes', ev.eapNotes));
-  out.push(pText('Lockdown Protocol', ev.lockdownProtocol));
-  out.push(pText('Weather Plan', ev.weatherPlan));
+  out.push(pCallout('Emergency Protocol', med.emergencyProtocol));
 
-  // 9. Meet & greet
-  out.push(pSection('Meet & Greet / Gift Policy'));
-  out.push(pKv([['Scheduled', pYN(mg.scheduled)], ['Time', mg.time], ['Duration', mg.duration],
+  out.push(pSec('Evacuation'));
+  out.push(pData([['Primary Exit', ev.primaryExit], ['Secondary Exit', ev.secondaryExit],
+    ['Rally Point', ev.rallyPoint], ['Safe Rooms', (ev.safeRooms || []).filter(x => pHas(x)).join(', ')]]));
+  out.push(pCallout('EAP Notes', ev.eapNotes));
+  out.push(pCallout('Lockdown Protocol', ev.lockdownProtocol));
+  out.push(pCallout('Weather Plan', ev.weatherPlan));
+
+  out.push(pSec('Meet & Greet / Gift Policy'));
+  out.push(pData([['Scheduled', pYN(mg.scheduled)], ['Time', mg.time], ['Duration', mg.duration],
     ['Location', mg.location], ['Total VIPs', mg.totalVips], ['GenX Staff Assigned', mg.genxStaff]]));
-  out.push(pText('M&G Protocol', mg.protocol));
-  out.push(pText('Gift Policy', mg.giftPolicy));
+  out.push(pCallout('M&G Protocol', mg.protocol));
+  out.push(pCallout('Gift Policy', mg.giftPolicy));
 
-  // 10. Communications
-  out.push(pSection('Communications'));
-  out.push(pKv([['Venue Shares Comms', pYN(comm.venueShareComms)],
-    ['Ops Center On Site', pYN(comm.opsCenterOnSite)], ['Security Operations', comm.securityOps],
-    ['Ops Phone', comm.securityOpsPhone], ['Cell Coverage OK', pYN(comm.cellOk)]]));
+  out.push(pSec('Communications'));
+  out.push(pData([['Venue Shares Comms', pYN(comm.venueShareComms)], ['Ops Center On Site', pYN(comm.opsCenterOnSite)],
+    ['Security Operations', comm.securityOps], ['Ops Phone', comm.securityOpsPhone], ['Cell Coverage OK', pYN(comm.cellOk)]]));
   const chans = (comm.channels || []).filter(c => c && (c.num || c.use));
-  if (chans.length) { out.push(pSub('Radio Channels'));
-    out.push(pTable(['Channel', 'Assignment'], chans.map(c => [esc(String(c.num || '')), esc(c.use || '')]))); }
-  out.push(pText('Comms Notes', comm.notes));
+  if (chans.length) {
+    out.push(pSub('Radio Channels'));
+    out.push(`<div class="chips">${chans.map(c => `<div class="chip"><b>Ch ${esc(String(c.num || ''))}</b>${esc(c.use || '')}</div>`).join('')}</div>`);
+  }
+  out.push(pCallout('Comms Notes', comm.notes));
 
-  // 11. Access control
-  out.push(pSection('Access Control'));
-  out.push(pKv([['Venue Access Devices', (ac.doorSystems || []).join(', ')],
+  out.push(pSec('Access Control'));
+  out.push(pData([['Venue Access Devices', (ac.doorSystems || []).join(', ')],
     ['Backstage Access-Controlled', pYN(ac.backstageControlled)],
-    ['Additional Credentials (Venue-Stated)', ac.additionalCredentials]]));
+    ['Additional Credentials (Venue-Stated)', ac.additionalCredentials],
+    ['CCTV Coverage', pYN((b.cctv || {}).coverage)], ['CCTV Monitored Live', pYN((b.cctv || {}).monitored)]]));
   const creds = (ac.credentials || []).filter(c => c && c.name);
-  if (creds.length) { out.push(pSub('Venue-Required Credentials'));
-    out.push(pTable(['Credential', 'Color', 'Access Level', 'Location'],
-      creds.map(c => [esc(c.name || ''), esc(c.color || ''), esc(c.level || ''), esc(c.location || '')]))); }
+  if (creds.length) {
+    out.push(pSub('Venue-Required Credentials'));
+    out.push(`<table class="sched"><thead><tr><th>Credential</th><th>Color</th><th>Access Level</th><th>Location</th></tr></thead>
+      <tbody>${creds.map(c => `<tr><td>${esc(c.name || '')}</td><td>${esc(c.color || '')}</td><td>${esc(c.level || '')}</td><td>${esc(c.location || '')}</td></tr>`).join('')}</tbody></table>`);
+  }
   const gc = ac.genxCred || {};
   if (gc.frontImage || gc.backImage || gc.name) {
-    out.push(pSub('GenX Security Credentials'));
-    out.push(pKv([['Credential', gc.name], ['Issued By', gc.issuedBy], ['Notes', gc.notes]]));
-    out.push(`<div class="pb-creds">
-      ${gc.frontImage ? `<figure><img src="${esc(gc.frontImage)}" alt=""><figcaption>Front</figcaption></figure>` : ''}
-      ${gc.backImage  ? `<figure><img src="${esc(gc.backImage)}" alt=""><figcaption>Back</figcaption></figure>` : ''}
+    out.push(pSub(`GenX Security Credentials${gc.name ? ' — ' + gc.name : ''}`));
+    out.push(`<div class="badges">
+      ${gc.frontImage ? `<div class="badgecard"><img src="${esc(gc.frontImage)}" alt=""><div class="cap">Front</div></div>` : ''}
+      ${gc.backImage ? `<div class="badgecard"><img src="${esc(gc.backImage)}" alt=""><div class="cap">Back</div></div>` : ''}
+      <div class="kv-inline">${gc.issuedBy ? `<div>Issued by <b>${esc(gc.issuedBy)}</b></div>` : ''}${gc.notes ? `<div class="muted">${esc(gc.notes)}</div>` : ''}</div>
     </div>`);
   }
-  if (b.cctv && (b.cctv.coverage || b.cctv.monitored || isContentValue(b.cctv.notes))) {
-    out.push(pSub('CCTV & Surveillance'));
-    out.push(pKv([['Coverage', pYN(b.cctv.coverage)], ['Monitored Live', pYN(b.cctv.monitored)]]));
-    out.push(pText('', b.cctv.notes));
-  }
-  out.push(pText('Cast & Crew Access', ac.castCrewAccess));
-  out.push(pText('GenX Arrival — Door / Meet / Time', ac.teamArrival));
-  out.push(pText('Parking Notes', ac.parkingNotes));
+  out.push(pCallout('Cast & Crew Access', ac.castCrewAccess));
+  out.push(pCallout('GenX Arrival — Door / Meet / Time', ac.teamArrival));
+  out.push(pCallout('Parking Notes', ac.parkingNotes));
+  out.push(pCallout('Camera Notes', (b.cctv || {}).notes));
 
-  // 12. Load in / out
-  out.push(pSection('Load In / Load Out'));
-  out.push(pKv([['Load In Date', li.loadinDate ? formatDate(li.loadinDate) : ''],
-    ['Load In Time', li.loadinTime ? formatTime(li.loadinTime) : ''], ['Dock Location', li.dockLocation],
-    ['Load Out Date', li.loadoutDate ? formatDate(li.loadoutDate) : ''],
-    ['Load Out Time', li.loadoutTime ? formatTime(li.loadoutTime) : ''],
+  out.push(pSec('Load In / Load Out'));
+  out.push(pData([['Load In', [li.loadinDate ? formatDate(li.loadinDate) : '', li.loadinTime ? formatTime(li.loadinTime) : ''].filter(Boolean).join(' · ')],
+    ['Dock Location', li.dockLocation],
+    ['Load Out', [li.loadoutDate ? formatDate(li.loadoutDate) : '', li.loadoutTime ? formatTime(li.loadoutTime) : ''].filter(Boolean).join(' · ')],
     ['Vehicle Count', li.vehicleCount], ['Security At Dock', pYN(li.securityAtDock)]]));
-  out.push(pText('Load In Notes', li.loadinNotes));
-  out.push(pText('Load Out Notes', li.loadoutNotes));
+  out.push(pCallout('Load In Notes', li.loadinNotes));
+  out.push(pCallout('Load Out Notes', li.loadoutNotes));
 
-  // 13. Run of show
-  const days = rosNormalizeDays(b.runofshow || []).filter(d => d.rows.length);
   if (days.length) {
-    out.push(pSection('Run of Show'));
-    days.forEach(d => {
-      if (days.length > 1) out.push(pSub(d.label));
-      out.push(pTable(['Time', 'Activity', 'Security Notes'], d.rows.map(r => [
-        `<span class="pb-time">${esc(r.time ? formatTime(r.time) : '')}</span>`,
-        (r.critical ? '<strong>' : '') + esc(r.activity || '') + (r.critical ? '</strong>' : ''),
-        esc(r.notes || '')])));
-    });
+    out.push(pSec('Run of Show'));
+    days.forEach(d => { if (days.length > 1) out.push(pSub(d.label)); out.push(pSched(d.rows)); });
   }
 
-  // 14-16. Personnel
-  if ((b.talent || []).length)    { out.push(pSection('Talent'));              out.push(pRoster(b.talent)); }
-  if ((b.crew || []).length)      { out.push(pSection('Crew & Production'));   out.push(pRoster(b.crew)); }
-  if ((b.genxstaff || []).length) { out.push(pSection('GenX Security Staff')); out.push(pRoster(b.genxstaff)); }
+  // No credential tag on talent — their role line already carries it.
+  if ((b.talent || []).length)    { out.push(pSec('Talent'));              out.push(pRoster(b.talent, '')); }
+  if ((b.crew || []).length)      { out.push(pSec('Crew & Production'));   out.push(pRoster(b.crew, '')); }
+  if ((b.genxstaff || []).length) { out.push(pSec('GenX Security Staff')); out.push(pRoster(b.genxstaff, 'GenX')); }
 
-  // 17. Emergency contacts
   if ((b.emergency || []).length) {
-    out.push(pSection('Emergency Contacts'));
-    out.push(pTable(['Role', 'Name', 'Phone', 'Email'], b.emergency.map(e =>
-      [esc(e.role || ''), esc(e.name || ''), esc(e.phone || ''), esc(e.email || '')])));
+    out.push(pSec('Emergency Contacts'));
+    out.push(`<table class="sched"><thead><tr><th>Role</th><th>Name</th><th>Phone</th><th>Email</th></tr></thead>
+      <tbody>${b.emergency.map(e => `<tr><td>${esc(e.role || '')}</td><td>${esc(e.name || '')}</td><td class="nowrap">${esc(e.phone || '')}</td><td>${esc(e.email || '')}</td></tr>`).join('')}</tbody></table>`);
   }
 
-  // 18. Maps
   const maps = (b.maps || []).filter(m => m.image);
   if (maps.length) {
-    out.push(pSection('Venue Maps & Diagrams'));
-    maps.forEach(m => out.push(`<figure class="pb-map">
-      <img src="${esc(m.image)}" alt="">
-      <figcaption>${esc(m.title || '')}${m.description ? ' — ' + esc(m.description) : ''}</figcaption>
-    </figure>`));
+    out.push(pSec('Venue Maps & Diagrams'));
+    maps.forEach(m => out.push(`<div class="mt-s"><img src="${esc(m.image)}" alt="" style="width:100%;max-height:6.4in;object-fit:contain;border:0.8pt solid var(--line);">
+      <div class="cap muted" style="font-size:7.4pt;margin-top:3pt;">${esc(m.title || '')}${m.description ? ' — ' + esc(m.description) : ''}</div></div>`));
   } else if (b.noMapsProvided) {
-    out.push(pSection('Venue Maps & Diagrams'));
-    out.push(`<p class="pb-p">No maps provided to security team.</p>`);
+    out.push(pSec('Venue Maps & Diagrams'));
+    out.push(`<div class="callout amber mt-s"><div class="t">No maps provided</div>The venue did not supply floor plans or diagrams.</div>`);
   }
 
-  out.push(pSectionsClose());
-  out.push(`<div class="pb-end">— End of Brief —</div>`);
-  out.push(`<div class="brief-print-tail" aria-hidden="true"></div>`);
   return out.filter(Boolean).join('\n');
 }
 
-// ── Email-friendly PDF export ────────────────────────────────────────────────
-// Uses the browser's print pipeline (which is the only thing that renders the
-// brief layout correctly) and pre-shrinks every photo to ~800px JPEG before
-// opening the print dialog. Three lessons baked in: (1) wait for every image
-// to fully load before measuring — otherwise huge maps with `naturalWidth=0`
-// get skipped and print at full resolution; (2) after swapping in a shrunk
-// data URI, wait for the swap to actually load — revert that specific image
-// if it doesn't, so a corrupted shrink never blanks a photo; (3) no timeout
-// fallback on restore — only afterprint — so a slow Save dialog never reverts
-// to full-res originals mid-print.
-// ── Print preview ────────────────────────────────────────────────────────────
-// Shows the printed brief on screen at true letter width with a dashed rule
-// drawn at every page boundary, so page breaks are visible before printing
-// rather than after. Same markup and the same measurements the printer uses.
-function togglePrintPreview() {
-  const on = document.body.classList.toggle('print-preview');
-  const label = document.getElementById('previewBtnLabel');
-  if (on) {
-    const pages = paginatePrintDocument(window._printBrief || {});
-    if (label) label.textContent = `Exit Preview · ${pages} page${pages === 1 ? '' : 's'}`;
-  } else if (label) {
-    label.textContent = 'Preview Pages';
-  }
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// Marks where each page actually begins, not where a ruler would fall. The
-// printer never splits a table row, a roster line, a figure or the badge pair
-// — anything that would straddle the boundary is pushed whole to the next page
-// — so the preview walks those same units and breaks where the printer will.
-// Drawing a line every page-height instead put the marker through the middle
-// of rows that never get cut.
-function drawPreviewPageBreaks() {
-  const doc = document.getElementById('printDocument');
-  if (!doc) return;
-  doc.querySelectorAll('.pp-break').forEach(el => el.remove());
-
-  markKeepTogether();
-
-  const pageH  = (11 - 0.7 - 1.15) * 96;   // letter less the printed margins, at 96dpi
-  const docTop = doc.getBoundingClientRect().top + window.scrollY;
-
-  // The atomic units the print rules guarantee are never split. A section that
-  // fits on a page is a single unit; a taller one is broken into its rows.
-  const units = [];
-  const push = el => {
-    if (!el.classList) return;
-    if (el.classList.contains('pp-break')) return;
-    if (el.classList.contains('pb-keep')) { units.push(el); return; }
-    if (el.tagName === 'TABLE') { el.querySelectorAll('tr').forEach(tr => units.push(tr)); return; }
-    if (el.tagName === 'SECTION') { for (const c of el.children) push(c); return; }
-    units.push(el);
-  };
-  for (const el of doc.children) push(el);
-
-  let pageStart = 0, page = 1, oversize = 0;
-  for (const u of units) {
-    const r   = u.getBoundingClientRect();
-    const top = r.top + window.scrollY - docTop;
-    if (r.height > pageH) { oversize++; continue; }   // taller than a page: it must split
-    if (top + r.height - pageStart > pageH) {
-      pageStart = top;
-      page += 1;
-      const rule = document.createElement('div');
-      rule.className = 'pp-break';
-      rule.style.top = top + 'px';
-      rule.dataset.page = 'Page ' + page;
-      doc.appendChild(rule);
-    }
-  }
-  const label = document.getElementById('previewBtnLabel');
-  if (label) label.textContent = `Exit Preview · ${page} page${page === 1 ? '' : 's'}`;
-  if (oversize) console.warn('[preview] %d block(s) taller than a page will split', oversize);
-}
-
-// Trailing slack is no longer needed. It existed because the old card layout
-// stranded whole boxes, so pagination added far more height than Safari's
-// estimate and the tail was dropped. The flat document wastes almost nothing,
-// Safari now reaches the end on its own, and the slack only produced a blank
-// final page. Kept at zero rather than deleted so the mechanism is here if a
-// much longer brief ever needs it.
 // ── Pagination ───────────────────────────────────────────────────────────────
 // The browser is not allowed to decide where pages break. The document is laid
 // out into fixed-height sheets in code — the same approach a hand-built brief
